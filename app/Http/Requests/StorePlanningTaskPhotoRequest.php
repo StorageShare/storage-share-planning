@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StorePlanningTaskPhotoRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        // Autorisatielogica kan hier worden toegevoegd, bijv. controleren of de gebruiker
+        // eigenaar is van de planningstaak of de juiste permissies heeft.
+        // Voor nu, laten we het open voor ingelogde gebruikers (indien API-authenticatie actief is).
+        return true; 
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'photo' => 'required|image|mimes:jpg,jpeg,png,gif|max:5120', // Max 5MB
+            // Optioneel: velden voor bijschrift, etc.
+            // 'caption' => 'nullable|string|max:255',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'photo.required' => 'Een fotobestand is verplicht.',
+            'photo.image' => 'Het bestand moet een afbeelding zijn.',
+            'photo.mimes' => 'De foto moet een JPG, JPEG, PNG of GIF zijn.',
+            'photo.max' => 'De foto mag maximaal 5MB groot zijn.',
+        ];
+    }
+}

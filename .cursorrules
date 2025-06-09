@@ -1,0 +1,8 @@
+---
+globs: *.php
+---
+- Gebruik PascalCase voor klassen
+- Gebruik camelCase voor variabelen en methoden
+- Gebruik Eloquent ORM voor database-interacties
+- Gebruik Blade templates voor views
+- Voeg RESTful API-routes toe voor mobiele/tablet-app
