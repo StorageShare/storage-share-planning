@@ -10,7 +10,7 @@
 
     <div class="py-4 text-center">
         <a href="/">
-            <img src="{{ asset('build/assets/logo-staand-dark-blue.png') }}" alt="Storage Share Logo" class="h-20 w-auto inline-block mb-4">
+            <img src="{{ asset('images/logo-staand-dark-blue.png') }}" alt="Storage Share Logo" class="h-20 w-auto inline-block mb-4">
         </a>
         <p class="text-gray-600 dark:text-gray-400 mb-4">
             Inloggen is alleen mogelijk met een geautoriseerd @storage-share.nl Google account.

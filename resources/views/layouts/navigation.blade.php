@@ -6,8 +6,8 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
-                        <img src="{{ asset('build/assets/beeldmerk-blue-dark.png') }}" alt="Logo" class="block dark:hidden h-9 w-auto">
-                        <img src="{{ asset('build/assets/beeldmerk-wit.png') }}" alt="Logo" class="hidden dark:block h-9 w-auto">
+                        <img src="{{ asset('images/beeldmerk-blue-dark.png') }}" alt="Logo" class="block dark:hidden h-9 w-auto">
+                        <img src="{{ asset('images/beeldmerk-wit.png') }}" alt="Logo" class="hidden dark:block h-9 w-auto">
                     </a>
                 </div>
 

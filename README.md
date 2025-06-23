@@ -18,6 +18,17 @@ GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 
 **Note:** Zonder API key zal de applicatie geschatte reistijden gebruiken (15-25 minuten per segment).
 
+### Assets Deployment
+Deze applicatie gebruikt statische assets (logo's) die in de `public/images` directory staan. Zorg ervoor dat bij deployment:
+
+1. De `public/images` directory bestaat en de juiste permissies heeft
+2. De logo bestanden aanwezig zijn:
+   - `logo-staand-dark-blue.png`
+   - `beeldmerk-blue-dark.png`
+   - `beeldmerk-wit.png`
+
+Deze bestanden zijn nodig voor de juiste weergave van logo's in de applicatie.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
