@@ -6,7 +6,7 @@ set -e
 echo "🚀 Starting deployment..."
 
 # Navigate to project directory
-cd /home/master/applications/jouw-app-id/public_html
+cd /home/master/applications/planning/public_html
 
 # Pull latest changes
 echo "📥 Pulling latest changes from Bitbucket..."
