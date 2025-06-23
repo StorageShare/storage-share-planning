@@ -30,7 +30,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/travel-times/sequence', [TravelTimeController::class, 'calculateSequence']);
 });
 
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->middleware('auth:sanctum')->name('api.')->group(function () {
     Route::apiResource('locations', LocationController::class);
     Route::apiResource('default-tasks', DefaultTaskController::class);
 
