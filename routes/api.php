@@ -30,6 +30,15 @@ Route::prefix('v1')->group(function () {
     Route::post('/travel-times/sequence', [TravelTimeController::class, 'calculateSequence']);
 });
 
+// Offline API endpoints - using web auth for session-based authentication
+Route::prefix('v1/offline')->middleware(['web', 'auth'])->name('api.offline.')->group(function () {
+    Route::get('/planning/{planning}/full', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'getFullPlanningData']);
+    Route::get('/planning/{planning}/sync-status', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'checkSyncStatus']);
+    Route::post('/sync/planning-tasks', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPlanningTasks']);
+    Route::post('/sync/photos', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPhotos']);
+    Route::get('/sync/status', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'getSyncStatus']);
+});
+
 Route::prefix('v1')->middleware('auth:sanctum')->name('api.')->group(function () {
     Route::apiResource('locations', LocationController::class);
     Route::apiResource('default-tasks', DefaultTaskController::class);
@@ -42,15 +51,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->name('api.')->group(function ()
     // komen door shallow() direct onder /v1/tasks/{task}
 
     Route::apiResource('plannings', PlanningControllerV1::class);
-
-    // Offline API endpoints
-    Route::prefix('offline')->group(function () {
-        Route::get('/planning/{planning}/full', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'getFullPlanningData']);
-        Route::get('/planning/{planning}/sync-status', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'checkSyncStatus']);
-        Route::post('/sync/planning-tasks', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPlanningTasks']);
-        Route::post('/sync/photos', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPhotos']);
-        Route::get('/sync/status', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'getSyncStatus']);
-    });
 
     // Specifieke routes voor Task Photos
     // POST /v1/tasks/{task}/photos - Upload foto voor een taak

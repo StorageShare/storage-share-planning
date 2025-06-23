@@ -8,7 +8,8 @@
         <!-- PWA Meta Tags -->
         <link rel="manifest" href="/manifest.json">
         <meta name="theme-color" content="#3b82f6">
-        <meta name="auth-token" content="{{ auth()->user()?->createToken('web')->plainTextToken ?? '' }}">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="auth-user" content="{{ auth()->check() ? auth()->id() : '' }}">
         
         <!-- PWA Apple Touch Icons -->
         <meta name="apple-mobile-web-app-capable" content="yes">

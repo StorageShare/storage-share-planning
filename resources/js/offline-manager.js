@@ -83,10 +83,10 @@ class OfflinePlanningManager {
         try {
             const response = await fetch(`/api/v1/offline/planning/${planningId}/full`, {
                 headers: {
-                    'Authorization': `Bearer ${this.getAuthToken()}`,
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': this.getCsrfToken()
-                }
+                },
+                credentials: 'same-origin'
             });
             
             if (!response.ok) {
@@ -215,11 +215,11 @@ class OfflinePlanningManager {
             const response = await fetch('/api/v1/offline/sync/planning-tasks', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.getAuthToken()}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': this.getCsrfToken()
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     completions: pendingCompletions
                 })
@@ -268,11 +268,11 @@ class OfflinePlanningManager {
             const response = await fetch('/api/v1/offline/sync/photos', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.getAuthToken()}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': this.getCsrfToken()
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     photos: pendingPhotos
                 })
@@ -362,9 +362,9 @@ class OfflinePlanningManager {
     }
     
     getAuthToken() {
-        // Get Sanctum token from meta tag or localStorage
-        const token = document.querySelector('meta[name="auth-token"]')?.getAttribute('content');
-        return token || localStorage.getItem('auth_token') || '';
+        // For session-based authentication, we'll use CSRF token
+        // If you want to use API tokens later, install Laravel Sanctum
+        return this.getCsrfToken();
     }
 
     getCsrfToken() {
