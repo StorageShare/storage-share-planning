@@ -4,6 +4,16 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        
+        <!-- PWA Meta Tags -->
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#3b82f6">
+        <meta name="auth-token" content="{{ auth()->user()?->createToken('web')->plainTextToken ?? '' }}">
+        
+        <!-- PWA Apple Touch Icons -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="Planning App">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
@@ -82,8 +92,94 @@
                     </div>
                 </div>
             @endif
+            
+            <!-- Offline Status Indicator -->
+            <div x-data="offlineStatus()" 
+                 x-init="init()"
+                 class="fixed top-4 left-4 z-50">
+                 
+                <!-- Online status -->
+                <div x-show="isOnline && pendingSync === 0" 
+                     x-transition
+                     class="bg-green-500 text-white px-3 py-2 rounded-lg shadow-lg">
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Online</span>
+                    </div>
+                </div>
+                
+                <!-- Offline status -->
+                <div x-show="!isOnline" 
+                     x-transition
+                     class="bg-red-500 text-white px-3 py-2 rounded-lg shadow-lg">
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Offline</span>
+                    </div>
+                </div>
+                
+                <!-- Pending sync -->
+                <div x-show="pendingSync > 0" 
+                     x-transition
+                     class="bg-orange-500 text-white px-3 py-2 rounded-lg shadow-lg">
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm font-medium" x-text="`${pendingSync} items te sync`"></span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         @stack('scripts')
+        
+        <script>
+        function offlineStatus() {
+            return {
+                isOnline: navigator.onLine,
+                pendingSync: 0,
+                syncInProgress: false,
+                
+                init() {
+                    // Listen to online/offline events
+                    window.addEventListener('online', () => {
+                        this.isOnline = true;
+                        if (window.offlinePlanningManager) {
+                            window.offlinePlanningManager.attemptSync();
+                        }
+                    });
+                    
+                    window.addEventListener('offline', () => {
+                        this.isOnline = false;
+                    });
+                    
+                    // Check pending sync count every 5 seconds
+                    setInterval(async () => {
+                        if (window.offlinePlanningManager) {
+                            try {
+                                const counts = await window.offlinePlanningManager.getPendingSyncCount();
+                                this.pendingSync = counts.total;
+                            } catch (error) {
+                                console.error('Error getting pending sync count:', error);
+                            }
+                        }
+                    }, 5000);
+                    
+                    // Listen to sync events
+                    if (window.offlinePlanningManager) {
+                        window.offlinePlanningManager.onSyncStatusChange((status) => {
+                            this.syncInProgress = status.syncInProgress;
+                        });
+                    }
+                }
+            }
+        }
+        </script>
     </body>
 </html>

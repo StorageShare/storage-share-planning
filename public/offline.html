@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Planning App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .offline-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #f3f4f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        .offline-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+        
+        .offline-message {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+        
+        .offline-status {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .retry-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .retry-button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        
+        .retry-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .features-list {
+            text-align: left;
+            margin: 20px 0;
+            padding: 0;
+            list-style: none;
+        }
+        
+        .features-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .features-list li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .online-indicator {
+            display: none;
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #047857;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .online .online-indicator {
+            display: block;
+        }
+        
+        .online .offline-status {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">
+            📵
+        </div>
+        
+        <h1 class="offline-title">Je bent offline</h1>
+        
+        <div class="offline-status">
+            Geen internetverbinding gevonden. De app werkt beperkt offline.
+        </div>
+        
+        <div class="online-indicator">
+            Internetverbinding hersteld! Je kunt nu weer online werken.
+        </div>
+        
+        <div class="offline-message">
+            Geen zorgen! Je kunt nog steeds werken aan je planning. 
+            Zodra je weer online bent, worden al je wijzigingen automatisch gesynchroniseerd.
+        </div>
+        
+        <ul class="features-list">
+            <li>Planning bekijken en uitvoeren</li>
+            <li>Taken voltooien met foto's</li>
+            <li>Benodigdheden afvinken</li>
+            <li>Automatische synchronisatie bij online komen</li>
+        </ul>
+        
+        <button class="retry-button" onclick="window.location.reload()">
+            Opnieuw proberen
+        </button>
+        
+        <div style="margin-top: 20px; font-size: 12px; color: #9ca3af;">
+            <a href="/my-planning" style="color: #3b82f6; text-decoration: none;">
+                Ga naar Mijn Planning
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Check online status
+        function updateOnlineStatus() {
+            const body = document.body;
+            const retryButton = document.querySelector('.retry-button');
+            
+            if (navigator.onLine) {
+                body.classList.add('online');
+                retryButton.textContent = 'Ga verder';
+                retryButton.disabled = false;
+            } else {
+                body.classList.remove('online');
+                retryButton.textContent = 'Opnieuw proberen';
+                retryButton.disabled = false;
+            }
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Initial check
+        updateOnlineStatus();
+        
+        // Check for pending sync data
+        function checkPendingSync() {
+            if (window.offlinePlanningManager) {
+                window.offlinePlanningManager.getPendingSyncCount().then(counts => {
+                    if (counts.total > 0) {
+                        const statusDiv = document.querySelector('.offline-status');
+                        if (statusDiv && navigator.onLine) {
+                            statusDiv.innerHTML = `
+                                <strong>Synchroniseren...</strong><br>
+                                ${counts.total} items wachten op synchronisatie
+                            `;
+                            statusDiv.style.background = '#fef3c7';
+                            statusDiv.style.borderColor = '#f59e0b';
+                        }
+                    }
+                }).catch(console.error);
+            }
+        }
+        
+        // Check every 5 seconds
+        setInterval(checkPendingSync, 5000);
+        checkPendingSync();
+    </script>
+</body>
+</html> 

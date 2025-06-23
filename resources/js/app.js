@@ -8,6 +8,8 @@ import 'tom-select/dist/css/tom-select.default.css';
 import flatpickr from "flatpickr";
 import 'flatpickr/dist/flatpickr.min.css';
 import '../css/flatpickr-custom.css';
+import './offline-manager.js';
+
 
 window.Alpine = Alpine;
 window.TomSelect = TomSelect;
