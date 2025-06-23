@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Location;
 use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Http\Resources\LocationResource;
+use App\Models\Location;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,9 +27,10 @@ class LocationController extends Controller
     public function store(StoreLocationRequest $request): JsonResponse
     {
         $location = Location::create($request->validated());
+
         return (new LocationResource($location))
-                ->response()
-                ->setStatusCode(Response::HTTP_CREATED);
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -48,6 +49,7 @@ class LocationController extends Controller
     public function update(UpdateLocationRequest $request, Location $location): LocationResource
     {
         $location->update($request->validated());
+
         return new LocationResource($location);
     }
 
@@ -57,6 +59,7 @@ class LocationController extends Controller
     public function destroy(Location $location): JsonResponse
     {
         $location->delete();
+
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }

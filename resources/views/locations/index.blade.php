@@ -179,7 +179,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('locationSearchInput');
         const searchForm = document.getElementById('locationSearchForm');
-        const searchTermFromServer = "@json($searchTerm ?? '')";
+        const searchTermFromServer = @json($searchTerm ?? '');
         let debounceTimer;
 
         // Function to set focus and cursor at the end of the input

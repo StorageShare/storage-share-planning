@@ -38,9 +38,18 @@ class UpdateTaskRequest extends FormRequest
                 'string',
                 // Voorbeeld als je een Enum zou gebruiken:
                 // Rule::in(array_column(TaskStatusEnum::cases(), 'value'))
-                Rule::in(['open', 'in_progress', 'completed']) // Pas aan met je daadwerkelijke statussen
+                Rule::in(['open', 'in_progress', 'completed']), // Pas aan met je daadwerkelijke statussen
             ],
             'priority' => ['sometimes', 'required', Rule::in(TaskPriority::values())],
+            'photos' => 'nullable|array|max:10',
+            'photos.*' => 'image|mimes:jpg,jpeg,png,gif,webp|max:20480',
+            'benodigdheden' => 'nullable|array',
+            'benodigdheden.*' => 'integer|exists:benodigdheden,id',
+            'end_day_action_title' => 'nullable|string|max:255',
+            'end_day_action_description' => 'nullable|string',
+            'is_recurring' => 'nullable|boolean',
+            'recurring_interval_type' => 'nullable|required_if:is_recurring,1|in:days,weeks,months,years',
+            'recurring_interval_value' => 'nullable|required_if:is_recurring,1|integer|min:1|max:365',
         ];
     }
 }

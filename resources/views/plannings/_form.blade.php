@@ -1,62 +1,80 @@
 @csrf
 <div class="space-y-6">
+    <div>
+        <label for="planned_date" class="block text-sm font-medium mb-2 dark:text-gray-300">Geplande datum</label>
+        <div class="relative">
+            <input type="text" name="planned_date" id="planned_date" value="{{ old('planned_date', isset($planning) ? $planning->planned_date->format('Y-m-d') : now()->format('Y-m-d')) }}" class="datepicker py-3 px-4 pl-11 block w-full border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('planned_date') border-red-500 @enderror" placeholder="Selecteer een datum">
+            <div class="absolute inset-y-0 left-0 flex items-center pointer-events-none z-20 ps-4">
+                <svg class="flex-shrink-0 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <rect width="18" height="18" x="3" y="4" rx="2" />
+                    <path d="M3 10h18" />
+                </svg>
+            </div>
+        </div>
+        @error('planned_date')
+        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+        @enderror
+    </div>
 
     {{-- Two Column Layout --}}
+
     <div class="md:grid md:grid-cols-12 md:gap-x-8">
         {{-- Left Column: Locations --}}
         <div class="md:col-span-5 space-y-3">
             <div>
                 <label class="block text-sm font-medium mb-2 dark:text-gray-300">Locatie(s) <span class="text-xs text-gray-500 dark:text-gray-400">(meerdere selecteren mogelijk)</span></label>
-                
+
                 {{-- Filter Input --}}
                 <div class="mb-3">
                     <input type="text" id="location_filter_input" placeholder="Filter locaties op naam..." class="py-2 px-3 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
                 </div>
 
                 @php
-                    $old_location_ids = collect(old('location_ids', $current_selected_location_ids ?? ($selected_location_id ? [$selected_location_id] : []) ))->map(fn($id) => (string)$id);
+                $old_location_ids = collect(old('location_ids', $current_selected_location_ids ?? ($selected_location_id ? [$selected_location_id] : []) ))->map(fn($id) => (string)$id);
                 @endphp
                 <div class="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto border border-gray-200 rounded-md p-3 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
                     @forelse($locations as $location_option)
-                        @php
-                            $location_id_str = (string)$location_option->id;
-                            $priority_counts = $backlogPriorityCountsByLocation[$location_option->id] ?? [];
-                            $total_time = $backlogTotalEstimatedTimeByLocation[$location_option->id] ?? 0;
-                            
-                            $count_high = $priority_counts['high'] ?? ($priority_counts[App\Enums\TaskPriority::HIGH->value] ?? 0);
-                            $count_normal = $priority_counts['normal'] ?? ($priority_counts[App\Enums\TaskPriority::NORMAL->value] ?? 0);
-                            $count_low = $priority_counts['low'] ?? ($priority_counts[App\Enums\TaskPriority::LOW->value] ?? 0);
-                        @endphp
-                        <div class="location-item relative flex items-start p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors duration-150 dark:border-gray-700 dark:hover:bg-gray-800">
-                            <div class="flex items-center h-5 mt-1">
-                                <input type="checkbox"
-                                       name="location_ids[]"
-                                       id="location_{{ $location_option->id }}"
-                                       value="{{ $location_option->id }}"
-                                       class="location-checkbox shrink-0 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500"
-                                       {{ $old_location_ids->contains($location_id_str) ? 'checked' : '' }}>
-                            </div>
-                            <label for="location_{{ $location_option->id }}" class="ms-3 flex-grow cursor-pointer">
-                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $location_option->name }}</span>
-                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
-                                    <p>Open Taken:
-                                        <span class="font-medium text-red-600">H:</span> {{ $count_high }},
-                                        <span class="font-medium text-blue-600">N:</span> {{ $count_normal }},
-                                        <span class="font-medium text-gray-500">L:</span> {{ $count_low }}
-                                    </p>
-                                    <p>Totale Tijd: <span class="font-medium">{{ $total_time }} min</span></p>
-                                </div>
-                            </label>
+                    @php
+                    $location_id_str = (string)$location_option->id;
+                    $priority_counts = $backlogPriorityCountsByLocation[$location_option->id] ?? [];
+                    $total_time = $backlogTotalEstimatedTimeByLocation[$location_option->id] ?? 0;
+
+                    $count_high = $priority_counts['high'] ?? ($priority_counts[App\Enums\TaskPriority::HIGH->value] ?? 0);
+                    $count_normal = $priority_counts['normal'] ?? ($priority_counts[App\Enums\TaskPriority::NORMAL->value] ?? 0);
+                    $count_low = $priority_counts['low'] ?? ($priority_counts[App\Enums\TaskPriority::LOW->value] ?? 0);
+                    @endphp
+                    <div class="location-item relative flex items-start p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors duration-150 dark:border-gray-700 dark:hover:bg-gray-800">
+                        <div class="flex items-center h-5 mt-1">
+                            <input type="checkbox"
+                                name="location_ids[]"
+                                id="location_{{ $location_option->id }}"
+                                value="{{ $location_option->id }}"
+                                class="location-checkbox shrink-0 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500"
+                                {{ $old_location_ids->contains($location_id_str) ? 'checked' : '' }}>
                         </div>
+                        <label for="location_{{ $location_option->id }}" class="ms-3 flex-grow cursor-pointer">
+                            <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $location_option->name }}</span>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
+                                <p>Open Taken:
+                                    <span class="font-medium text-red-600">H:</span> {{ $count_high }},
+                                    <span class="font-medium text-blue-600">N:</span> {{ $count_normal }},
+                                    <span class="font-medium text-gray-500">L:</span> {{ $count_low }}
+                                </p>
+                                <p>Totale Tijd: <span class="font-medium">{{ $total_time }} min</span></p>
+                            </div>
+                        </label>
+                    </div>
                     @empty
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Geen locaties beschikbaar.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Geen locaties beschikbaar.</p>
                     @endforelse
                 </div>
                 @error('location_ids')
-                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                 @enderror
                 @error('location_ids.*')
-                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                 @enderror
             </div>
         </div>
@@ -64,10 +82,7 @@
         {{-- Right Column: Tasks by Location --}}
         <div class="md:col-span-7 space-y-4 mt-6 md:mt-0">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Geselecteerde Taken</h3>
-            <div class="mb-3 p-3 border border-dashed border-blue-300 bg-blue-50 rounded-md dark:bg-blue-900/20 dark:border-blue-700">
-                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Totaal Geselecteerde Tijd:</span>
-                <span id="total_selected_time_display" class="text-sm font-bold text-blue-800 dark:text-blue-200">0 min</span>
-            </div>
+            
             <div class="space-y-4 max-h-[calc(100vh-22rem)] overflow-y-auto border border-gray-200 rounded-md p-4 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700" id="tasks_by_location_container">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Selecteer eerst een of meerdere locaties om de bijbehorende taken te zien.</p>
             </div>
@@ -81,29 +96,109 @@
 
     {{-- Fields below the columns --}}
     <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-5">
-        <div>
-            <label for="planned_date" class="block text-sm font-medium mb-2 dark:text-gray-300">Geplande datum</label>
-            <input type="date" name="planned_date" id="planned_date" value="{{ old('planned_date', isset($planning) ? $planning->planned_date->format('Y-m-d') : now()->format('Y-m-d')) }}" class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('planned_date') border-red-500 @enderror">
-            @error('planned_date')
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label for="start_address_option" class="block text-sm font-medium mb-2 dark:text-gray-300">Startpunt</label>
+                <select name="start_address_option" id="start_address_option" class="py-3 px-4 block w-full border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
+                    <option value="Kantoor, Isolatorweg 30 1014 AS Amsterdam" @if(old('start_address_option', $planning->start_address ?? '') == 'Kantoor, Isolatorweg 30 1014 AS Amsterdam') selected @endif>Kantoor, Isolatorweg 30 1014 AS Amsterdam</option>
+                    <option value="Zuidwolde" @if(old('start_address_option', $planning->start_address ?? '') == 'Zuidwolde') selected @endif>Zuidwolde</option>
+                    <option value="Gijs" @if(old('start_address_option', $planning->start_address ?? '') == 'Gijs') selected @endif>Gijs</option>
+                    <option value="Anders" @if(old('start_address_option')=='Anders' || (isset($planning) && !in_array($planning->start_address, ['Kantoor, Isolatorweg 30 1014 AS Amsterdam', 'Zuidwolde', 'Gijs']))) selected @endif>Anders</option>
+                </select>
+
+                <div id="start_address_custom_wrapper" class="mt-2" style="display: none;">
+                    <label for="start_address_custom" class="sr-only">Aangepast startpunt</label>
+                    <input type="text" name="start_address_custom" id="start_address_custom" value="{{ old('start_address_custom', (isset($planning) && !in_array($planning->start_address, ['Kantoor, Isolatorweg 30 1014 AS Amsterdam', 'Zuidwolde', 'Gijs'])) ? $planning->start_address : '') }}" class="py-3 px-4 block w-full border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300" placeholder="Bijv. Hoofdstraat 1, Amsterdam (gebruikt voor reistijd berekening)">
+                </div>
+                @error('start_address')
                 <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
+                @enderror
+
+                {{-- Hidden field to store the computed start address value --}}
+                <input type="hidden" name="start_address" id="start_address" value="{{ old('start_address', $planning->start_address ?? 'Kantoor, Isolatorweg 30 1014 AS Amsterdam') }}">
+            </div>
+            <div>
+                <label for="start_time" class="block text-sm font-medium mb-2 dark:text-gray-300">Starttijd</label>
+                <input type="time" name="start_time" id="start_time" value="{{ old('start_time', (isset($planning) && $planning->start_time) ? \Carbon\Carbon::parse($planning->start_time)->format('H:i') : '08:00') }}" class="py-3 px-4 block w-full border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('start_time') border-red-500 @enderror">
+                @error('start_time')
+                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                @enderror
+            </div>
         </div>
 
         <div>
-            <label for="notes" class="block text-sm font-medium mb-2 dark:text-gray-300">Notities</label>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Volgorde Locaties</h3>
+            <div id="sortable_locations_container" class="space-y-2 p-3 border border-dashed border-gray-300 rounded-md bg-gray-50 min-h-[50px] dark:bg-gray-800 dark:border-gray-600">
+                {{-- Sortable location items will be injected here by JavaScript --}}
+            </div>
+            <input type="hidden" name="location_order" id="location_order_input">
+
+            {{-- Travel time information --}}
+            <div id="travel_times_container" class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg" style="display: none;">
+                <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-2">Reistijden</h4>
+                <div id="travel_times_content" class="space-y-2 text-sm text-blue-700 dark:text-blue-300">
+                    {{-- Travel times will be injected here --}}
+                </div>
+                <div id="total_travel_time" class="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 font-medium text-blue-800 dark:text-blue-200">
+                    {{-- Total travel time will be shown here --}}
+                </div>
+            </div>
+        </div>
+
+        {{-- Time Overview --}}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-700">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                    <div>
+                        <p class="text-xs font-medium text-green-800 dark:text-green-200">Taken</p>
+                        <p class="text-sm font-bold text-green-900 dark:text-green-100" id="total_task_time_display">0 min</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <div>
+                        <p class="text-xs font-medium text-blue-800 dark:text-blue-200">Reistijd</p>
+                        <p class="text-sm font-bold text-blue-900 dark:text-blue-100" id="total_travel_time_display">0 min</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-700">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p class="text-xs font-medium text-purple-800 dark:text-purple-200">Totaal</p>
+                        <p class="text-sm font-bold text-purple-900 dark:text-purple-100" id="grand_total_time_display">0 min</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label for="notes" class="block text-sm font-medium mb-2 dark:text-gray-300">Notities/instructies</label>
             <textarea name="notes" id="notes" rows="3" class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('notes') border-red-500 @enderror">{{ old('notes', $planning->notes ?? '') }}</textarea>
             @error('notes')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
             @enderror
         </div>
 
         <div>
             <label for="users" class="block text-sm font-medium mb-2 dark:text-gray-300">Users</label>
-            <select name="user_ids[]" id="users" multiple class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
+            <select name="user_ids[]" id="user_select" multiple class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300" placeholder="Selecteer gebruikers...">
                 @foreach ($users as $user)
-                    <option value="{{ $user->id }}" {{ (isset($planning) && $planning->users->contains($user->id)) || (is_array(old('user_ids')) && in_array($user->id, old('user_ids'))) ? 'selected' : '' }}>
-                        {{ $user->name }}
-                    </option>
+                <option value="{{ $user->id }}" {{ (isset($planning) && $planning->users->contains($user->id)) || (is_array(old('user_ids')) && in_array($user->id, old('user_ids'))) ? 'selected' : '' }}>
+                    {{ $user->name }}
+                </option>
                 @endforeach
             </select>
         </div>
@@ -114,12 +209,14 @@
     data-locations="{{ json_encode($locations->map(fn($loc) => ['id' => $loc->id, 'name' => $loc->name])) }}"
     data-default-tasks-by-location="{{ json_encode($defaultTasksByLocation ?? []) }}"
     data-backlog-tasks-by-location="{{ json_encode($backlogTasksByLocation ?? []) }}"
+    data-planned-backlog-tasks="{{ json_encode($plannedBacklogTasks ?? []) }}"
+    data-plannings-show-route="{{ route('plannings.show', ['planning' => 'REPLACE_ID']) }}"
     data-backlog-priority-counts-by-location="{{ json_encode($backlogPriorityCountsByLocation ?? []) }}"
     data-backlog-total-estimated-time-by-location="{{ json_encode($backlogTotalEstimatedTimeByLocation ?? []) }}"
     data-old-selected-location-ids="{{ json_encode(old('location_ids') ?? []) }}"
     data-old-selected-default-tasks="{{ json_encode(old('selected_default_tasks') ?? []) }}"
     data-old-selected-backlog-tasks="{{ json_encode(old('selected_backlog_tasks') ?? []) }}"
-    data-has-old-input="{{ old() ? 'true' : 'false' }}" 
+    data-has-old-input="{{ old() ? 'true' : 'false' }}"
     data-current-selected-location-ids="{{ json_encode($current_selected_location_ids ?? []) }}"
     data-current-selected-default-tasks="{{ json_encode($current_selected_default_tasks ?? []) }}"
     data-current-selected-backlog-tasks="{{ json_encode($current_selected_backlog_tasks ?? []) }}"
@@ -138,19 +235,23 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const scriptDataElement = document.getElementById('planning_form_script_data');
         const locationCheckboxes = document.querySelectorAll('input[name="location_ids[]"].location-checkbox');
         const tasksByLocationContainer = document.getElementById('tasks_by_location_container');
         const locationFilterInput = document.getElementById('location_filter_input');
         const locationItems = document.querySelectorAll('.location-item');
+        const sortableLocationsContainer = document.getElementById('sortable_locations_container');
+        const locationOrderInput = document.getElementById('location_order_input');
+        const plannedBacklogTasks = JSON.parse(scriptDataElement.dataset.plannedBacklogTasks || '{}');
+        const planningShowRouteTemplate = scriptDataElement.dataset.planningsShowRoute;
 
         const allLocationsData = JSON.parse(scriptDataElement.dataset.locations);
         const defaultTasksByLocation = JSON.parse(scriptDataElement.dataset.defaultTasksByLocation);
         const backlogTasksByLocation = JSON.parse(scriptDataElement.dataset.backlogTasksByLocation);
         const backlogPriorityCountsByLocation = JSON.parse(scriptDataElement.dataset.backlogPriorityCountsByLocation);
         const backlogTotalEstimatedTimeByLocation = JSON.parse(scriptDataElement.dataset.backlogTotalEstimatedTimeByLocation);
-        
+
         const oldSelectedDefaultTasks = JSON.parse(scriptDataElement.dataset.oldSelectedDefaultTasks);
         const oldSelectedBacklogTasks = JSON.parse(scriptDataElement.dataset.oldSelectedBacklogTasks);
         const hasOldInput = scriptDataElement.dataset.hasOldInput === 'true';
@@ -160,7 +261,7 @@
         const currentSelectedBacklogTasks = JSON.parse(scriptDataElement.dataset.currentSelectedBacklogTasks);
         const isEditMode = scriptDataElement.dataset.isEditMode === 'true';
         const initialSelectedLocationIds = JSON.parse(scriptDataElement.dataset.initialSelectedLocationIds).map(id => id.toString());
-        
+
         // --- BEGINNING OF MODIFICATIONS FOR STATE PRESERVATION ---
         const liveSelectedDefaultTaskIds = new Set(
             (hasOldInput ? oldSelectedDefaultTasks : (isEditMode ? currentSelectedDefaultTasks : [])).map(id => String(id))
@@ -170,9 +271,9 @@
         );
         let createModeInitialDefaultTasksAdded = false;
         // --- END OF MODIFICATIONS FOR STATE PRESERVATION ---
-        
+
         if (locationFilterInput) {
-            locationFilterInput.addEventListener('input', function () {
+            locationFilterInput.addEventListener('input', function() {
                 const filterValue = this.value.toLowerCase().trim();
                 locationItems.forEach(item => {
                     const locationNameElement = item.querySelector('label > span.block.text-sm.font-semibold');
@@ -209,10 +310,17 @@
 
             tasks.forEach(task => {
                 const div = document.createElement('div');
-                div.className = 'flex items-start ps-2 py-1.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 rounded-sm dark:border-gray-800 dark:hover:bg-gray-800'; // items-start for multi-line label
-                
+                let isPlannedElsewhere = false;
+                let plannedInfo = null;
+
+                if (taskType === 'backlog_tasks') {
+                    plannedInfo = plannedBacklogTasks[task.id];
+                    isPlannedElsewhere = !!plannedInfo;
+                }
+
+                div.className = `flex items-start ps-2 py-1.5 border-b border-gray-100 last:border-b-0 ${isPlannedElsewhere ? 'opacity-60' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} rounded-sm dark:border-gray-800`;
+
                 const taskIdName = `${taskType}_loc_${locationIdForTaskName}_task_${task.id}`;
-                
                 const taskIdStr = task.id.toString();
                 let isChecked = selectedTaskIdsSet.has(taskIdStr);
 
@@ -225,7 +333,10 @@
 
                 let descriptionHtml = '';
                 if (task.description) {
-                    descriptionHtml = `<span class="block text-xs text-gray-500 ps-0 mt-0.5 dark:text-gray-400">${escapeHtml(task.description)}</span>`;
+                    const truncatedDescription = task.description.length > 60 ?
+                        task.description.substring(0, 60) + '...' :
+                        task.description;
+                    descriptionHtml = `<span class="inline-block text-xs text-gray-500 ps-0 mt-0.5 dark:text-gray-400 task-description-tooltip cursor-help" data-tooltip-content="${escapeHtml(task.description)}">${escapeHtml(truncatedDescription)}</span>`;
                 }
 
                 let priorityHtml = '';
@@ -233,28 +344,46 @@
                     priorityHtml = `<span class="ms-2 text-xs font-medium px-1.5 py-0.5 rounded-full ${getPriorityClass(task.priority.value)}">${escapeHtml(task.priority.label)}</span>`;
                 }
 
+                let plannedElsewhereHtml = '';
+                if (isPlannedElsewhere) {
+                    const url = planningShowRouteTemplate.replace('REPLACE_ID', plannedInfo.planning_id);
+                    plannedElsewhereHtml = `
+                        <span class="block text-xs text-orange-600 dark:text-orange-400 font-semibold ps-0 mt-1">
+                            Al in planning: <a href="${url}" target="_blank" class="underline hover:text-orange-800 dark:hover:text-orange-200">${escapeHtml(plannedInfo.planning_title)}</a>
+                        </span>`;
+                }
+
                 div.innerHTML = `
-                    <input id="${taskIdName}" name="selected_${taskType}[]" type="checkbox" value="${task.id}" ${isChecked ? 'checked' : ''} class="shrink-0 mt-1 border-gray-300 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none task-checkbox dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500" data-estimated-time="${taskEstimatedTime}">
+                    <input id="${taskIdName}" name="selected_${taskType}[]" type="checkbox" value="${task.id}" ${isChecked ? 'checked' : ''} ${isPlannedElsewhere ? 'disabled' : ''} class="shrink-0 mt-1 border-gray-300 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none task-checkbox dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500" data-estimated-time="${taskEstimatedTime}" data-location-id="${locationIdForTaskName}">
                     <label for="${taskIdName}" class="ms-3 text-sm text-gray-800 cursor-pointer flex-grow dark:text-gray-200">
                         <div class="flex items-center">
                             <span class="font-medium">${escapeHtml(task.title)}</span>
+                            ${task.applies_to_all_locations ? '<span class="ml-2 px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">🌍 Alle locaties</span>' : ''}
                             ${timeHtml}
                             ${priorityHtml}
                         </div>
                         ${descriptionHtml}
+                        ${plannedElsewhereHtml}
                     </label>
                 `;
+
+                // Add event listener to update location times when checkbox changes
+                const checkbox = div.querySelector('input.task-checkbox');
+                checkbox.addEventListener('change', function() {
+                    updateSelectedTasksTotalTime(); // This will also update location times
+                });
+
                 parentElement.appendChild(div);
             });
         }
 
         function populateTasks() {
             const selectedLocationIds = Array.from(locationCheckboxes)
-                                            .filter(checkbox => checkbox.checked)
-                                            .map(checkbox => checkbox.value);
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
 
-            tasksByLocationContainer.innerHTML = ''; 
-            
+            tasksByLocationContainer.innerHTML = '';
+
             if (selectedLocationIds.length === 0) {
                 tasksByLocationContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Selecteer eerst een of meerdere locaties om de bijbehorende taken te zien.</p>';
                 updateSelectedTasksTotalTime(); // Update total time even when empty
@@ -300,18 +429,22 @@
             });
             updateSelectedTasksTotalTime(); // Call after populating tasks
         }
-        
+
         function getPriorityClass(priorityValue) {
             // Ensure priorityValue is treated as a string for matching if it's not already (e.g. from enum object)
             const priorityStr = String(priorityValue).toLowerCase();
             switch (priorityStr) {
-                case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-                case 'normal': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-                case 'low': return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-                default: return 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
+                case 'high':
+                    return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                case 'normal':
+                    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                case 'low':
+                    return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                default:
+                    return 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
             }
         }
-        
+
         function getLocationNameById(locationId) {
             const foundLocation = allLocationsData.find(loc => loc.id.toString() === locationId.toString());
             return foundLocation ? foundLocation.name : 'Onbekende Locatie';
@@ -320,7 +453,7 @@
         function updateSelectedTasksTotalTime() {
             let totalMinutes = 0;
             const checkedTaskCheckboxes = tasksByLocationContainer.querySelectorAll('input.task-checkbox:checked');
-            
+
             checkedTaskCheckboxes.forEach(checkbox => {
                 totalMinutes += parseInt(checkbox.dataset.estimatedTime) || 0;
             });
@@ -335,43 +468,512 @@
             if (minutes > 0 || totalMinutes === 0) { // Show '0 min' if total is zero
                 displayTime += `${minutes} min`;
             }
-            
+
             displayTime = displayTime.trim();
             if (displayTime === '') { // Should not happen if we show '0 min'
-                 displayTime = '0 min';
+                displayTime = '0 min';
             }
 
-            document.getElementById('total_selected_time_display').textContent = displayTime;
+            document.getElementById('total_task_time_display').textContent = displayTime;
+
+            // Update location time displays in sortable list
+            updateLocationTimesInSortableList();
+            
+            // Update grand total
+            updateGrandTotal();
+        }
+
+        function updateLocationTimesInSortableList() {
+            // Calculate time per location
+            const timePerLocation = {};
+
+            const checkedTaskCheckboxes = tasksByLocationContainer.querySelectorAll('input.task-checkbox:checked');
+            checkedTaskCheckboxes.forEach(checkbox => {
+                const locationId = checkbox.dataset.locationId;
+                const estimatedTime = parseInt(checkbox.dataset.estimatedTime) || 0;
+
+                if (!timePerLocation[locationId]) {
+                    timePerLocation[locationId] = 0;
+                }
+                timePerLocation[locationId] += estimatedTime;
+            });
+
+            // Update the display in sortable list
+            const sortableItems = sortableLocationsContainer.querySelectorAll('.sortable-item');
+            sortableItems.forEach(item => {
+                const locationId = item.dataset.locationId;
+                const totalMinutes = timePerLocation[locationId] || 0;
+
+                let timeDisplay = '';
+                if (totalMinutes > 0) {
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+
+                    if (hours > 0) {
+                        timeDisplay = `${hours}u ${minutes}m`;
+                    } else {
+                        timeDisplay = `${minutes}m`;
+                    }
+                } else {
+                    timeDisplay = '0m';
+                }
+
+                // Update or add time display
+                let timeSpan = item.querySelector('.location-time');
+                if (!timeSpan) {
+                    timeSpan = document.createElement('span');
+                    timeSpan.className = 'location-time ml-auto text-xs text-gray-500 dark:text-gray-400 font-medium';
+                    item.appendChild(timeSpan);
+                }
+                timeSpan.textContent = timeDisplay;
+            });
+        }
+
+        function updateTasksForSelectedLocations() {
+            // --- PRESERVE CURRENT TASK SELECTIONS BEFORE REPOPULATING ---
+            const currentlyCheckedDefaultTasks = tasksByLocationContainer.querySelectorAll('input[name="selected_default_tasks[]"]:checked');
+            const currentlyCheckedBacklogTasks = tasksByLocationContainer.querySelectorAll('input[name="selected_backlog_tasks[]"]:checked');
+
+            // Update the live sets with current selections
+            liveSelectedDefaultTaskIds.clear();
+            currentlyCheckedDefaultTasks.forEach(checkbox => {
+                liveSelectedDefaultTaskIds.add(checkbox.value);
+            });
+
+            liveSelectedBacklogTaskIds.clear();
+            currentlyCheckedBacklogTasks.forEach(checkbox => {
+                liveSelectedBacklogTaskIds.add(checkbox.value);
+            });
+            // --- END PRESERVE SELECTIONS ---
+
+            // --- Sortable List Update ---
+            const checkedCheckboxes = Array.from(locationCheckboxes).filter(cb => cb.checked);
+
+            // Update sortable list based on checked status
+            sortableLocationsContainer.innerHTML = '';
+            const currentOrder = locationOrderInput.value.split(',').filter(id => id);
+
+            // Re-add based on existing order first
+            currentOrder.forEach(id => {
+                const checkbox = document.getElementById(`location_${id}`);
+                if (checkbox && checkbox.checked) {
+                    const locationName = checkbox.closest('.location-item').querySelector('label > span.block.text-sm.font-semibold').textContent;
+                    addLocationToSortableList(id, locationName);
+                }
+            });
+
+            // Add any newly checked items that weren't in the order
+            checkedCheckboxes.forEach(checkbox => {
+                if (!currentOrder.includes(checkbox.value)) {
+                    const locationName = checkbox.closest('.location-item').querySelector('label > span.block.text-sm.font-semibold').textContent;
+                    addLocationToSortableList(checkbox.value, locationName);
+                }
+            });
+
+            updateLocationOrderInput();
+            // --- End Sortable List Update ---
+
+            // *** THIS IS THE FIX: Call populateTasks to update the task list ***
+            populateTasks();
         }
 
         locationCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                populateTasks(); // This will call updateSelectedTasksTotalTime() at the end
-                if (locationFilterInput && this.checked) {
-                    // locationFilterInput.value = ''; // Clear filter on select (optional)
-                    // locationFilterInput.dispatchEvent(new Event('input')); // Trigger filter update
+                updateTasksForSelectedLocations(); // This function now also handles the sortable list
+            });
+        });
+
+        // Initialize SortableJS
+        const sortable = new window.Sortable(sortableLocationsContainer, {
+            animation: 150,
+            ghostClass: 'bg-blue-100',
+            onEnd: function() {
+                updateLocationOrderInput();
+            }
+        });
+
+        function updateLocationOrderInput() {
+            const locationIds = Array.from(sortableLocationsContainer.children).map(item => item.dataset.locationId);
+            locationOrderInput.value = locationIds.join(',');
+
+            // Calculate travel times when order changes
+            calculateTravelTimes(locationIds);
+        }
+
+        function calculateTravelTimes(locationIds) {
+            if (locationIds.length < 2) {
+                document.getElementById('travel_times_container').style.display = 'none';
+                // Reset travel time display
+                document.getElementById('total_travel_time_display').textContent = '0 min';
+                updateGrandTotal();
+                return;
+            }
+
+            // Get the start address from the hidden field
+            const startAddressElement = document.getElementById('start_address');
+            const startAddress = startAddressElement ? startAddressElement.value.trim() : '';
+
+            // Debug logging
+            console.log('Calculating travel times with:', {
+                locationIds: locationIds,
+                startAddress: startAddress,
+                startAddressOption: document.getElementById('start_address_option')?.value
+            });
+
+            // Check if "Anders" is selected but no custom address is provided
+            const startAddressOption = document.getElementById('start_address_option');
+            if (startAddressOption && startAddressOption.value === 'Anders' && !startAddress) {
+                // Show message that custom address is needed for travel time calculation
+                const travelTimesContainer = document.getElementById('travel_times_container');
+                const travelTimesContent = document.getElementById('travel_times_content');
+                const totalTravelTime = document.getElementById('total_travel_time');
+
+                travelTimesContainer.style.display = 'block';
+                travelTimesContent.innerHTML = '<div class="flex items-center text-amber-600"><svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>Vul een startadres in om reistijden te berekenen</div>';
+                totalTravelTime.innerHTML = '';
+                return;
+            }
+
+            // Show loading state
+            const travelTimesContainer = document.getElementById('travel_times_container');
+            const travelTimesContent = document.getElementById('travel_times_content');
+            const totalTravelTime = document.getElementById('total_travel_time');
+
+            travelTimesContainer.style.display = 'block';
+            travelTimesContent.innerHTML = '<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Reistijden berekenen...</div>';
+            totalTravelTime.innerHTML = '';
+
+            // Make API call
+            fetch('/api/v1/travel-times/sequence', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        location_ids: locationIds.map(id => parseInt(id)),
+                        start_address: startAddress || null
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTravelTimes(data.data);
+                    } else {
+                        travelTimesContent.innerHTML = '<div class="text-red-600">Fout bij berekenen reistijden</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error calculating travel times:', error);
+                    travelTimesContent.innerHTML = '<div class="text-red-600">Fout bij berekenen reistijden</div>';
+                });
+        }
+
+        function displayTravelTimes(travelData) {
+            const travelTimesContent = document.getElementById('travel_times_content');
+            const totalTravelTime = document.getElementById('total_travel_time');
+
+            let html = '';
+
+            travelData.segments.forEach((segment, index) => {
+                const isReturn = segment.is_return || false;
+                const iconColor = isReturn ? 'text-green-600' : 'text-blue-600';
+                const returnLabel = isReturn ? ' (terug)' : '';
+                
+                html += `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                ${isReturn ? 
+                                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>' :
+                                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>'
+                                }
+                            </svg>
+                            <span>${segment.from} → ${segment.to}${returnLabel}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium">${segment.duration_minutes} min</span>
+                            ${segment.distance_km > 0 ? `<span class="text-gray-500">(${segment.distance_km} km)</span>` : ''}
+                            ${segment.error ? `<span class="text-yellow-600 text-xs">(geschat)</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            travelTimesContent.innerHTML = html;
+            totalTravelTime.innerHTML = `Totale reistijd: ${travelData.total_duration_formatted}`;
+            
+            // Update time overview displays
+            const travelMinutes = travelData.total_duration_minutes;
+            document.getElementById('total_travel_time_display').textContent = formatMinutes(travelMinutes);
+            
+            // Update grand total
+            updateGrandTotal();
+        }
+        
+        function formatMinutes(minutes) {
+            if (minutes < 60) {
+                return minutes + ' min';
+            }
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = minutes % 60;
+            if (remainingMinutes === 0) {
+                return hours + 'u';
+            }
+            return hours + 'u ' + remainingMinutes + 'm';
+        }
+        
+        function updateGrandTotal() {
+            const taskTimeText = document.getElementById('total_task_time_display').textContent;
+            const travelTimeText = document.getElementById('total_travel_time_display').textContent;
+            
+            // Extract minutes from text
+            const taskMinutes = extractMinutesFromText(taskTimeText);
+            const travelMinutes = extractMinutesFromText(travelTimeText);
+            const totalMinutes = taskMinutes + travelMinutes;
+            
+            document.getElementById('grand_total_time_display').textContent = formatMinutes(totalMinutes);
+        }
+        
+        function extractMinutesFromText(text) {
+            if (text.includes('u')) {
+                const parts = text.split('u');
+                const hours = parseInt(parts[0]) || 0;
+                const minutePart = parts[1].replace('m', '').trim();
+                const minutes = minutePart ? parseInt(minutePart) : 0;
+                return hours * 60 + minutes;
+            } else {
+                return parseInt(text.replace(' min', '')) || 0;
+            }
+        }
+
+        function addLocationToSortableList(locationId, locationName) {
+            if (document.querySelector(`#sortable_locations_container .sortable-item[data-location-id="${locationId}"]`)) {
+                return; // Already exists
+            }
+            const div = document.createElement('div');
+            div.dataset.locationId = locationId;
+            div.className = 'sortable-item flex items-center p-2 bg-white border rounded-md shadow-sm cursor-grab active:cursor-grabbing dark:bg-gray-900 dark:border-gray-700';
+            div.innerHTML = `
+                <svg class="w-5 h-5 text-gray-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-200 flex-grow">${escapeHtml(locationName)}</span>
+                <span class="location-time ml-auto text-xs text-gray-500 dark:text-gray-400 font-medium">0m</span>
+            `;
+            sortableLocationsContainer.appendChild(div);
+
+            // Update time display for this location
+            updateLocationTimesInSortableList();
+        }
+
+        function removeLocationFromSortableList(locationId) {
+            const item = document.querySelector(`#sortable_locations_container .sortable-item[data-location-id="${locationId}"]`);
+            if (item) {
+                item.remove();
+            }
+        }
+
+        function initializeSortableList() {
+            const initialLocationIds = JSON.parse(scriptDataElement.dataset.initialSelectedLocationIds || '[]');
+            const allLocations = JSON.parse(scriptDataElement.dataset.locations || '[]');
+            const locationsById = Object.fromEntries(allLocations.map(loc => [loc.id, loc.name]));
+
+            initialLocationIds.forEach(id => {
+                if (locationsById[id]) {
+                    addLocationToSortableList(id, locationsById[id]);
+                }
+            });
+            updateLocationOrderInput();
+
+            // Calculate initial travel times if there are locations
+            if (initialLocationIds.length >= 2) {
+                calculateTravelTimes(initialLocationIds);
+            }
+        }
+
+        // Final setup on DOMContentLoaded
+        initializeSortableList();
+        populateTasks();
+
+        const startAddressOption = document.getElementById('start_address_option');
+        const customAddressWrapper = document.getElementById('start_address_custom_wrapper');
+        const customAddressInput = document.getElementById('start_address_custom');
+
+        // Listen for changes in start address to recalculate travel times
+        function recalculateTravelTimesForStartAddress() {
+            const sortableItems = Array.from(sortableLocationsContainer.children);
+            const locationIds = sortableItems.map(item => item.dataset.locationId);
+            if (locationIds.length >= 2) {
+                calculateTravelTimes(locationIds);
+            }
+        }
+
+        function toggleCustomAddressInput() {
+            if (startAddressOption.value === 'Anders') {
+                customAddressWrapper.style.display = 'block';
+            } else {
+                customAddressWrapper.style.display = 'none';
+                customAddressInput.value = ''; // Clear the input when another option is selected
+            }
+            updateStartAddressHiddenField(true); // Always recalculate when changing dropdown option
+        }
+
+        function updateStartAddressHiddenField(shouldRecalculate = false) {
+            const hiddenStartAddress = document.getElementById('start_address');
+            if (hiddenStartAddress) {
+                if (startAddressOption.value === 'Anders') {
+                    // For custom address, use the custom input value (can be empty)
+                    hiddenStartAddress.value = customAddressInput.value.trim();
+                } else {
+                    // For predefined options, use the selected value
+                    hiddenStartAddress.value = startAddressOption.value;
+                }
+            }
+
+            // Debug logging
+            console.log('Updated hidden field:', {
+                option: startAddressOption.value,
+                customInput: customAddressInput.value,
+                hiddenValue: hiddenStartAddress ? hiddenStartAddress.value : 'null',
+                isCustom: startAddressOption.value === 'Anders',
+                shouldRecalculate: shouldRecalculate
+            });
+
+            // Only recalculate if explicitly requested
+            if (shouldRecalculate) {
+                const isCustom = startAddressOption.value === 'Anders';
+                const hasAddress = hiddenStartAddress && hiddenStartAddress.value.trim() !== '';
+
+                if (!isCustom || hasAddress) {
+                    recalculateTravelTimesForStartAddress();
+                } else {
+                    // For empty custom address, still trigger to show the warning message
+                    recalculateTravelTimesForStartAddress();
+                }
+            }
+        }
+
+        startAddressOption.addEventListener('change', toggleCustomAddressInput);
+
+        // Update hidden field during typing but don't recalculate
+        customAddressInput.addEventListener('input', function() {
+            updateStartAddressHiddenField(false); // Update field but don't recalculate
+        });
+
+        // Only recalculate when user leaves the field (blur) or presses Enter
+        customAddressInput.addEventListener('blur', function() {
+            updateStartAddressHiddenField(true); // Recalculate when leaving field
+        });
+
+        customAddressInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                updateStartAddressHiddenField(true); // Recalculate on Enter
+            }
+        });
+
+        // Run on page load to set initial state
+        toggleCustomAddressInput();
+        updateStartAddressHiddenField(false); // Don't recalculate on initial load
+
+        // Initialize Tippy.js tooltips for task descriptions
+        function initializeTooltips() {
+            if (typeof tippy !== 'undefined') {
+                tippy('.task-description-tooltip', {
+                    content(reference) {
+                        return reference.getAttribute('data-tooltip-content');
+                    },
+                    placement: 'top',
+                    theme: 'custom',
+                    arrow: true,
+                    delay: [300, 100],
+                    maxWidth: 300,
+                    interactive: false,
+                    hideOnClick: true
+                });
+            }
+        }
+
+        // Initialize tooltips on page load
+        initializeTooltips();
+
+        // Re-initialize tooltips when tasks are added/removed dynamically
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Small delay to ensure DOM is updated
+                    setTimeout(initializeTooltips, 100);
                 }
             });
         });
 
-        // Event delegation for dynamically added task checkboxes
-        tasksByLocationContainer.addEventListener('change', function(event) {
-            if (event.target.classList.contains('task-checkbox')) {
-                const taskId = event.target.value;
-                const isChecked = event.target.checked;
-                const taskNameAttr = event.target.name; // e.g., "selected_default_tasks[]"
-
-                if (taskNameAttr.includes('default_tasks')) {
-                    isChecked ? liveSelectedDefaultTaskIds.add(taskId) : liveSelectedDefaultTaskIds.delete(taskId);
-                } else if (taskNameAttr.includes('backlog_tasks')) {
-                    isChecked ? liveSelectedBacklogTaskIds.add(taskId) : liveSelectedBacklogTaskIds.delete(taskId);
-                }
-                updateSelectedTasksTotalTime();
-            }
-        });
-
-        // Initial population of tasks and total time
-        populateTasks();
+        // Observe changes in the tasks container
+        const tasksContainer = document.getElementById('tasks_by_location_container');
+        if (tasksContainer) {
+            observer.observe(tasksContainer, {
+                childList: true,
+                subtree: true
+            });
+        }
     });
 </script>
-@endpush 
+
+<!-- Tippy.js CDN -->
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<!-- Custom Tippy.js styling -->
+<style>
+    /* Light mode - lichte achtergrond */
+    .tippy-box[data-theme~='custom'] {
+        background-color: #f9fafb;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.4;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .tippy-box[data-theme~='custom'][data-placement^='top']>.tippy-arrow::before {
+        border-top-color: #f9fafb;
+    }
+
+    .tippy-box[data-theme~='custom'][data-placement^='bottom']>.tippy-arrow::before {
+        border-bottom-color: #f9fafb;
+    }
+
+    .tippy-box[data-theme~='custom'][data-placement^='left']>.tippy-arrow::before {
+        border-left-color: #f9fafb;
+    }
+
+    .tippy-box[data-theme~='custom'][data-placement^='right']>.tippy-arrow::before {
+        border-right-color: #f9fafb;
+    }
+
+    /* Dark mode - donkere achtergrond */
+    @media (prefers-color-scheme: dark) {
+        .tippy-box[data-theme~='custom'] {
+            background-color: #1f2937;
+            color: #f9fafb;
+            border: 1px solid #374151;
+        }
+
+        .tippy-box[data-theme~='custom'][data-placement^='top']>.tippy-arrow::before {
+            border-top-color: #1f2937;
+        }
+
+        .tippy-box[data-theme~='custom'][data-placement^='bottom']>.tippy-arrow::before {
+            border-bottom-color: #1f2937;
+        }
+
+        .tippy-box[data-theme~='custom'][data-placement^='left']>.tippy-arrow::before {
+            border-left-color: #1f2937;
+        }
+
+        .tippy-box[data-theme~='custom'][data-placement^='right']>.tippy-arrow::before {
+            border-right-color: #1f2937;
+        }
+    }
+</style>
+@endpush

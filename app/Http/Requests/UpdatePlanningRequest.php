@@ -2,14 +2,31 @@
 
 namespace App\Http\Requests;
 
+use App\Models\DefaultTask;
+use App\Models\Location;
+use App\Models\Task;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\Location;
-use App\Models\DefaultTask;
-use App\Models\Task;
 
 class UpdatePlanningRequest extends FormRequest
 {
+    /**
+     * Prepare the data for validation.
+     *
+     * @return void
+     */
+    protected function prepareForValidation()
+    {
+        $startAddress = $this->input('start_address_option');
+        if ($startAddress === 'Anders') {
+            $startAddress = $this->input('start_address_custom');
+        }
+
+        $this->merge([
+            'start_address' => $startAddress,
+        ]);
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -35,6 +52,10 @@ class UpdatePlanningRequest extends FormRequest
             'location_ids.*' => ['integer', Rule::exists(Location::class, 'id')],
             'planned_date' => 'required|date',
             'notes' => 'nullable|string',
+            'start_address_option' => 'required|string',
+            'start_address_custom' => 'nullable|string|required_if:start_address_option,Anders|max:255',
+            'start_address' => 'required|string|max:255',
+            'start_time' => 'nullable|date_format:H:i',
             'user_ids' => 'nullable|array',
             'user_ids.*' => ['integer', Rule::exists(\App\Models\User::class, 'id')],
             'selected_default_tasks' => 'nullable|array',
@@ -44,10 +65,10 @@ class UpdatePlanningRequest extends FormRequest
                 function ($attribute, $value, $fail) use ($selected_location_ids) {
                     $defaultTask = DefaultTask::with('locations')->find($value);
                     // Check of de default task gekoppeld is aan minstens één van de geselecteerde locaties
-                    if (!$defaultTask || $defaultTask->locations->pluck('id')->intersect($selected_location_ids)->isEmpty()) {
+                    if (! $defaultTask || $defaultTask->locations->pluck('id')->intersect($selected_location_ids)->isEmpty()) {
                         $fail("De geselecteerde standaardtaak '{$defaultTask->title}' hoort niet bij de gekozen locatie(s).");
                     }
-                }
+                },
             ],
             'selected_backlog_tasks' => 'nullable|array',
             'selected_backlog_tasks.*' => [
@@ -55,22 +76,25 @@ class UpdatePlanningRequest extends FormRequest
                 Rule::exists(Task::class, 'id'),
                 function ($attribute, $value, $fail) use ($planning_id, $selected_location_ids) {
                     $task = Task::find($value);
-                    if (!$task) {
+                    if (! $task) {
                         $fail("De geselecteerde backlog taak ({$value}) bestaat niet.");
+
                         return;
                     }
                     // Valideer dat de backlog taak bij één van de geselecteerde locaties hoort
-                    if (!in_array($task->location_id, $selected_location_ids)) {
+                    if (! in_array($task->location_id, $selected_location_ids)) {
                         $fail("De geselecteerde backlog taak '{$task->title}' hoort niet bij de gekozen locatie(s).");
+
                         return;
                     }
                     // Valideer status
-                    if (!in_array($task->status, ['open', 'in_progress'])) {
-                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: " . $task->status);
+                    if (! in_array($task->status->value, ['open', 'in_progress'])) {
+                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->value);
+
                         return;
                     }
                     // Check of de taak al aan een *andere* actieve planning is gekoppeld
-                    $query = $task->planningTasks()->whereHas('planning', function($q) use ($planning_id) {
+                    $query = $task->planningTasks()->whereHas('planning', function ($q) use ($planning_id) {
                         if ($planning_id) {
                             $q->where('id', '!=', $planning_id);
                         }
@@ -79,7 +103,7 @@ class UpdatePlanningRequest extends FormRequest
                     if ($query->exists()) {
                         $fail("De backlog taak '{$task->title}' is al aan een andere planning toegewezen.");
                     }
-                }
+                },
             ],
         ];
     }

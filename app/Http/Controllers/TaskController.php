@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Location;
-use App\Models\Task;
 use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
+use App\Events\LocationCompleted;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
-use Illuminate\Http\Request;
+use App\Models\Location;
+use App\Models\Task;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -31,15 +33,15 @@ class TaskController extends Controller
         $sortByInput = $request->input('sort_by');
         $sortDirectionInput = $request->input('sort_direction');
 
-        if (!$sortByInput) {
+        if (! $sortByInput) {
             // DEFAULT SORTING (no sort parameters in URL)
             $query->orderByRaw('deadline IS NULL ASC, deadline ASC') // Tasks with deadlines first (earliest), then tasks without deadlines
-                  ->orderByRaw("CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC", [
-                      TaskPriority::HIGH->value,
-                      TaskPriority::NORMAL->value,
-                      TaskPriority::LOW->value
-                  ]) // Priority ASC (High > Normal > Low)
-                  ->orderBy('created_at', 'desc'); // Created_at DESC (Newest first)
+                ->orderByRaw('CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
+                    TaskPriority::HIGH->value,
+                    TaskPriority::NORMAL->value,
+                    TaskPriority::LOW->value,
+                ]) // Priority ASC (High > Normal > Low)
+                ->orderBy('created_at', 'desc'); // Created_at DESC (Newest first)
 
             // Set $sortBy and $sortDirection for the view to reflect the conceptual default primary sort
             $sortBy = 'deadline'; // Default view state reflects deadline as primary of the set
@@ -47,7 +49,7 @@ class TaskController extends Controller
         } else {
             // USER SPECIFIED SORTING
             $sortBy = $sortByInput;
-            if (!in_array($sortBy, $sortableColumns)) {
+            if (! in_array($sortBy, $sortableColumns)) {
                 $sortBy = 'created_at'; // Fallback if invalid column
                 $sortDirection = 'desc';
             } else {
@@ -57,7 +59,7 @@ class TaskController extends Controller
             // Apply primary user-defined sort
             if ($sortBy === 'priority') {
                 $query->orderByRaw(
-                    "CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END " . $sortDirection,
+                    'CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END '.$sortDirection,
                     [TaskPriority::HIGH->value, TaskPriority::NORMAL->value, TaskPriority::LOW->value]
                 );
             } elseif ($sortBy === 'deadline') {
@@ -75,9 +77,9 @@ class TaskController extends Controller
                 $query->orderByRaw('ISNULL(deadline) ASC, deadline ASC');
             }
             if ($sortBy !== 'priority') {
-                 $query->orderByRaw("CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC", [
-                      TaskPriority::HIGH->value, TaskPriority::NORMAL->value, TaskPriority::LOW->value
-                  ]);
+                $query->orderByRaw('CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
+                    TaskPriority::HIGH->value, TaskPriority::NORMAL->value, TaskPriority::LOW->value,
+                ]);
             }
             if ($sortBy !== 'created_at') {
                 $query->orderBy('created_at', 'desc');
@@ -87,17 +89,17 @@ class TaskController extends Controller
         }
 
         // Search functionality
-        if (!empty($searchTerm)) {
+        if (! empty($searchTerm)) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                    ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             });
         }
 
         // Filter functionality
         if ($activeFilter) {
             match ($activeFilter) {
-                'open' => $query->where('status', '!=', 'completed'),
+                'open' => $query->whereNotIn('status', ['completed', 'rejected']),
                 'completed' => $query->where('status', '=', 'completed'),
                 'priority_high' => $query->where('priority', TaskPriority::HIGH),
                 'priority_normal' => $query->where('priority', TaskPriority::NORMAL),
@@ -116,6 +118,9 @@ class TaskController extends Controller
         }
 
         $tasks = $query->paginate(15)->withQueryString();
+
+        // Eager load planning relationships
+        $tasks->load(['planningTasks.planning']);
 
         return view('tasks.index', compact(
             'location',
@@ -137,12 +142,12 @@ class TaskController extends Controller
 
         $locationsQuery = Location::query();
 
-        if (!empty($searchTerm)) {
+        if (! empty($searchTerm)) {
             $locationsQuery->whereRaw('LOWER(name) LIKE ?', [strtolower("%{$searchTerm}%")]);
         }
 
         $locations = $locationsQuery->orderBy('name')->get();
-        
+
         return view('tasks.select-location', compact('locations', 'searchTerm'));
     }
 
@@ -150,9 +155,14 @@ class TaskController extends Controller
      * Show the form for creating a new resource for a specific location.
      * De 'create' route is vaak /locations/{location}/tasks/create
      */
-    public function create(Location $location): View
+    public function create(Request $request, Location $location): View
     {
-        return view('tasks.create', compact('location'));
+        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
+        
+        // Get prefilled data from session (if redirected from rejected checklist item)
+        $prefill = session('prefill', []);
+        
+        return view('tasks.create', compact('location', 'benodigdheden', 'prefill'));
     }
 
     /**
@@ -167,6 +177,37 @@ class TaskController extends Controller
 
         $new_task = $location->tasks()->create($validatedData); // Assign to variable to use in message if needed
 
+        // Sync benodigdheden
+        if (!empty($validatedData['benodigdheden'])) {
+            $new_task->benodigdheden()->sync($validatedData['benodigdheden']);
+        }
+
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            $imageService = app(\App\Services\ImageService::class);
+            
+            foreach ($request->file('photos') as $file) {
+                $filename = uniqid('tp_'.$new_task->id.'_', true).'.'.$file->getClientOriginalExtension();
+                
+                try {
+                    $path = $imageService->saveCompressedImage(
+                        $file,
+                        'task-photos/'.$new_task->id,
+                        $filename,
+                        'public'
+                    );
+
+                    $new_task->taskPhotos()->create([
+                        'file_path' => $path,
+                        'uploaded_at' => now(),
+                    ]);
+                } catch (\Exception $e) {
+                    // Log the error but don't fail the task creation
+                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: ' . $e->getMessage());
+                }
+            }
+        }
+
         // Redirect to the main backlog page with a success message.
         return redirect()->route('backlog.index')->with('success', "Taak \"{$new_task->title}\" succesvol aangemaakt en toegevoegd aan de backlog.");
     }
@@ -175,11 +216,29 @@ class TaskController extends Controller
      * Display the specified resource.
      * Door 'shallow nesting' is de route vaak /tasks/{task}
      */
-    public function show(Task $task): View
+    public function show(Request $request, Task $task): View
     {
-        // Eager load de locatie voor context, indien nodig
-        $task->load('location');
-        return view('tasks.show', compact('task'));
+        // Load the main task with its planning tasks, and for each planning task,
+        // load its completions with all necessary nested relationships.
+        $task->load([
+            'location',
+            'taskPhotos',
+            'creator',
+            'planningTasks.completions' => function ($query) {
+                $query->with(['user', 'photos', 'reviewer'])->orderBy('created_at', 'desc');
+            },
+        ]);
+
+        // Now, collect all completions from all planning tasks into a single, sorted collection.
+        $completion_history = $task->planningTasks
+            ->flatMap(fn ($planningTask) => $planningTask->completions)
+            ->sortByDesc('created_at');
+
+        return view('tasks.show', [
+            'task' => $task,
+            'completion_history' => $completion_history,
+            'planning_id' => $request->get('planning'),
+        ]);
     }
 
     /**
@@ -188,8 +247,11 @@ class TaskController extends Controller
      */
     public function edit(Task $task): View
     {
-        $task->load('location'); // Nodig voor context in de view, bv. broodkruimels
-        return view('tasks.edit', compact('task'));
+        $task->load(['location', 'benodigdheden']); // Nodig voor context in de view, bv. broodkruimels
+        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
+        $selectedBenodigdheden = $task->benodigdheden->pluck('id')->toArray();
+
+        return view('tasks.edit', compact('task', 'benodigdheden', 'selectedBenodigdheden'));
     }
 
     /**
@@ -197,7 +259,38 @@ class TaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse
     {
-        $task->update($request->validated());
+        $validatedData = $request->validated();
+        $task->update($validatedData);
+
+        // Sync benodigdheden
+        $task->benodigdheden()->sync($validatedData['benodigdheden'] ?? []);
+
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            $imageService = app(\App\Services\ImageService::class);
+            
+            foreach ($request->file('photos') as $file) {
+                $filename = uniqid('tp_'.$task->id.'_', true).'.'.$file->getClientOriginalExtension();
+                
+                try {
+                    $path = $imageService->saveCompressedImage(
+                        $file,
+                        'task-photos/'.$task->id,
+                        $filename,
+                        'public'
+                    );
+
+                    $task->taskPhotos()->create([
+                        'file_path' => $path,
+                        'uploaded_at' => now(),
+                    ]);
+                } catch (\Exception $e) {
+                    // Log the error but don't fail the task update
+                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: ' . $e->getMessage());
+                }
+            }
+        }
+
         // Redirect naar de taak show pagina, of de taken index van de locatie.
         return redirect()->route('tasks.show', $task)->with('success', 'Taak succesvol bijgewerkt.');
         // Alternatief: return redirect()->route('locations.tasks.index', $task->location_id)->with('success', 'Taak succesvol bijgewerkt.');
@@ -210,7 +303,98 @@ class TaskController extends Controller
     {
         $location = $task->location; // Bewaar locatie voor redirect voordat taak verwijderd wordt
         $task->delete();
+
         return redirect()->route('locations.tasks.index', $location)->with('success', 'Taak succesvol verwijderd.');
         // Alternatief: return redirect()->route('locations.show', $location)->with('success', 'Taak succesvol verwijderd.');
+    }
+
+    public function approve(Request $request, Task $task): RedirectResponse
+    {
+        $task->update(['status' => TaskStatus::COMPLETED]);
+
+        // Find the planning task that triggered the review and update its completion record
+        $triggering_planning_task = $task->planningTasks()->where('status', TaskStatus::REVIEW)->latest('completed_at')->first();
+
+        if ($triggering_planning_task) {
+            // Update the planning task itself
+            $triggering_planning_task->update(['status' => TaskStatus::COMPLETED]);
+
+            // And update its latest completion attempt with the review details
+            if ($latest_completion = $triggering_planning_task->completions()->latest()->first()) {
+                $latest_completion->update([
+                    'review_notes' => $request->input('review_notes'),
+                    'reviewed_at' => now(),
+                    'review_outcome' => 'approved',
+                    'reviewed_by' => $request->user()->id,
+                ]);
+            }
+        }
+
+        // After approval, check if the parent planning is now fully completed
+        if ($triggering_planning_task && $triggering_planning_task->planning) {
+            $triggering_planning_task->planning->checkAndUpdateStatus();
+            
+            // Check if this location is now completed and notify if needed
+            $this->checkLocationCompletionAndNotify($triggering_planning_task);
+        }
+
+        // Handle recurring task creation if applicable
+        $recurringService = app(\App\Services\RecurringTaskService::class);
+        $newRecurringTask = $recurringService->createRecurringInstance($task);
+        
+        $message = 'Taak goedgekeurd.';
+        if ($newRecurringTask) {
+            $intervalDescription = $task->getRecurringIntervalDescription();
+            $message .= " Een nieuwe terugkerende taak is aangemaakt voor {$intervalDescription}.";
+        }
+
+        return redirect()->route('admin.tasks.review')->with('success', $message);
+    }
+
+    public function reject(Request $request, Task $task): RedirectResponse
+    {
+        // Find the specific PlanningTask that is in review for this backlog task.
+        $triggering_planning_task = $task->planningTasks()
+            ->where('status', TaskStatus::REVIEW)
+            ->latest('completed_at')
+            ->firstOrFail(); // We must find one, otherwise we shouldn't be here.
+
+        // Instantiate the PlanningTaskController and call its reject method,
+        // passing along the request and the found PlanningTask.
+        // This keeps all rejection logic centralized in one place.
+        $planningTaskController = new PlanningTaskController();
+
+        return $planningTaskController->reject($request, $triggering_planning_task);
+    }
+
+    /**
+     * Check if a location is completed within a planning and trigger LocationCompleted event.
+     *
+     * @param \App\Models\PlanningTask $planningTask
+     * @return void
+     */
+    private function checkLocationCompletionAndNotify(\App\Models\PlanningTask $planningTask): void
+    {
+        $planning = $planningTask->planning;
+        
+        // Determine the location for this task
+        $location = null;
+        if ($planningTask->location_id) {
+            // Default task with direct location assignment
+            $location = \App\Models\Location::find($planningTask->location_id);
+        } elseif ($planningTask->task && $planningTask->task->location_id) {
+            // Backlog task with location
+            $location = $planningTask->task->location;
+        }
+
+        if (!$location) {
+            return; // No location found, nothing to check
+        }
+
+        // Check if all tasks for this location in this planning are completed
+        if ($location->areAllTasksCompletedInPlanning($planning)) {
+            // Trigger the LocationCompleted event
+            LocationCompleted::dispatch($location, $planning);
+        }
     }
 }

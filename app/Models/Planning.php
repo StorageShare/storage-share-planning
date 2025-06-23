@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\PlanningTask; // Import PlanningTask
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+// Import PlanningTask
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Planning extends Model
 {
@@ -23,6 +23,8 @@ class Planning extends Model
         'notes',
         'status',
         'created_by',
+        'start_address',
+        'start_time',
     ];
 
     /**
@@ -39,7 +41,9 @@ class Planning extends Model
      */
     public function locations(): BelongsToMany
     {
-        return $this->belongsToMany(Location::class, 'location_planning');
+        return $this->belongsToMany(Location::class, 'location_planning')
+            ->withPivot('sort_order')
+            ->orderBy('sort_order');
     }
 
     /**
@@ -48,6 +52,14 @@ class Planning extends Model
     public function planningTasks(): HasMany
     {
         return $this->hasMany(PlanningTask::class);
+    }
+
+    /**
+     * Get the end checklist items for the planning.
+     */
+    public function endChecklistItems(): HasMany
+    {
+        return $this->hasMany(EndChecklistItem::class);
     }
 
     /**
@@ -64,5 +76,90 @@ class Planning extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the location timers for the planning.
+     */
+    public function locationTimers(): HasMany
+    {
+        return $this->hasMany(PlanningLocationTimer::class);
+    }
+
+    /**
+     * Check if all end checklist items are approved.
+     */
+    public function hasApprovedEndChecklist(): bool
+    {
+        $endChecklistItems = $this->endChecklistItems;
+        
+        if ($endChecklistItems->isEmpty()) {
+            return false; // No end checklist submitted yet
+        }
+        
+        return $endChecklistItems->every(function ($item) {
+            return $item->isApproved();
+        });
+    }
+
+    /**
+     * Check if end checklist has been submitted (all items have photos).
+     */
+    public function hasSubmittedEndChecklist(): bool
+    {
+        $endChecklistItems = $this->endChecklistItems;
+        
+        if ($endChecklistItems->isEmpty()) {
+            return false;
+        }
+        
+        return $endChecklistItems->every(function ($item) {
+            return !empty($item->photo_path);
+        });
+    }
+
+    /**
+     * Check if all tasks in the planning are completed and update the planning status accordingly.
+     */
+    public function checkAndUpdateStatus(): void
+    {
+        // Eager load the planningTasks relationship to prevent N+1 issues
+        $this->loadMissing('planningTasks', 'endChecklistItems');
+
+        if ($this->planningTasks->isEmpty()) {
+            if ($this->status !== 'completed') {
+                $this->status = 'open';
+                $this->save();
+            }
+
+            return;
+        }
+
+        // Check if every single task is marked as 'completed'
+        $allTasksCompleted = $this->planningTasks->every(function ($task) {
+            return $task->status === \App\Enums\TaskStatus::COMPLETED->value;
+        });
+
+        if ($allTasksCompleted) {
+            // Tasks are completed, check if end checklist is also approved
+            if ($this->hasApprovedEndChecklist()) {
+                if ($this->status !== 'completed') {
+                    $this->status = 'completed';
+                    $this->save();
+                }
+            } else {
+                // Tasks completed but end checklist not approved yet
+                if ($this->status !== 'pending_end_checklist') {
+                    $this->status = 'pending_end_checklist';
+                    $this->save();
+                }
+            }
+        } else {
+            // If not all tasks are completed, but the planning was, revert status.
+            if (in_array($this->status, ['completed', 'pending_end_checklist'])) {
+                $this->status = 'in_progress'; // Or 'open', depending on your states
+                $this->save();
+            }
+        }
     }
 }

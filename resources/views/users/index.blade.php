@@ -13,6 +13,12 @@
                         </div>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">Lijst van alle gebruikers in het systeem.</p>
                     </div>
+
+                    <div class="sm:flex sm:items-center sm:justify-end">
+                        <a href="{{ route('users.create') }}" class="py-2.5 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+                            Nieuwe gebruiker
+                        </a>
+                    </div>
                 </div>
 
                 <div class="flex flex-col mt-6">
@@ -50,7 +56,6 @@
                                                     </div>
                                                 </td>
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
-                                                    <a href="{{ route('users.show', $user) }}" class="px-2 py-1 text-xs text-blue-600 transition-colors duration-200 rounded-md hover:bg-blue-100 dark:hover:bg-gray-800 dark:text-blue-400">Bekijken</a>
                                                     <a href="{{ route('users.edit', $user) }}" class="px-2 py-1 text-xs text-yellow-600 transition-colors duration-200 rounded-md hover:bg-yellow-100 dark:hover:bg-gray-800 dark:text-yellow-400">Bewerken</a>
                                                 </td>
                                             </tr>

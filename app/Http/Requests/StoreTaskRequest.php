@@ -3,8 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\TaskPriority;
-use Illuminate\Foundation\Http\FormRequest;
-use App\Models\Location; // Import Location model for exists rule
+use App\Models\Location;
+use Illuminate\Foundation\Http\FormRequest; // Import Location model for exists rule
 use Illuminate\Validation\Rule; // Import Rule facade
 
 class StoreTaskRequest extends FormRequest
@@ -31,11 +31,20 @@ class StoreTaskRequest extends FormRequest
             'location_id' => [
                 'required',
                 'integer',
-                Rule::exists(Location::class, 'id') // Check if location_id exists in locations table
+                Rule::exists(Location::class, 'id'), // Check if location_id exists in locations table
             ],
             'deadline' => 'nullable|date',
             'estimated_time_minutes' => 'nullable|integer|min:0|max:99999',
             'priority' => ['nullable', Rule::in(TaskPriority::values())],
+            'photos' => 'nullable|array|max:10',
+            'photos.*' => 'image|mimes:jpg,jpeg,png,gif,webp|max:20480',
+            'benodigdheden' => 'nullable|array',
+            'benodigdheden.*' => 'integer|exists:benodigdheden,id',
+            'end_day_action_title' => 'nullable|string|max:255',
+            'end_day_action_description' => 'nullable|string',
+            'is_recurring' => 'nullable|boolean',
+            'recurring_interval_type' => 'nullable|required_if:is_recurring,1|in:days,weeks,months,years',
+            'recurring_interval_value' => 'nullable|required_if:is_recurring,1|integer|min:1|max:365',
             // 'status' will likely be defaulted in the model or migration, not required here initially
         ];
     }
@@ -46,14 +55,14 @@ class StoreTaskRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         // If location_id is coming from the route parameters (for nested resources)
-        if ($this->route('location') && !$this->input('location_id')) {
+        if ($this->route('location') && ! $this->input('location_id')) {
             $this->merge([
                 'location_id' => $this->route('location')->id,
             ]);
         }
 
         // Set default priority if not provided
-        if (!$this->input('priority')) {
+        if (! $this->input('priority')) {
             $this->merge(['priority' => TaskPriority::NORMAL->value]);
         }
     }

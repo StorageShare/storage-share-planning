@@ -41,14 +41,33 @@
                                 <dd class="text-gray-900 dark:text-gray-100">{{ $defaultTask->updated_at->format('d-m-Y H:i:s') }}</dd>
                             </div>
                             <div class="py-3 flex justify-between text-sm font-medium">
+                                <dt class="text-gray-500 dark:text-gray-400">Locaties</dt>
+                                <dd class="text-gray-900 dark:text-gray-100">
+                                    @if($defaultTask->applies_to_all_locations)
+                                        <span class="px-3 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                                            🌍 Van toepassing op alle locaties
+                                        </span>
+                                    @else
+                                        {{ $defaultTask->locations->count() }} specifieke locaties
+                                    @endif
+                                </dd>
+                            </div>
+                            <div class="py-3 flex justify-between text-sm font-medium">
                                 <dt class="text-gray-500 dark:text-gray-400">Aangemaakt door</dt>
                                 <dd class="text-gray-900 dark:text-gray-100">{{ $defaultTask->creator?->name ?? 'Onbekend' }}</dd>
                             </div>
                         </dl>
 
                         <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-2">Gebruikt door locaties:</h4>
-                            @if($defaultTask->locations && $defaultTask->locations->count() > 0)
+                            <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-2">Gekoppelde locaties:</h4>
+                            @if($defaultTask->applies_to_all_locations)
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <p class="text-sm text-blue-800 dark:text-blue-200 font-medium">🌍 Deze standaardtaak is automatisch beschikbaar voor alle huidige en toekomstige locaties.</p>
+                                    @if($defaultTask->locations && $defaultTask->locations->count() > 0)
+                                        <p class="text-xs text-blue-600 dark:text-blue-300 mt-2">Momenteel gekoppeld aan {{ $defaultTask->locations->count() }} locaties.</p>
+                                    @endif
+                                </div>
+                            @elseif($defaultTask->locations && $defaultTask->locations->count() > 0)
                                 <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
                                     @foreach($defaultTask->locations as $location)
                                         <li><a href="{{ route('locations.show', $location) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-600">{{ $location->name }}</a></li>

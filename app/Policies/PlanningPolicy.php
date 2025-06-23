@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Planning;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class PlanningPolicy
 {
@@ -13,7 +12,7 @@ class PlanningPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->isAdmin();
     }
 
     /**
@@ -21,11 +20,9 @@ class PlanningPolicy
      */
     public function view(User $user, Planning $planning): bool
     {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        return $planning->users->contains($user);
+        // Only admins can view plannings via /plannings routes
+        // Regular users should use my-planning routes instead
+        return $user->isAdmin();
     }
 
     /**

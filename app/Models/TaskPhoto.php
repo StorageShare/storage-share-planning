@@ -37,4 +37,12 @@ class TaskPhoto extends Model
     {
         return $this->belongsTo(Task::class);
     }
+
+    /**
+     * Get the photo URL.
+     */
+    public function getUrlAttribute(): string
+    {
+        return \Illuminate\Support\Facades\Storage::url($this->file_path);
+    }
 }

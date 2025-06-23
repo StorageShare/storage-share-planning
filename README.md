@@ -7,6 +7,17 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Configuration
+
+### Google Maps API
+Om reistijden tussen locaties te berekenen, heeft deze applicatie toegang tot de Google Maps Distance Matrix API nodig. Voeg de volgende variabele toe aan je `.env` bestand:
+
+```
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+```
+
+**Note:** Zonder API key zal de applicatie geschatte reistijden gebruiken (15-25 minuten per segment).
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

@@ -1,12 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\V1\DefaultTaskController;
+use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\PlanningController as PlanningControllerV1;
+use App\Http\Controllers\Api\V1\TaskController;
+use App\Http\Controllers\Api\V1\TaskPhotoController;
+use App\Http\Controllers\Api\V1\TravelTimeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\LocationController;
-use App\Http\Controllers\Api\V1\DefaultTaskController;
-use App\Http\Controllers\Api\V1\TaskController;
-use App\Http\Controllers\Api\V1\PlanningController as PlanningControllerV1;
-use App\Http\Controllers\Api\V1\TaskPhotoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +24,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Travel time calculation - accessible without auth for better UX
 Route::prefix('v1')->group(function () {
+    Route::post('/travel-times/calculate', [TravelTimeController::class, 'calculate']);
+    Route::post('/travel-times/sequence', [TravelTimeController::class, 'calculateSequence']);
+});
+
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::apiResource('locations', LocationController::class);
     Route::apiResource('default-tasks', DefaultTaskController::class);
 
@@ -36,6 +43,15 @@ Route::prefix('v1')->group(function () {
 
     Route::apiResource('plannings', PlanningControllerV1::class);
 
+    // Offline API endpoints
+    Route::prefix('offline')->group(function () {
+        Route::get('/planning/{planning}/full', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'getFullPlanningData']);
+        Route::get('/planning/{planning}/sync-status', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'checkSyncStatus']);
+        Route::post('/sync/planning-tasks', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPlanningTasks']);
+        Route::post('/sync/photos', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPhotos']);
+        Route::get('/sync/status', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'getSyncStatus']);
+    });
+
     // Specifieke routes voor Task Photos
     // POST /v1/tasks/{task}/photos - Upload foto voor een taak
     Route::post('/tasks/{task}/photos', [TaskPhotoController::class, 'store'])->name('tasks.photos.store');
@@ -46,6 +62,8 @@ Route::prefix('v1')->group(function () {
     // Bijvoorbeeld: Een taak in een planning als voltooid markeren
     // Route::patch('/planning-tasks/{planning_task}/complete', [Api\V1\PlanningTaskStatusController::class, 'complete']);
     // Route::patch('/planning-tasks/{planning_task}/uncomplete', [Api\V1\PlanningTaskStatusController::class, 'uncomplete']);
+
+
 
     // Specifieke routes voor het beheren van taken binnen een planning (PlanningTasks)
     // Bijvoorbeeld: status wijzigen, foto's toevoegen aan een planning_task.
@@ -58,4 +76,4 @@ Route::prefix('v1')->group(function () {
     // Voorbeeld: Foto's toevoegen aan een planning taak (denk aan TaskPhotoController logica, maar dan voor PlanningTask)
     // Route::post('planning-tasks/{planning_task}/photos', [PlanningTaskPhotoControllerV1::class, 'store']);
     // Route::delete('planning-tasks/{planning_task}/photos/{task_photo}', [PlanningTaskPhotoControllerV1::class, 'destroy']);
-}); 
+});

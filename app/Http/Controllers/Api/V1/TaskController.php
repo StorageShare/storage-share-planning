@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Location;
-use App\Models\Task;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Models\Location;
+use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +21,7 @@ class TaskController extends Controller
     public function index(Location $location): AnonymousResourceCollection
     {
         $tasks = $location->tasks()->with('taskPhotos')->latest()->paginate(10);
+
         return TaskResource::collection($tasks);
     }
 
@@ -35,8 +36,8 @@ class TaskController extends Controller
         $task->load('taskPhotos'); // Laad relaties voor de resource response
 
         return (new TaskResource($task))
-                ->response()
-                ->setStatusCode(Response::HTTP_CREATED);
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -46,6 +47,7 @@ class TaskController extends Controller
     public function show(Task $task): TaskResource
     {
         $task->load(['location', 'taskPhotos']); // Eager load relaties
+
         return new TaskResource($task);
     }
 
@@ -57,6 +59,7 @@ class TaskController extends Controller
     {
         $task->update($request->validated());
         $task->load(['location', 'taskPhotos']);
+
         return new TaskResource($task);
     }
 
@@ -67,6 +70,7 @@ class TaskController extends Controller
     public function destroy(Task $task): JsonResponse
     {
         $task->delete();
+
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }

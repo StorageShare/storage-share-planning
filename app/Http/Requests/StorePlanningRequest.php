@@ -2,14 +2,32 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TaskStatus;
+use App\Models\DefaultTask;
+use App\Models\Location;
+use App\Models\Task;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\Location;
-use App\Models\DefaultTask;
-use App\Models\Task;
 
 class StorePlanningRequest extends FormRequest
 {
+    /**
+     * Prepare the data for validation.
+     *
+     * @return void
+     */
+    protected function prepareForValidation()
+    {
+        $startAddress = $this->input('start_address_option');
+        if ($startAddress === 'Anders') {
+            $startAddress = $this->input('start_address_custom');
+        }
+
+        $this->merge([
+            'start_address' => $startAddress,
+        ]);
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -31,19 +49,23 @@ class StorePlanningRequest extends FormRequest
             'location_ids.*' => ['integer', Rule::exists(Location::class, 'id')],
             'planned_date' => 'required|date',
             'notes' => 'nullable|string',
+            'start_address_option' => 'required|string',
+            'start_address_custom' => 'nullable|string|required_if:start_address_option,Anders|max:255',
+            'start_address' => 'required|string|max:255',
+            'start_time' => 'nullable|date_format:H:i',
             'user_ids' => 'nullable|array',
             'user_ids.*' => ['integer', Rule::exists(\App\Models\User::class, 'id')],
             'selected_default_tasks' => 'nullable|array',
             'selected_default_tasks.*' => [
                 'integer',
-                 Rule::exists(DefaultTask::class, 'id'),
-                 function ($attribute, $value, $fail) {
+                Rule::exists(DefaultTask::class, 'id'),
+                function ($attribute, $value, $fail) {
                     $defaultTask = DefaultTask::find($value);
                     $selected_location_ids = collect($this->input('location_ids', []));
-                    if ($defaultTask && !$defaultTask->locations()->whereIn('locations.id', $selected_location_ids)->exists()) {
-                        $fail("De geselecteerde standaardtaak (".$defaultTask->title.") hoort niet bij één van de gekozen locaties.");
+                    if ($defaultTask && ! $defaultTask->locations()->whereIn('locations.id', $selected_location_ids)->exists()) {
+                        $fail('De geselecteerde standaardtaak ('.$defaultTask->title.') hoort niet bij één van de gekozen locaties.');
                     }
-                 }
+                },
             ],
             'selected_backlog_tasks' => 'nullable|array',
             'selected_backlog_tasks.*' => [
@@ -51,17 +73,20 @@ class StorePlanningRequest extends FormRequest
                 Rule::exists(Task::class, 'id'),
                 function ($attribute, $value, $fail) {
                     $task = Task::find($value);
-                    if (!$task) {
-                        $fail("De geselecteerde backlog taak (".$value.") bestaat niet.");
+                    if (! $task) {
+                        $fail('De geselecteerde backlog taak ('.$value.') bestaat niet.');
+
                         return;
                     }
                     $selected_location_ids = $this->input('location_ids', []);
-                    if (!in_array($task->location_id, $selected_location_ids)) {
+                    if (! in_array($task->location_id, $selected_location_ids)) {
                         $fail("De geselecteerde backlog taak '{$task->title}' hoort niet bij één van de gekozen locaties.");
+
                         return;
                     }
-                    if (!in_array($task->status, ['open', 'in_progress'])) {
-                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: " . $task->status);
+                    if (! in_array($task->status->value, [TaskStatus::OPEN->value, TaskStatus::IN_PROGRESS->value])) {
+                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->value);
+
                         return;
                     }
                     if ($task->planningTasks()->whereHas('planning')->exists()) {
@@ -70,7 +95,7 @@ class StorePlanningRequest extends FormRequest
                         // Dit is een conservatieve benadering.
                         // $fail("De backlog taak '{$task->title}' is al aan een planning toegewezen.");
                     }
-                }
+                },
             ],
         ];
     }

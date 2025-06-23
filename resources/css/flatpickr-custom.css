@@ -1,0 +1,15 @@
+/* Custom styles for Flatpickr */
+.flatpickr-today-button {
+    display: block;
+    text-align: center;
+    padding: 8px;
+    background: #f0f0f0;
+    color: #333;
+    text-decoration: none;
+    border-top: 1px solid #ddd;
+    font-weight: 500;
+}
+
+.flatpickr-today-button:hover {
+    background: #e0e0e0;
+} 

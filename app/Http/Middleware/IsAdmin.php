@@ -10,13 +10,14 @@ class IsAdmin
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->isAdmin()) {
-            abort(403);
+        /** @var \App\Models\User|null $user */
+        $user = $request->user();
+
+        if (!$user || !$user->isAdmin()) {
+            abort(403, 'Access denied');
         }
 
         return $next($request);

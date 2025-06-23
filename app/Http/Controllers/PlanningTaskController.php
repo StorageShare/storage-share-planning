@@ -2,49 +2,163 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TaskStatus;
+use App\Events\LocationCompleted;
+use App\Events\TaskReadyForReview;
 use App\Models\Planning;
 use App\Models\PlanningTask;
-use Illuminate\Http\Request;
+use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Validator; // For manual validation if needed
+use Illuminate\Http\Request;
+// For manual validation if needed
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PlanningTaskController extends Controller
 {
-    /**
-     * Mark a planning task as completed.
-     */
-    public function complete(Request $request, Planning $planning, PlanningTask $planning_task): RedirectResponse
+    public function show(PlanningTask $planning_task): View
     {
-        if ($planning_task->planning_id !== $planning->id) {
-            abort(404); // Or 403 if it's an authorization issue
-        }
-
-        // Validate notes if provided
-        $request->validate([
-            'completed_notes' => 'nullable|string|max:65535',
+        $planning_task->load([
+            'planning.locations',
+            'defaultTask',
+            'specificLocation',
+            'completions' => function ($query) {
+                $query->with(['user', 'photos', 'reviewer'])->orderBy('created_at', 'desc');
+            },
         ]);
 
-        $planning_task->update([
-            'completed_at' => now(),
-            'completed_notes' => $request->input('completed_notes'),
-        ]);
-
-        return redirect()->route('plannings.show', $planning)->with('success', "Taak '{$planning_task->title}' als voltooid gemarkeerd.");
+        return view('plannings.tasks.show', compact('planning_task'));
     }
 
     /**
-     * Mark a planning task as not completed.
+     * Mark a planning task as completed.
      */
-    public function uncomplete(Planning $planning, PlanningTask $planning_task): RedirectResponse
+    public function complete(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService): RedirectResponse
     {
         if ($planning_task->planning_id !== $planning->id) {
             abort(404);
         }
 
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $validationRules = [
+            'completed_notes' => 'required|string|max:65535',
+            'is_fully_completed' => 'required|boolean',
+        ];
+
+        // Only require photos for non-admin users
+        if (!$user || !$user->isAdmin()) {
+            $validationRules['photos'] = 'required|array|min:1';
+            $validationRules['photos.*'] = 'image|mimes:jpeg,png,jpg,webp,gif|max:20480'; // Max 20MB - will be compressed to 2MB
+        } else {
+            // For admins, photos are optional, but if provided, they must be valid
+            $validationRules['photos'] = 'nullable|array';
+            $validationRules['photos.*'] = 'image|mimes:jpeg,png,jpg,webp,gif|max:20480'; // Max 20MB - will be compressed to 2MB
+        }
+
+        $request->validate($validationRules);
+
+        $isFullyCompleted = $request->boolean('is_fully_completed');
+
+        // Create the completion record
+        $completion = $planning_task->completions()->create([
+            'user_id' => $user->id,
+            'comment' => $request->input('completed_notes'),
+            'is_fully_completed' => $isFullyCompleted,
+        ]);
+
+        // Store photos for the completion, if any were uploaded
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                try {
+                    // Compress and save the image
+                    $filename = uniqid('ptc_'.$completion->id.'_', true).'.'.$photo->getClientOriginalExtension();
+                    $path = $imageService->saveCompressedImage(
+                        $photo,
+                        'planning-task-completion-photos/'.$completion->id,
+                        $filename,
+                        'public'
+                    );
+                    $completion->photos()->create(['file_path' => $path]);
+                } catch (\Exception $e) {
+                    Log::error('Error compressing image: '.$e->getMessage());
+                    // Fallback to original method if compression fails
+                    $path = $photo->store('planning-task-completion-photos/'.$completion->id, 'public');
+                    $completion->photos()->create(['file_path' => $path]);
+                }
+            }
+        }
+
+        $newStatus = $user && $user->isAdmin() ? TaskStatus::COMPLETED : TaskStatus::REVIEW;
+        $planning_task->update([
+            'completed_at' => now(),
+            'completed_notes' => $request->input('completed_notes'), // Keep last note for easy access
+            'status' => $newStatus,
+        ]);
+
+        // If it's a backlog task, also update the main task's status
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => $newStatus]);
+
+            if ($newStatus === TaskStatus::REVIEW) {
+                event(new TaskReadyForReview($planning_task->task));
+            }
+        }
+
+        $message = $isFullyCompleted ? "Taak '{$planning_task->title}' gemarkeerd voor review." : "Voltooiingspoging voor '{$planning_task->title}' genoteerd en voor review aangeboden.";
+        if ($user && $user->isAdmin()) {
+            $message = "Taak '{$planning_task->title}' als voltooid gemarkeerd.";
+        }
+
+        $planning->checkAndUpdateStatus();
+
+        return redirect()->route('plannings.show', $planning)->with('success', $message);
+    }
+
+    /**
+     * Mark a planning task as not completed.
+     */
+    public function uncomplete(Request $request, Planning $planning, PlanningTask $planning_task): RedirectResponse
+    {
+        if ($planning_task->planning_id !== $planning->id) {
+            abort(404);
+        }
+
+        // Admins must provide a reason for reopening
+        /** @var \App\Models\User $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user->isAdmin()) {
+            $request->validate([
+                'rejection_reason' => 'required|string|max:65535',
+            ]);
+
+            // Create a new completion record to log the reopening event
+            $planning_task->completions()->create([
+                'user_id' => $user->id,
+                'comment' => 'Taak heropend door admin.',
+                'is_fully_completed' => false,
+                'review_notes' => $request->input('rejection_reason'),
+                'reviewed_at' => now(),
+                'review_outcome' => 'reopened',
+                'reviewed_by' => $user->id,
+            ]);
+        }
+
         $planning_task->update([
             'completed_at' => null,
             'completed_notes' => null, // Also clear notes when uncompleting
+            'status' => TaskStatus::OPEN, // Explicitly set the status back to open
         ]);
+
+        // Also update the original task's status
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => TaskStatus::OPEN]);
+        }
+
+        $planning->checkAndUpdateStatus();
 
         return redirect()->route('plannings.show', $planning)->with('success', "Taak '{$planning_task->title}' als openstaand gemarkeerd.");
     }
@@ -77,4 +191,353 @@ class PlanningTaskController extends Controller
 
     //     return redirect()->route('plannings.show', $planning)->with('error', 'Kon foto niet uploaden.');
     // }
+
+    public function approve(Request $request, PlanningTask $planning_task): RedirectResponse
+    {
+        $planning_task->update(['status' => TaskStatus::COMPLETED]);
+
+        // Add review notes to the latest completion
+        if ($latest_completion = $planning_task->completions()->latest()->first()) {
+            $latest_completion->update([
+                'review_notes' => $request->input('review_notes'),
+                'reviewed_at' => now(),
+                'review_outcome' => 'approved',
+                'reviewed_by' => Auth::id(),
+            ]);
+        }
+
+        // If it's a backlog task, also update the main task's status
+        if ($task = $planning_task->task) {
+            $task->update(['status' => TaskStatus::COMPLETED]);
+        }
+
+        $planning_task->planning->checkAndUpdateStatus();
+
+        // Check if this location is now completed and notify if needed
+        $this->checkLocationCompletionAndNotify($planning_task);
+
+        return redirect()->route('admin.tasks.review')->with('success', 'Geplande taak goedgekeurd.');
+    }
+
+    public function reject(Request $request, PlanningTask $planning_task): RedirectResponse
+    {
+        DB::transaction(function () use ($request, $planning_task) {
+            // Step 1: Update statuses of the original planning task and backlog task to 'rejected'
+            $planning_task->update([
+                'status' => TaskStatus::REJECTED,
+                'completed_at' => null, // A rejected task is not considered completed
+            ]);
+
+            // --- Main Rejection Logic ---
+            if (!is_null($planning_task->task_id) && $planning_task->task) {
+                // CASE 1: The rejected task is a properly linked BACKLOG task. Replicate it.
+                $original_task = $planning_task->task;
+                $original_task->update(['status' => TaskStatus::REJECTED]);
+
+                // Create a new 'V2' backlog task by replicating the original
+                $new_task = $original_task->replicate();
+                $new_task->status = TaskStatus::OPEN;
+                $new_task->title = $original_task->title . ' (Herstel)';
+                $new_task->created_at = now();
+                $new_task->updated_at = now();
+                $new_task->description = $this->appendCompletionHistory($planning_task, $new_task->description);
+                $new_task->estimated_time_minutes = $original_task->estimated_time_minutes;
+                $new_task->deadline = $original_task->deadline;
+                $new_task->save();
+            } else {
+                // CASE 2: The task is a DEFAULT task, or a backlog task with a broken link (old data).
+                // Create a NEW backlog task from the PlanningTask's own data.
+                $new_backlog_task = new \App\Models\Task([
+                    'title' => $planning_task->title . ' (Herstel)',
+                    'description' => $this->appendCompletionHistory($planning_task, $planning_task->description),
+                    'location_id' => $planning_task->location_id ?? $planning_task->planning->locations()->first()->id,
+                    'status' => TaskStatus::OPEN,
+                    'priority' => \App\Enums\TaskPriority::NORMAL,
+                    'estimated_time_minutes' => $planning_task->estimated_time_minutes,
+                    'created_by' => Auth::id(),
+                ]);
+                $new_backlog_task->save();
+            }
+            // --- End Main Rejection Logic ---
+
+            // Step 3: Log the rejection details on the completion record for traceability
+            if ($latest_completion = $planning_task->completions()->latest()->first()) {
+                $latest_completion->update([
+                    'review_notes' => $request->input('review_notes'),
+                    'reviewed_at' => now(),
+                    'review_outcome' => 'rejected',
+                    'reviewed_by' => Auth::id(),
+                ]);
+            }
+        });
+
+        return redirect()->route('admin.tasks.review')->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
+    }
+
+    /**
+     * Helper to append completion history to a task description.
+     */
+    private function appendCompletionHistory(PlanningTask $planning_task, ?string $existing_description): string
+    {
+        $history = "--- Vorige pogingen (meest recent eerst) ---\n\n";
+        $completions = $planning_task->completions()->with('user')->orderBy('created_at', 'desc')->get();
+
+        if ($completions->isEmpty()) {
+            return $existing_description ?? '';
+        }
+
+        foreach ($completions as $completion) {
+            $outcome = $completion->review_outcome ? " -> Oordeel: " . ucfirst($completion->review_outcome) : '';
+            $history .= "----------------------------------------\n";
+            $history .= "Datum: " . $completion->created_at->format('d-m-Y H:i') . "\n";
+            $history .= "Gebruiker: " . ($completion->user->name ?? 'Onbekend') . "\n";
+            $history .= "Notities: " . ($completion->comment ?? 'Geen notities.') . "\n";
+            if ($completion->review_notes) {
+                $history .= "Review Notities: " . $completion->review_notes . $outcome . "\n";
+            }
+        }
+
+        return ($existing_description ? $existing_description . "\n\n" : '') . $history;
+    }
+
+    /**
+     * Mark a planning task as completed via a simple UI action.
+     */
+    public function simpleComplete(Request $request, Planning $planning, PlanningTask $planning_task)
+    {
+        if ($planning_task->planning_id !== $planning->id) {
+            abort(404);
+        }
+
+        $planning_task->update([
+            'completed_at' => now(),
+            'status' => TaskStatus::COMPLETED,
+        ]);
+
+        $planning->checkAndUpdateStatus();
+
+        // Check if this location is now completed and notify if needed
+        $this->checkLocationCompletionAndNotify($planning_task);
+
+        return response()->json(['task' => $planning_task]);
+    }
+
+    /**
+     * Mark a planning task as not completed via a simple UI action.
+     */
+    public function simpleUncomplete(Request $request, Planning $planning, PlanningTask $planning_task)
+    {
+        if ($planning_task->planning_id !== $planning->id) {
+            abort(404);
+        }
+
+        $planning_task->update([
+            'completed_at' => null,
+            'status' => TaskStatus::OPEN,
+        ]);
+
+        $planning->checkAndUpdateStatus();
+
+        return response()->json(['task' => $planning_task]);
+    }
+
+    /**
+     * Submit completion details (notes, photos) from the step-by-step view.
+     */
+    public function submitCompletion(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService)
+    {
+        if ($planning_task->planning_id !== $planning->id) {
+            abort(404);
+        }
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $request->validate([
+            'completed_notes' => 'required|string|max:65535',
+            'is_fully_completed' => 'required|boolean',
+            'photos' => 'required|array|min:1',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,webp,gif|max:20480', // Max 20MB - will be compressed to 2MB
+        ]);
+
+        $isFullyCompleted = $request->boolean('is_fully_completed');
+
+        // Create the completion record
+        $completion = $planning_task->completions()->create([
+            'user_id' => $user->id,
+            'comment' => $request->input('completed_notes'),
+            'is_fully_completed' => $isFullyCompleted,
+            'task_duration_seconds' => $request->input('task_duration_seconds', 0),
+        ]);
+
+        // Store photos for the completion
+        foreach ($request->file('photos') as $photo) {
+            try {
+                // Compress and save the image
+                $filename = uniqid('ptc_'.$completion->id.'_', true).'.'.$photo->getClientOriginalExtension();
+                $path = $imageService->saveCompressedImage(
+                    $photo,
+                    'planning-task-completion-photos/'.$completion->id,
+                    $filename,
+                    'public'
+                );
+                $completion->photos()->create(['file_path' => $path]);
+            } catch (\Exception $e) {
+                Log::error('Error compressing image: '.$e->getMessage());
+                // Fallback to original method if compression fails
+                $path = $photo->store('planning-task-completion-photos/'.$completion->id, 'public');
+                $completion->photos()->create(['file_path' => $path]);
+            }
+        }
+        
+        $newStatus = TaskStatus::REVIEW;
+        $planning_task->update([
+            'completed_at' => now(),
+            'completed_notes' => $request->input('completed_notes'),
+            'status' => $newStatus,
+        ]);
+
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => $newStatus]);
+        }
+        
+        $planning->checkAndUpdateStatus();
+
+        // Check if this location is now completed and notify if needed
+        $this->checkLocationCompletionAndNotify($planning_task);
+
+        return response()->json(['task' => $planning_task->fresh()]);
+    }
+
+    /**
+     * Skip a task with a reason.
+     */
+    public function skip(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService)
+    {
+        if ($planning_task->planning_id !== $planning->id) {
+            abort(404);
+        }
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $request->validate([
+            'reason' => 'required|string|max:65535',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,webp,gif|max:20480', // Max 20MB - will be compressed to 2MB
+        ]);
+
+        // Create the completion record to log the skip event
+        $completion = $planning_task->completions()->create([
+            'user_id' => $user->id,
+            'comment' => $request->input('reason'),
+            'is_fully_completed' => false,
+            'review_outcome' => 'skipped', // Using this field to denote a skip
+            'task_duration_seconds' => $request->input('task_duration_seconds', 0),
+        ]);
+
+        // Store photos for the completion, if any were uploaded
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                try {
+                    // Compress and save the image
+                    $filename = uniqid('ptc_'.$completion->id.'_', true).'.'.$photo->getClientOriginalExtension();
+                    $path = $imageService->saveCompressedImage(
+                        $photo,
+                        'planning-task-completion-photos/'.$completion->id,
+                        $filename,
+                        'public'
+                    );
+                    $completion->photos()->create(['file_path' => $path]);
+                } catch (\Exception $e) {
+                    Log::error('Error compressing image: '.$e->getMessage());
+                    // Fallback to original method if compression fails
+                    $path = $photo->store('planning-task-completion-photos/'.$completion->id, 'public');
+                    $completion->photos()->create(['file_path' => $path]);
+                }
+            }
+        }
+        
+        // Update task status to skipped
+        $planning_task->update([
+            'status' => TaskStatus::SKIPPED,
+        ]);
+
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => TaskStatus::SKIPPED]);
+        }
+
+        // Load completion with photos to get URLs
+        $completion->load('photos');
+        
+        // Get the skip photos URLs
+        $skipPhotos = $completion->photos->pluck('url')->toArray();
+
+        // Check if this location is now completed and notify if needed
+        $this->checkLocationCompletionAndNotify($planning_task);
+
+        return response()->json([
+            'task' => $planning_task->fresh(),
+            'skip_photos' => $skipPhotos
+        ]);
+    }
+
+    /**
+     * Reopen a task from the step-by-step view if it's in review.
+     */
+    public function reopen(Request $request, Planning $planning, PlanningTask $planning_task)
+    {
+        if ($planning_task->planning_id !== $planning->id) {
+            abort(404);
+        }
+
+        // Allow reopening if the task is in 'review' or 'skipped' state
+        if (!in_array($planning_task->status, [TaskStatus::REVIEW, TaskStatus::SKIPPED])) {
+            return response()->json(['message' => 'Taak kan niet heropend worden.'], 403);
+        }
+
+        $planning_task->update([
+            'completed_at' => null,
+            'status' => TaskStatus::OPEN,
+        ]);
+
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => TaskStatus::OPEN]);
+        }
+
+        $planning->checkAndUpdateStatus();
+
+        return response()->json(['task' => $planning_task->fresh()]);
+    }
+
+    /**
+     * Check if a location is completed within a planning and trigger LocationCompleted event.
+     *
+     * @param \App\Models\PlanningTask $planningTask
+     * @return void
+     */
+    private function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
+    {
+        $planning = $planningTask->planning;
+        
+        // Determine the location for this task
+        $location = null;
+        if ($planningTask->location_id) {
+            // Default task with direct location assignment
+            $location = \App\Models\Location::find($planningTask->location_id);
+        } elseif ($planningTask->task && $planningTask->task->location_id) {
+            // Backlog task with location
+            $location = $planningTask->task->location;
+        }
+
+        if (!$location) {
+            return; // No location found, nothing to check
+        }
+
+        // Check if all tasks for this location in this planning are completed
+        if ($location->areAllTasksCompletedInPlanning($planning)) {
+            // Trigger the LocationCompleted event
+            LocationCompleted::dispatch($location, $planning);
+        }
+    }
 }

@@ -26,8 +26,16 @@ class StoreDefaultTaskRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'estimated_time_minutes' => 'nullable|integer|min:0',
+            'applies_to_all_locations' => 'nullable|boolean',
+            'applies_to_door_types' => 'nullable|boolean',
+            'door_types' => 'nullable|array',
+            'door_types.*' => 'string|max:255',
             'locations' => 'nullable|array',
-            'locations.*' => 'integer|exists:locations,id'
+            'locations.*' => 'integer|exists:locations,id',
+            'benodigdheden' => 'nullable|array',
+            'benodigdheden.*' => 'integer|exists:benodigdheden,id',
+            'end_day_action_title' => 'nullable|string|max:255',
+            'end_day_action_description' => 'nullable|string',
         ];
     }
 }

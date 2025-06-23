@@ -1,0 +1,228 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Planning;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+class TimerController extends Controller
+{
+    /**
+     * Display timer overview for all plannings
+     */
+    public function index(Request $request): View
+    {
+        // Check if user is admin
+        $user = Auth::user();
+        if (!$user || $user->role->value !== 'admin') {
+            abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
+        }
+
+        $query = Planning::with([
+            'locationTimers.location',
+            'locations',
+            'users'
+        ]);
+
+        // Filter by date if provided
+        if ($request->filled('date_from')) {
+            $query->where('planned_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('planned_date', '<=', $request->date_to);
+        }
+
+        // Filter by user if provided
+        if ($request->filled('user_id')) {
+            $query->whereHas('users', function ($q) use ($request) {
+                $q->where('users.id', $request->user_id);
+            });
+        }
+
+        $plannings = $query->orderBy('planned_date', 'desc')->paginate(20);
+
+        // Get all users for filter dropdown
+        $users = User::orderBy('name')->get();
+
+        return view('admin.timers.index', compact('plannings', 'users'));
+    }
+
+    /**
+     * Show detailed timer information for a specific planning
+     */
+    public function show(Planning $planning): View
+    {
+        // Check if user is admin
+        $user = Auth::user();
+        if (!$user || $user->role->value !== 'admin') {
+            abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
+        }
+
+        $planning->load([
+            'locationTimers.location',
+            'locations',
+            'users',
+            'planningTasks.task.location',
+            'planningTasks.defaultTask.locations'
+        ]);
+
+        // Calculate timer statistics
+        $totalDurationSeconds = $planning->locationTimers->sum('total_duration_seconds');
+        
+        $timersByLocation = $planning->locationTimers->map(function ($timer) {
+            $hours = floor($timer->total_duration_seconds / 3600);
+            $minutes = floor(($timer->total_duration_seconds % 3600) / 60);
+            $seconds = $timer->total_duration_seconds % 60;
+            
+            return [
+                'timer' => $timer,
+                'location_name' => $timer->location ? $timer->location->name : 
+                    ($timer->location_type === 'backlog' ? 'Backlog' : 'Reistijd'),
+                'formatted_duration' => sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds),
+                'is_active' => $timer->started_at && !$timer->ended_at,
+            ];
+        });
+
+        return view('admin.timers.show', compact('planning', 'timersByLocation', 'totalDurationSeconds'));
+    }
+
+    /**
+     * Get live timer data for a planning (AJAX endpoint)
+     */
+    public function getLiveData(Planning $planning)
+    {
+        // Check if user is admin
+        $user = Auth::user();
+        if (!$user || $user->role->value !== 'admin') {
+            abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
+        }
+
+        $timers = $planning->locationTimers()->with('location')->get();
+        
+        $liveData = $timers->map(function ($timer) {
+            $currentSeconds = 0;
+            if ($timer->started_at && !$timer->ended_at) {
+                // Timer is running - calculate current time
+                $currentSeconds = ($timer->total_duration_seconds ?? 0) + $timer->started_at->diffInSeconds(now());
+            } else {
+                // Timer is stopped
+                $currentSeconds = $timer->total_duration_seconds ?? 0;
+            }
+            
+            $hours = floor($currentSeconds / 3600);
+            $minutes = floor(($currentSeconds % 3600) / 60);
+            $seconds = $currentSeconds % 60;
+            
+            return [
+                'id' => $timer->id,
+                'location_id' => $timer->location_id,
+                'location_name' => $timer->location ? $timer->location->name : 
+                    ($timer->location_type === 'backlog' ? 'Backlog' : 'Reistijd'),
+                'location_type' => $timer->location_type,
+                'formatted_duration' => sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds),
+                'total_seconds' => $currentSeconds,
+                'is_active' => $timer->started_at && !$timer->ended_at,
+                'started_at' => $timer->started_at?->toISOString(),
+                'ended_at' => $timer->ended_at?->toISOString(),
+            ];
+        });
+
+        return response()->json($liveData);
+    }
+
+    /**
+     * Export timer data as CSV
+     */
+    public function export(Request $request)
+    {
+        // Check if user is admin
+        $user = Auth::user();
+        if (!$user || $user->role->value !== 'admin') {
+            abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
+        }
+
+        $query = Planning::with([
+            'locationTimers.location',
+            'locations',
+            'users'
+        ]);
+
+        // Apply same filters as index
+        if ($request->filled('date_from')) {
+            $query->where('planned_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('planned_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('user_id')) {
+            $query->whereHas('users', function ($q) use ($request) {
+                $q->where('users.id', $request->user_id);
+            });
+        }
+
+        $plannings = $query->orderBy('planned_date', 'desc')->get();
+
+        $filename = 'timer_export_' . now()->format('Y-m-d_H-i-s') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function() use ($plannings) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Headers
+            fputcsv($file, [
+                'Planning ID',
+                'Geplande Datum',
+                'Gebruikers',
+                'Locatie',
+                'Locatie Type',
+                'Gewerkte Tijd',
+                'Gestart Om',
+                'Gestopt Om',
+                'Status'
+            ]);
+
+            foreach ($plannings as $planning) {
+                $userNames = $planning->users->pluck('name')->join(', ');
+                
+                foreach ($planning->locationTimers as $timer) {
+                    $hours = floor($timer->total_duration_seconds / 3600);
+                    $minutes = floor(($timer->total_duration_seconds % 3600) / 60);
+                    $seconds = $timer->total_duration_seconds % 60;
+                    $formattedDuration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                    
+                    $locationName = $timer->location ? $timer->location->name : 
+                        ($timer->location_type === 'backlog' ? 'Backlog' : 'Reistijd');
+                    
+                    $status = $timer->started_at && !$timer->ended_at ? 'Actief' : 'Gestopt';
+                    
+                    fputcsv($file, [
+                        $planning->id,
+                        $planning->planned_date->format('d-m-Y'),
+                        $userNames,
+                        $locationName,
+                        ucfirst($timer->location_type),
+                        $formattedDuration,
+                        $timer->created_at?->format('d-m-Y H:i:s'),
+                        $timer->ended_at?->format('d-m-Y H:i:s'),
+                        $status
+                    ]);
+                }
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+} 

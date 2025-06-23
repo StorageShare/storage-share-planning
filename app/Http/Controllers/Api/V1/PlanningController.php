@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Planning;
-use App\Models\DefaultTask;
 use App\Http\Requests\StorePlanningRequest;
 use App\Http\Requests\UpdatePlanningRequest;
 use App\Http\Resources\PlanningResource;
+use App\Models\DefaultTask;
+use App\Models\Planning;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +21,9 @@ class PlanningController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $plannings = Planning::with(['location', 'planningTasks', 'planningTasks.task', 'planningTasks.defaultTask'])
-                            ->latest()
-                            ->paginate(10);
+            ->latest()
+            ->paginate(10);
+
         return PlanningResource::collection($plannings);
     }
 
@@ -43,7 +44,7 @@ class PlanningController extends Controller
             ]);
 
             // Verwerk geselecteerde standaardtaken
-            if (!empty($validatedData['selected_default_tasks'])) {
+            if (! empty($validatedData['selected_default_tasks'])) {
                 $defaultTasks = DefaultTask::findMany($validatedData['selected_default_tasks']);
                 foreach ($defaultTasks as $defaultTask) {
                     $planning->planningTasks()->create([
@@ -55,7 +56,7 @@ class PlanningController extends Controller
             }
 
             // Verwerk ad-hoc taken
-            if (!empty($validatedData['adhoc_tasks'])) {
+            if (! empty($validatedData['adhoc_tasks'])) {
                 foreach ($validatedData['adhoc_tasks'] as $adhocTaskData) {
                     $planning->planningTasks()->create([
                         'title' => $adhocTaskData['title'],
@@ -63,22 +64,23 @@ class PlanningController extends Controller
                     ]);
                 }
             }
-            
+
             DB::commit();
 
             // Laad relaties voor de response
             $planning->load(['location', 'planningTasks', 'planningTasks.task', 'planningTasks.defaultTask']);
 
             return (new PlanningResource($planning))
-                    ->response()
-                    ->setStatusCode(Response::HTTP_CREATED);
+                ->response()
+                ->setStatusCode(Response::HTTP_CREATED);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             // Log::error('API Error creating planning: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Fout bij het aanmaken van de planning.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -89,6 +91,7 @@ class PlanningController extends Controller
     public function show(Planning $planning): PlanningResource
     {
         $planning->load(['location', 'planningTasks', 'planningTasks.task', 'planningTasks.defaultTask', 'planningTasks.task.taskPhotos']);
+
         return new PlanningResource($planning);
     }
 
@@ -99,6 +102,7 @@ class PlanningController extends Controller
     {
         $planning->update($request->validated());
         $planning->load(['location', 'planningTasks', 'planningTasks.task', 'planningTasks.defaultTask']);
+
         return new PlanningResource($planning);
     }
 
@@ -108,6 +112,7 @@ class PlanningController extends Controller
     public function destroy(Planning $planning): JsonResponse
     {
         $planning->delete(); // PlanningTasks worden mee verwijderd via cascade
+
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }

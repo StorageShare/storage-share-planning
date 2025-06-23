@@ -112,7 +112,14 @@
                                             <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
                                                 <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
                                                     <div>
-                                                        <h2 class="font-medium text-gray-800 dark:text-white ">{{ $defaultTask->title }}</h2>
+                                                        <div class="flex items-center gap-x-2">
+                                                            <h2 class="font-medium text-gray-800 dark:text-white ">{{ $defaultTask->title }}</h2>
+                                                            @if($defaultTask->applies_to_all_locations)
+                                                                <span class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                                                                    🌍 Alle locaties
+                                                                </span>
+                                                            @endif
+                                                        </div>
                                                         <p class="text-sm font-normal text-gray-600 dark:text-gray-400">{{ Str::limit($defaultTask->description, 50) }}</p>
                                                     </div>
                                                 </td>

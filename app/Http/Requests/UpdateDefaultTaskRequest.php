@@ -26,8 +26,16 @@ class UpdateDefaultTaskRequest extends FormRequest
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'estimated_time_minutes' => 'sometimes|nullable|integer|min:0',
+            'applies_to_all_locations' => 'sometimes|nullable|boolean',
+            'applies_to_door_types' => 'sometimes|nullable|boolean',
+            'door_types' => 'nullable|array',
+            'door_types.*' => 'string|max:255',
             'locations' => 'nullable|array',
-            'locations.*' => 'integer|exists:locations,id'
+            'locations.*' => 'integer|exists:locations,id',
+            'benodigdheden' => 'nullable|array',
+            'benodigdheden.*' => 'integer|exists:benodigdheden,id',
+            'end_day_action_title' => 'nullable|string|max:255',
+            'end_day_action_description' => 'nullable|string',
         ];
     }
 }

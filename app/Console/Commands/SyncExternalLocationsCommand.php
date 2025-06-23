@@ -3,12 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Models\Location;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
-use Carbon\Carbon;
-use Illuminate\Support\Arr;
 
 class SyncExternalLocationsCommand extends Command
 {
@@ -40,15 +40,17 @@ class SyncExternalLocationsCommand extends Command
         if (empty($apiUrl) || empty($apiToken)) {
             $this->error('API URL or Token is not configured.');
             Log::error('SyncExternalLocationsCommand: API URL or Token not configured.');
+
             return Command::FAILURE;
         }
 
         try {
             $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("API request failed: Status {$response->status()}");
                 Log::error('SyncExternalLocationsCommand: API request failed.', ['status' => $response->status(), 'body' => $response->body()]);
+
                 return Command::FAILURE;
             }
 
@@ -66,36 +68,38 @@ class SyncExternalLocationsCommand extends Command
             // 3. Check if the raw response itself is the array of locations
             //    (i.e., response is `[{"id":1,...}, {"id":2,...}]`)
             //    Heuristic: is it an array, non-empty, and does its first item look like a location?
-            elseif (is_array($rawResponseData) && !empty($rawResponseData) && isset($rawResponseData[0]['id']) && isset($rawResponseData[0]['name'])) {
+            elseif (is_array($rawResponseData) && ! empty($rawResponseData) && isset($rawResponseData[0]['id']) && isset($rawResponseData[0]['name'])) {
                 $externalLocationsData = $rawResponseData;
             }
             // 4. Handle case where raw response is an empty array (valid scenario: no external locations)
             elseif (is_array($rawResponseData) && empty($rawResponseData)) {
-                 $externalLocationsData = $rawResponseData; // Should be an empty array []
+                $externalLocationsData = $rawResponseData; // Should be an empty array []
             }
 
             // If $externalLocationsData is still not a valid array, then error out
-            if (!is_array($externalLocationsData)) {
+            if (! is_array($externalLocationsData)) {
                 $this->error('API response did not contain an identifiable array of locations (tried keys "spaces", "data", or root array).');
                 Log::error('SyncExternalLocationsCommand: Failed to extract locations array from API response.', [
-                    'response_body' => $response->body() // Log the original body for debugging
+                    'response_body' => $response->body(), // Log the original body for debugging
                 ]);
+
                 return Command::FAILURE;
             }
 
             $externalLocationIds = Arr::pluck($externalLocationsData, 'id');
             // Check if IDs could be plucked, but only if the source array was not empty to begin with.
             // If $externalLocationsData is an empty array [], $externalLocationIds will also be [], which is valid.
-            if (empty($externalLocationIds) && !empty($externalLocationsData)){
+            if (empty($externalLocationIds) && ! empty($externalLocationsData)) {
                 Log::warning('SyncExternalLocationsCommand: API returned locations but failed to pluck IDs. Check structure of individual location items.', ['response_body' => $response->body(), 'parsed_locations_array' => $externalLocationsData]);
                 $this->error('Could not parse IDs from API response items. Check log.');
+
                 return Command::FAILURE;
             }
 
             // Soft delete local locations that have an external_id not in the API response
             $deletedNotInApiCount = Location::whereNotNull('external_id')
-                                          ->whereNotIn('external_id', $externalLocationIds)
-                                          ->delete(); // Soft delete
+                ->whereNotIn('external_id', $externalLocationIds)
+                ->delete(); // Soft delete
             if ($deletedNotInApiCount > 0) {
                 $this->info("{$deletedNotInApiCount} local locations (with external_id) not found in API were soft-deleted.");
                 Log::info("SyncExternalLocationsCommand: {$deletedNotInApiCount} local locations (with external_id) soft-deleted.");
@@ -113,8 +117,9 @@ class SyncExternalLocationsCommand extends Command
             $restoredCount = 0;
 
             foreach ($externalLocationsData as $extLocation) {
-                if (!isset($extLocation['id']) || !isset($extLocation['name'])) {
+                if (! isset($extLocation['id']) || ! isset($extLocation['name'])) {
                     Log::warning('SyncExternalLocationsCommand: Skipping external location due to missing id or name.', ['location_data' => $extLocation]);
+
                     continue;
                 }
 
@@ -123,6 +128,14 @@ class SyncExternalLocationsCommand extends Command
                     ['external_id' => $extLocation['id']],
                     [
                         'name' => $extLocation['name'],
+                        'outdoor_safe_code' => $extLocation['outdoor_safe_code'] ?? null,
+                        'indoor_safe_code' => $extLocation['indoor_safe_code'] ?? null,
+                        'outdoor_safe_content' => $extLocation['outdoor_safe_content'] ?? null,
+                        'indoor_safe_content' => $extLocation['indoor_safe_content'] ?? null,
+                        'intratone_number' => $extLocation['intratone_number'] ?? null,
+                        'intratone_multiple_numbers' => $extLocation['intratone_multiple_numbers'] ?? null,
+                        'gate_number' => $extLocation['gate_number'] ?? null,
+                        'bv' => $extLocation['bv'] ?? null,
                         'last_synced_at' => Carbon::now(),
                         'deleted_at' => null, // Explicitly restore if found (or ensure it's null for new/updated)
                     ]
@@ -132,7 +145,7 @@ class SyncExternalLocationsCommand extends Command
                     $createdCount++;
                 } else {
                     // Check if it was restored
-                    if ($location->trashed() && !$location->wasChanged('deleted_at')) {
+                    if ($location->trashed() && ! $location->wasChanged('deleted_at')) {
                         // This case is tricky. updateOrCreate on a trashed model might not trigger wasChanged() for deleted_at if it was already null from restore.
                         // If it was trashed and now deleted_at is null, it's restored.
                         // A more reliable way to check for restoration is if it was trashed before the operation.
@@ -143,11 +156,11 @@ class SyncExternalLocationsCommand extends Command
                         // Let's assume wasChanged() covers name/last_synced_at changes for existing non-deleted.
                         // If it was soft-deleted and is now found by updateOrCreate, setting deleted_at = null restores it.
                         // The $location->trashed() check *before* setting deleted_at = null would be ideal.
-                    } 
+                    }
                     if ($location->wasChanged()) {
-                         // This will be true if name, last_synced_at or deleted_at (from null to value or value to null) changed.
-                         // If deleted_at was changed from a timestamp to null, it means it was restored.
-                        if($location->wasChanged('deleted_at') && is_null($location->deleted_at)){
+                        // This will be true if name, last_synced_at or deleted_at (from null to value or value to null) changed.
+                        // If deleted_at was changed from a timestamp to null, it means it was restored.
+                        if ($location->wasChanged('deleted_at') && is_null($location->deleted_at)) {
                             $restoredCount++;
                         } else {
                             $updatedCount++; // counts other changes if not restored in this cycle
@@ -164,10 +177,12 @@ class SyncExternalLocationsCommand extends Command
         } catch (\Illuminate\Http\Client\RequestException $e) {
             $this->error("API Request Exception: {$e->getMessage()}");
             Log::error('SyncExternalLocationsCommand: API Request Exception.', ['exception' => $e]);
+
             return Command::FAILURE;
         } catch (\Exception $e) {
             $this->error("An unexpected error occurred: {$e->getMessage()}");
             Log::error('SyncExternalLocationsCommand: Unexpected error.', ['exception' => $e]);
+
             return Command::FAILURE;
         }
     }

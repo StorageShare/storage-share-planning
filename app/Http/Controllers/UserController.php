@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Enums\Role;
 
 class UserController extends Controller
 {
@@ -23,7 +23,9 @@ class UserController extends Controller
      */
     public function create()
     {
-        //
+        return view('users.create', [
+            'roles' => Role::cases(),
+        ]);
     }
 
     /**
@@ -31,7 +33,19 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'role' => ['required', 'string', 'in:'.implode(',', array_column(Role::cases(), 'value'))],
+        ]);
+
+        User::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'role' => $request->input('role'),
+        ]);
+
+        return redirect()->route('users.index');
     }
 
     /**
@@ -59,7 +73,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'role' => ['required', 'string', 'in:' . implode(',', array_column(Role::cases(), 'value'))],
+            'role' => ['required', 'string', 'in:'.implode(',', array_column(Role::cases(), 'value'))],
         ]);
 
         $user->update([

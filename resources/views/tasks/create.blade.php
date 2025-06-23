@@ -9,7 +9,14 @@
         <form action="{{ route('locations.tasks.store', $location) }}" method="POST" enctype="multipart/form-data">
             @csrf
             {{-- Nieuw Task model voor het formulier --}}
-            @include('tasks._form', ['task' => new App\Models\Task(), 'location' => $location, 'submitButtonText' => 'Taak Aanmaken'])
+            @include('tasks._form', [
+                'task' => new App\Models\Task(), 
+                'location' => $location, 
+                'submitButtonText' => 'Taak Aanmaken',
+                'benodigdheden' => $benodigdheden ?? collect(),
+                'selectedBenodigdheden' => old('benodigdheden', []),
+                'prefill' => $prefill ?? []
+            ])
         </form>
     </div>
 </x-app-layout>

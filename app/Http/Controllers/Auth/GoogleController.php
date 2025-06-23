@@ -19,21 +19,20 @@ class GoogleController extends Controller
     {
         $googleUser = Socialite::driver('google')->user();
 
-        $user = User::query()
-            ->where('google_id', $googleUser->getId())
-            ->orWhere('email', $googleUser->getEmail())
-            ->first();
-
-        if (! $user) {
-            $user = User::create([
-                'name' => $googleUser->getName(),
-                'email' => $googleUser->getEmail(),
-                'google_id' => $googleUser->getId(),
-            ]);
+        if (! str($googleUser->getEmail())->endsWith('@storage-share.nl')) {
+            return redirect()->route('login')->with('error', 'Inloggen is alleen toegestaan met een @storage-share.nl account.');
         }
+
+        $user = User::firstOrNew(['email' => $googleUser->getEmail()]);
+
+        $user->fill([
+            'name' => $user->name ?? $googleUser->getName(),
+            'google_id' => $googleUser->getId(),
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ])->save();
 
         Auth::login($user);
 
-        return redirect('/dashboard');
+        return redirect()->intended('/');
     }
-} 
+}

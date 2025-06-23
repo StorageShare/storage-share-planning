@@ -2,23 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Planning;
-use App\Models\Location;
-use App\Models\DefaultTask;
-use App\Models\Task;
+use App\Enums\TaskPriority;
 use App\Http\Requests\StorePlanningRequest;
 use App\Http\Requests\UpdatePlanningRequest;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\DB; // For database transactions
-use App\Enums\TaskPriority; // Importeer de Enum
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use App\Models\DefaultTask;
+use App\Models\Location;
+use App\Models\Planning;
+use App\Models\PlanningLocationTimer;
+use App\Models\Task;
 use App\Models\User;
+use App\Services\TravelTimeService;
+use App\Mail\PlanningReadyNotificationMail;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request; // For database transactions
+use Illuminate\Support\Facades\Auth; // Importeer de Enum
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
 
 class PlanningController extends Controller
 {
+    public function __construct(
+        private TravelTimeService $travelTimeService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -28,8 +36,9 @@ class PlanningController extends Controller
         $sortDirection = $request->input('sort_direction', 'desc');
         $searchTerm = $request->input('search_term', '');
         $activeFilter = $request->input('filter'); // For status filtering
+        $plannedDate = $request->input('planned_date'); // For date filtering
 
-        $query = Planning::with('locations')->withCount('planningTasks');
+        $query = Planning::with(['locations', 'users'])->withCount('planningTasks');
 
         $user = Auth::user();
         if ($user && $user->role !== \App\Enums\Role::ADMIN) {
@@ -39,12 +48,12 @@ class PlanningController extends Controller
         }
 
         // Search functionality
-        if (!empty($searchTerm)) {
+        if (! empty($searchTerm)) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('notes', 'LIKE', "%{$searchTerm}%")
-                  ->orWhereHas('locations', function ($locationQuery) use ($searchTerm) {
-                      $locationQuery->where('name', 'LIKE', "%{$searchTerm}%");
-                  });
+                    ->orWhereHas('locations', function ($locationQuery) use ($searchTerm) {
+                        $locationQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                    });
             });
         }
 
@@ -55,12 +64,16 @@ class PlanningController extends Controller
             $query->where('status', $activeFilter);
         }
 
+        if ($plannedDate) {
+            $query->whereDate('planned_date', $plannedDate);
+        }
+
         // Sorting logic
         $validSortColumns = ['planned_date', 'status', 'created_at', 'planning_tasks_count'];
-        if (!in_array($sortBy, $validSortColumns)) {
+        if (! in_array($sortBy, $validSortColumns)) {
             $sortBy = 'planned_date';
         }
-        if (!in_array(strtolower($sortDirection), ['asc', 'desc'])) {
+        if (! in_array(strtolower($sortDirection), ['asc', 'desc'])) {
             $sortDirection = 'desc';
         }
         $query->orderBy($sortBy, $sortDirection);
@@ -89,20 +102,30 @@ class PlanningController extends Controller
         $users = User::all();
         $locations = Location::with('defaultTasks')->orderBy('name')->get();
         $defaultTasksByLocation = $locations->mapWithKeys(function ($location) {
-            return [$location->id => $location->defaultTasks->map(function ($task) {
+            // Haal alle default tasks op die specifiek aan deze locatie zijn gekoppeld OF die voor alle locaties gelden
+            $locationSpecificTasks = $location->defaultTasks;
+            $allLocationTasks = DefaultTask::forAllLocations()->get();
+            
+            // Combineer beide collecties en verwijder duplicaten
+            $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
+            
+            return [$location->id => $allTasks->map(function ($task) {
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'description' => $task->description,
-                    'estimated_time_minutes' => $task->estimated_time_minutes ?? 0
+                    'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                    'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
                 ];
             })];
         });
 
-        // Haal alle backlog taken op, gegroepeerd per locatie_id
-        $all_backlog_tasks = Task::whereIn('status', ['open', 'in_progress'])
-            // ->whereDoesntHave('planningTasks') // Alleen taken die nog niet in *enige* planning zitten
-            // Toon alle open/in_progress taken, de create form logica zal bepalen welke al in *deze* (nieuwe) planning zitten.
+        // Haal alle backlog taken op die beschikbaar zijn voor planning.
+        $all_backlog_tasks = Task::query()
+            ->where(function ($query) {
+                $query->whereIn('status', ['open', 'in_progress', 'rejected'])
+                      ->whereDoesntHave('planningTasks');
+            })
             ->orderBy('priority', 'asc')
             ->orderBy('created_at', 'asc')
             ->get();
@@ -115,11 +138,11 @@ class PlanningController extends Controller
                         'title' => $task->title,
                         'description' => $task->description,
                         'priority' => $task->priority,
-                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0
+                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                     ];
                 });
             });
-        
+
         $backlogPriorityCountsByLocation = $all_backlog_tasks->groupBy('location_id')
             ->map(function ($tasks_for_location) {
                 return [
@@ -142,16 +165,27 @@ class PlanningController extends Controller
                 TaskPriority::NORMAL->value => 0,
                 TaskPriority::LOW->value => 0,
             ];
+
             return [
                 -($counts[TaskPriority::HIGH->value] ?? 0),     // Descending high priority
                 -($counts[TaskPriority::NORMAL->value] ?? 0),  // Descending normal priority
                 -($counts[TaskPriority::LOW->value] ?? 0),     // Descending low priority
-                $location->name                               // Ascending name
+                $location->name,                               // Ascending name
             ];
         })->values();
 
         $selected_location_id = $request->query('location_id');
-        
+
+        $plannedBacklogTasks = \App\Models\PlanningTask::whereNotNull('task_id')
+            ->with('planning:id,planned_date')
+            ->get()
+            ->mapWithKeys(function ($planningTask) {
+                return [$planningTask->task_id => [
+                    'planning_id' => $planningTask->planning->id,
+                    'planning_title' => $planningTask->planning->planned_date->format('d-m-Y'),
+                ]];
+            });
+
         return view('plannings.create', compact(
             'locations',
             'defaultTasksByLocation',
@@ -159,7 +193,8 @@ class PlanningController extends Controller
             'backlogPriorityCountsByLocation',
             'backlogTotalEstimatedTimeByLocation',
             'selected_location_id',
-            'users'
+            'users',
+            'plannedBacklogTasks'
         ));
     }
 
@@ -168,72 +203,30 @@ class PlanningController extends Controller
      */
     public function store(StorePlanningRequest $request): RedirectResponse
     {
-        $validatedData = $request->validated();
+        $validated = $request->validated();
 
-        try {
-            DB::beginTransaction();
-
+        DB::transaction(function () use ($validated, $request) {
             $planning = Planning::create([
-                'planned_date' => $validatedData['planned_date'],
-                'notes' => $validatedData['notes'] ?? null,
-                'status' => 'open', // Default status for new plannings
-                'created_by' => auth()->id(),
+                'planned_date' => $validated['planned_date'],
+                'notes' => $validated['notes'],
+                'start_address' => $validated['start_address'],
+                'start_time' => $validated['start_time'],
+                'created_by' => \Illuminate\Support\Facades\Auth::id(),
             ]);
 
-            if (!empty($validatedData['location_ids'])) {
-                $planning->locations()->sync($validatedData['location_ids']);
+            // Sync locations with order
+            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'));
+
+            // Sync users
+            if (! empty($validated['user_ids'])) {
+                $planning->users()->sync($validated['user_ids']);
             }
 
-            if (!empty($validatedData['user_ids'])) {
-                $planning->users()->sync($validatedData['user_ids']);
-            }
+            // Create planning tasks from default and backlog tasks
+            $this->createPlanningTasks($planning, $validated);
+        });
 
-            // Detach all existing default task derived planning tasks first to handle updates/removals cleanly.
-            // This is simpler than trying to diff for the store method; update will need more complex diffing.
-            // For store, we assume a fresh set of tasks for the given locations.
-            // $planning->planningTasks()->whereNotNull('default_task_id')->delete(); // Revisit if this is too aggressive
-
-            if (!empty($validatedData['selected_default_tasks']) && !empty($validatedData['location_ids'])) {
-                $selected_location_ids = collect($validatedData['location_ids']);
-                // Load default tasks with their general applicable locations
-                $default_task_templates = DefaultTask::with('locations')->findMany($validatedData['selected_default_tasks']);
-
-                foreach ($selected_location_ids as $location_id_for_planning) {
-                    foreach ($default_task_templates as $default_task_template) {
-                        // Check if this default task template is generally applicable to this location
-                        if ($default_task_template->locations->contains($location_id_for_planning)) {
-                            $planning->planningTasks()->create([
-                                'default_task_id' => $default_task_template->id,
-                                'location_id'     => $location_id_for_planning, // Assign specific location_id
-                                'title'           => $default_task_template->title,
-                                'description'     => $default_task_template->description,
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            if (!empty($validatedData['selected_backlog_tasks'])) {
-                $backlogTasks = Task::findMany($validatedData['selected_backlog_tasks']);
-                foreach ($backlogTasks as $backlogTask) {
-                    $planning->planningTasks()->create([
-                        'task_id' => $backlogTask->id,
-                        'title' => $backlogTask->title,
-                        'description' => $backlogTask->description,
-                        // Prioriteit en andere details van Task kunnen hier worden overgenomen indien nodig
-                    ]);
-                }
-            }
-
-            DB::commit();
-
-            return redirect()->route('plannings.show', $planning)->with('success', 'Planning succesvol aangemaakt.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error creating planning: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return redirect()->back()->withInput()->with('error', 'Fout bij het aanmaken van de planning: ' . $e->getMessage());
-        }
+        return redirect()->route('plannings.index')->with('success', 'Planning succesvol aangemaakt.');
     }
 
     /**
@@ -242,12 +235,52 @@ class PlanningController extends Controller
     public function show(Planning $planning): View
     {
         $planning->load([
-            'locations', 
-            'planningTasks.task.location', 
-            'planningTasks.defaultTask.locations', // Still useful to know general applicability of the template
-            'planningTasks.specificLocation' // For the specific instance
+            'locations',
+            'locationTimers',
+            'planningTasks' => function ($query) {
+                $query->with([
+                    'task.location',
+                    'defaultTask.locations',
+                    'specificLocation',
+                    'completions' => function ($completionQuery) {
+                        $completionQuery->with(['user', 'photos'])->orderBy('created_at', 'desc');
+                    },
+                ]);
+            },
         ]);
-        return view('plannings.show', compact('planning'));
+
+        // Calculate travel times between locations
+        $travelTimes = null;
+        if ($planning->locations->count() > 1) {
+            $travelTimes = $this->travelTimeService->calculateTravelTimesForSequence(
+                $planning->locations->all(),
+                $planning->start_address
+            );
+        }
+
+        // Calculate task times
+        $totalTaskMinutes = $planning->planningTasks->sum(function ($planningTask) {
+            if ($planningTask->task && isset($planningTask->task->estimated_time_minutes)) {
+                return (int)$planningTask->task->estimated_time_minutes;
+            } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) {
+                return (int)$planningTask->defaultTask->estimated_time_minutes;
+            }
+            return 0;
+        });
+
+        // Create location timers lookup
+        $locationTimers = $planning->locationTimers->keyBy(function ($timer) {
+            return $timer->location_id ?? 'backlog';
+        });
+
+        // Calculate time overview
+        $timeOverview = [
+            'task_minutes' => $totalTaskMinutes,
+            'travel_minutes' => $travelTimes ? $travelTimes['total_duration_minutes'] : 0,
+            'total_minutes' => $totalTaskMinutes + ($travelTimes ? $travelTimes['total_duration_minutes'] : 0),
+        ];
+
+        return view('plannings.show', compact('planning', 'travelTimes', 'timeOverview', 'locationTimers'));
     }
 
     /**
@@ -258,31 +291,43 @@ class PlanningController extends Controller
         $users = User::all();
         $locations = Location::with('defaultTasks')->orderBy('name')->get();
         $defaultTasksByLocation = $locations->mapWithKeys(function ($location) {
-            return [$location->id => $location->defaultTasks->map(function ($task) {
+            // Haal alle default tasks op die specifiek aan deze locatie zijn gekoppeld OF die voor alle locaties gelden
+            $locationSpecificTasks = $location->defaultTasks;
+            $allLocationTasks = DefaultTask::forAllLocations()->get();
+            
+            // Combineer beide collecties en verwijder duplicaten
+            $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
+            
+            return [$location->id => $allTasks->map(function ($task) {
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'description' => $task->description,
-                    'estimated_time_minutes' => $task->estimated_time_minutes ?? 0
+                    'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                    'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
                 ];
             })];
         });
 
-        $planning->load('locations'); 
+        $planning->load('locations');
         $current_selected_location_ids = $planning->locations->pluck('id')->all();
 
-        $all_relevant_backlog_tasks = Task::whereIn('status', ['open', 'in_progress'])
+        // Haal alle backlog taken op die beschikbaar zijn voor planning.
+        $availableBacklogTasks = Task::query()
             ->where(function ($query) use ($planning) {
-                $query->whereDoesntHave('planningTasks')
-                      ->orWhereHas('planningTasks', function ($subQuery) use ($planning) {
-                          $subQuery->where('planning_id', $planning->id);
-                      });
+                // Taak is 'open', 'in_progress', of 'rejected' EN is nog niet aan een planning gekoppeld
+                $query->whereIn('status', ['open', 'in_progress', 'rejected'])
+                      ->whereDoesntHave('planningTasks');
+            })
+            ->orWhereHas('planningTasks', function ($query) use ($planning) {
+                // OF de taak is gekoppeld aan de HUIDIGE planning
+                $query->where('planning_id', $planning->id);
             })
             ->orderBy('priority', 'asc')
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $backlogTasksByLocation = $all_relevant_backlog_tasks->groupBy('location_id')
+        $backlogTasksByLocation = $availableBacklogTasks->groupBy('location_id')
             ->map(function ($tasks) {
                 return $tasks->map(function ($task) {
                     return [
@@ -290,12 +335,12 @@ class PlanningController extends Controller
                         'title' => $task->title,
                         'description' => $task->description,
                         'priority' => $task->priority,
-                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0
+                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                     ];
                 });
             });
 
-        $backlogPriorityCountsByLocation = $all_relevant_backlog_tasks->groupBy('location_id')
+        $backlogPriorityCountsByLocation = $availableBacklogTasks->groupBy('location_id')
             ->map(function ($tasks_for_location) {
                 return [
                     TaskPriority::HIGH->value => $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
@@ -304,22 +349,22 @@ class PlanningController extends Controller
                 ];
             });
 
-        $backlogTotalEstimatedTimeByLocation = $all_relevant_backlog_tasks->groupBy('location_id')
+        $backlogTotalEstimatedTimeByLocation = $availableBacklogTasks->groupBy('location_id')
             ->map(function ($tasks_for_location) {
                 // Assuming 'estimated_time_minutes' is the field for estimated time.
                 return $tasks_for_location->sum('estimated_time_minutes');
             });
-        
+
         $current_selected_default_tasks = $planning->planningTasks
             ->whereNotNull('default_task_id')
             ->pluck('default_task_id')
-            ->map(fn ($id) => (string)$id)
+            ->map(fn ($id) => (string) $id)
             ->all();
 
         $current_selected_backlog_tasks = $planning->planningTasks
             ->whereNotNull('task_id')
             ->pluck('task_id')
-            ->map(fn ($id) => (string)$id)
+            ->map(fn ($id) => (string) $id)
             ->all();
 
         // Sort locations based on priority task counts and then name
@@ -329,13 +374,25 @@ class PlanningController extends Controller
                 TaskPriority::NORMAL->value => 0,
                 TaskPriority::LOW->value => 0,
             ];
+
             return [
                 -($counts[TaskPriority::HIGH->value] ?? 0),     // Descending high priority
                 -($counts[TaskPriority::NORMAL->value] ?? 0),  // Descending normal priority
                 -($counts[TaskPriority::LOW->value] ?? 0),     // Descending low priority
-                $location->name                               // Ascending name
+                $location->name,                               // Ascending name
             ];
         })->values();
+
+        $plannedBacklogTasks = \App\Models\PlanningTask::whereNotNull('task_id')
+            ->where('planning_id', '!=', $planning->id)
+            ->with('planning:id,planned_date')
+            ->get()
+            ->mapWithKeys(function ($planningTask) {
+                return [$planningTask->task_id => [
+                    'planning_id' => $planningTask->planning->id,
+                    'planning_title' => $planningTask->planning->planned_date->format('d-m-Y'),
+                ]];
+            });
 
         return view('plannings.edit', compact(
             'planning',
@@ -347,7 +404,8 @@ class PlanningController extends Controller
             'current_selected_location_ids',
             'current_selected_default_tasks',
             'current_selected_backlog_tasks',
-            'users'
+            'users',
+            'plannedBacklogTasks'
         ));
     }
 
@@ -356,108 +414,27 @@ class PlanningController extends Controller
      */
     public function update(UpdatePlanningRequest $request, Planning $planning): RedirectResponse
     {
-        $validatedData = $request->validated();
+        $validated = $request->validated();
 
-        try {
-            DB::beginTransaction();
-
+        DB::transaction(function () use ($planning, $validated, $request) {
             $planning->update([
-                'planned_date' => $validatedData['planned_date'],
-                'notes' => $validatedData['notes'] ?? null,
-                // Status update could be handled here if part of the form
-                // 'status' => $validatedData['status'] ?? $planning->status,
+                'planned_date' => $validated['planned_date'],
+                'notes' => $validated['notes'],
+                'start_address' => $validated['start_address'],
+                'start_time' => $validated['start_time'],
             ]);
 
-            if (isset($validatedData['location_ids'])) {
-                $planning->locations()->sync($validatedData['location_ids']);
-            }
+            // Sync locations with order
+            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'));
 
-            if (isset($validatedData['user_ids'])) {
-                $planning->users()->sync($validatedData['user_ids']);
-            } else {
-                $planning->users()->sync([]);
-            }
+            // Sync users
+            $planning->users()->sync($validated['user_ids'] ?? []);
 
-            // --- Handle Default Tasks ---
-            $current_default_planning_tasks = $planning->planningTasks()
-                ->whereNotNull('default_task_id')
-                ->get()
-                ->keyBy(fn($pt) => $pt->location_id . '-' . $pt->default_task_id); // Key by composite for easy lookup
+            // Handle task updates
+            $this->updatePlanningTasks($planning, $validated);
+        });
 
-            $desired_default_task_state = collect();
-            if (!empty($validatedData['selected_default_tasks']) && !empty($validatedData['location_ids'])) {
-                $selected_location_ids_for_planning = collect($validatedData['location_ids']);
-                $default_task_templates = DefaultTask::with('locations')->findMany($validatedData['selected_default_tasks']);
-
-                foreach ($selected_location_ids_for_planning as $location_id_for_planning) {
-                    foreach ($default_task_templates as $default_task_template) {
-                        if ($default_task_template->locations->contains($location_id_for_planning)) {
-                            $desired_default_task_state->put($location_id_for_planning . '-' . $default_task_template->id, [
-                                'location_id' => $location_id_for_planning,
-                                'default_task_id' => $default_task_template->id,
-                                'title' => $default_task_template->title,
-                                'description' => $default_task_template->description,
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            // Tasks to delete: those in current but not in desired
-            $task_ids_to_delete = $current_default_planning_tasks
-                ->diffKeys($desired_default_task_state)
-                ->pluck('id');
-
-            if ($task_ids_to_delete->isNotEmpty()) {
-                $planning->planningTasks()->whereIn('id', $task_ids_to_delete)->delete();
-            }
-
-            // Tasks to add: those in desired but not in current
-            $tasks_to_add_data = $desired_default_task_state->diffKeys($current_default_planning_tasks);
-
-            foreach ($tasks_to_add_data as $data) {
-                $planning->planningTasks()->create([
-                    'planning_id'     => $planning->id, // Not strictly needed if using relationship, but good for clarity
-                    'location_id'     => $data['location_id'],
-                    'default_task_id' => $data['default_task_id'],
-                    'title'           => $data['title'],
-                    'description'     => $data['description'],
-                ]);
-            }
-
-            // --- Handle Backlog Tasks (largely unchanged but ensure consistency if needed) ---
-            $selected_backlog_task_ids = collect($validatedData['selected_backlog_tasks'] ?? [])->map(fn($id) => (int)$id);
-            $current_planning_tasks_from_backlog = $planning->planningTasks()->whereNotNull('task_id')->get();
-
-            $backlog_task_ids_to_delete_from_planning = $current_planning_tasks_from_backlog
-                ->filter(fn($pt) => !$selected_backlog_task_ids->contains($pt->task_id))
-                ->pluck('id');
-            if ($backlog_task_ids_to_delete_from_planning->isNotEmpty()) {
-                $planning->planningTasks()->whereIn('id', $backlog_task_ids_to_delete_from_planning)->delete();
-            }
-
-            $current_linked_backlog_task_ids = $current_planning_tasks_from_backlog->pluck('task_id');
-            $new_backlog_task_ids_to_add = $selected_backlog_task_ids->diff($current_linked_backlog_task_ids);
-            if ($new_backlog_task_ids_to_add->isNotEmpty()) {
-                $backlogTasksToAdd = Task::findMany($new_backlog_task_ids_to_add);
-                foreach ($backlogTasksToAdd as $backlogTask) {
-                    $planning->planningTasks()->create([
-                        'task_id' => $backlogTask->id,
-                        'title' => $backlogTask->title,
-                        'description' => $backlogTask->description,
-                    ]);
-                }
-            }
-
-            DB::commit();
-
-            return redirect()->route('plannings.show', $planning)->with('success', 'Planning succesvol bijgewerkt.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating planning: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return redirect()->back()->withInput()->with('error', 'Fout bij het bijwerken van de planning: ' . $e->getMessage());
-        }
+        return redirect()->route('plannings.show', $planning)->with('success', 'Planning succesvol bijgewerkt.');
     }
 
     /**
@@ -466,24 +443,360 @@ class PlanningController extends Controller
     public function destroy(Planning $planning): RedirectResponse
     {
         $planning->delete();
+
         return redirect()->route('plannings.index')->with('success', 'Planning succesvol verwijderd.');
     }
 
-    // --- Extra methodes voor PlanningTasks --- (Voorbeeld)
+    /**
+     * Send notification emails to all users assigned to this planning.
+     */
+    public function sendNotifications(Planning $planning): RedirectResponse
+    {
+        // Load the necessary relationships
+        $planning->load(['users', 'locations', 'planningTasks']);
+
+        // Check if there are users assigned to this planning
+        if ($planning->users->isEmpty()) {
+            return redirect()->back()->with('error', 'Er zijn geen gebruikers toegewezen aan deze planning.');
+        }
+
+        $sentCount = 0;
+        foreach ($planning->users as $user) {
+            try {
+                Mail::to($user->email)->send(new PlanningReadyNotificationMail($planning));
+                $sentCount++;
+            } catch (\Exception $e) {
+                // Log the error but continue sending to other users
+                Log::error('Failed to send planning notification to user ' . $user->id . ': ' . $e->getMessage());
+            }
+        }
+
+        if ($sentCount > 0) {
+            $message = "Notificatie succesvol verstuurd naar {$sentCount} gebruiker(s).";
+            return redirect()->back()->with('success', $message);
+        } else {
+            return redirect()->back()->with('error', 'Er is een fout opgetreden bij het versturen van de notificaties.');
+        }
+    }
 
     /**
-     * Markeer een planningstaak als voltooid.
+     * Get timer data for a specific location in a planning.
      */
-    // public function completePlanningTask(Planning $planning, PlanningTask $planningTask, Request $request): RedirectResponse
-    // {
-    //     if ($planningTask->planning_id !== $planning->id) {
-    //         abort(403);
-    //     }
-    //     $planningTask->update([
-    //         'completed_at' => now(),
-    //         'completed_notes' => $request->input('completed_notes'),
-    //     ]);
-    //     // Optioneel: foto uploaden en koppelen aan $planningTask
-    //     return redirect()->route('plannings.show', $planning)->with('success', 'Taak \'' . $planningTask->title . '\' voltooid.');
-    // }
+    public function getLocationTimer(Planning $planning, $locationId)
+    {
+        // Determine location type and actual location ID
+        $actualLocationId = null;
+        $locationType = 'location';
+        
+        if ($locationId === 'backlog') {
+            $actualLocationId = null;
+            $locationType = 'backlog';
+        } elseif (str_starts_with($locationId, 'travel_to_')) {
+            // Travel timer - extract destination location ID
+            $actualLocationId = str_replace('travel_to_', '', $locationId);
+            $locationType = 'travel';
+        } else {
+            // Regular location
+            $actualLocationId = $locationId;
+            $locationType = 'location';
+        }
+        
+        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
+            ->where('location_id', $actualLocationId)
+            ->where('location_type', $locationType)
+            ->first();
+        
+        if (!$timer) {
+            return response()->json([
+                'started_at' => null,
+                'ended_at' => null,
+                'total_duration' => 0,
+            ]);
+        }
+        
+        return response()->json([
+            'started_at' => $timer->started_at?->toISOString(),
+            'ended_at' => $timer->ended_at?->toISOString(),
+            'total_duration' => $timer->total_duration_seconds,
+        ]);
+    }
+    
+    /**
+     * Start timer for a specific location in a planning.
+     */
+    public function startLocationTimer(Planning $planning, $locationId)
+    {
+        // Determine location type and actual location ID
+        $actualLocationId = null;
+        $locationType = 'location';
+        
+        if ($locationId === 'backlog') {
+            $actualLocationId = null;
+            $locationType = 'backlog';
+        } elseif (str_starts_with($locationId, 'travel_to_')) {
+            // Travel timer - extract destination location ID
+            $actualLocationId = str_replace('travel_to_', '', $locationId);
+            $locationType = 'travel';
+        } else {
+            // Regular location
+            $actualLocationId = $locationId;
+            $locationType = 'location';
+        }
+        
+        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
+            ->where('location_id', $actualLocationId)
+            ->where('location_type', $locationType)
+            ->first();
+            
+        if ($timer) {
+            // Timer exists - just update start time and clear end time
+            $timer->update([
+                'started_at' => now(),
+                'ended_at' => null,
+            ]);
+        } else {
+            // Create new timer
+            $timer = PlanningLocationTimer::create([
+                'planning_id' => $planning->id,
+                'location_id' => $actualLocationId,
+                'location_type' => $locationType,
+                'started_at' => now(),
+                'ended_at' => null,
+                'total_duration_seconds' => 0,
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'timer' => [
+                'started_at' => $timer->started_at->toISOString(),
+                'total_duration' => $timer->total_duration_seconds,
+            ],
+        ]);
+    }
+    
+    /**
+     * Stop timer for a specific location in a planning.
+     */
+    public function stopLocationTimer(Request $request, Planning $planning, $locationId)
+    {
+        $request->validate([
+            'total_duration' => 'required|integer|min:0',
+        ]);
+        
+        // Determine location type and actual location ID
+        $actualLocationId = null;
+        $locationType = 'location';
+        
+        if ($locationId === 'backlog') {
+            $actualLocationId = null;
+            $locationType = 'backlog';
+        } elseif (str_starts_with($locationId, 'travel_to_')) {
+            // Travel timer - extract destination location ID
+            $actualLocationId = str_replace('travel_to_', '', $locationId);
+            $locationType = 'travel';
+        } else {
+            // Regular location
+            $actualLocationId = $locationId;
+            $locationType = 'location';
+        }
+        
+        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
+            ->where('location_id', $actualLocationId)
+            ->where('location_type', $locationType)
+            ->first();
+        
+        if (!$timer) {
+            return response()->json(['error' => 'Timer not found'], 404);
+        }
+        
+        $timer->update([
+            'ended_at' => now(),
+            'total_duration_seconds' => $request->input('total_duration'),
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'timer' => [
+                'started_at' => $timer->started_at->toISOString(),
+                'ended_at' => $timer->ended_at->toISOString(),
+                'total_duration' => $timer->total_duration_seconds,
+            ],
+        ]);
+    }
+
+    /**
+     * Restart timer for a specific location in a planning.
+     * This preserves the previous duration and starts counting again.
+     */
+    public function restartLocationTimer(Request $request, Planning $planning, $locationId)
+    {
+        $request->validate([
+            'previous_duration' => 'required|integer|min:0',
+        ]);
+        
+        // Determine location type and actual location ID
+        $actualLocationId = null;
+        $locationType = 'location';
+        
+        if ($locationId === 'backlog') {
+            $actualLocationId = null;
+            $locationType = 'backlog';
+        } elseif (str_starts_with($locationId, 'travel_to_')) {
+            // Travel timer - extract destination location ID
+            $actualLocationId = str_replace('travel_to_', '', $locationId);
+            $locationType = 'travel';
+        } else {
+            // Regular location
+            $actualLocationId = $locationId;
+            $locationType = 'location';
+        }
+        
+        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
+            ->where('location_id', $actualLocationId)
+            ->where('location_type', $locationType)
+            ->first();
+        
+        if (!$timer) {
+            return response()->json(['error' => 'Timer not found'], 404);
+        }
+        
+        // Restart the timer - set new start time, clear end time, preserve previous duration
+        $timer->update([
+            'started_at' => now(),
+            'ended_at' => null,
+            'total_duration_seconds' => $request->input('previous_duration'), // Keep the accumulated time
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'timer' => [
+                'started_at' => $timer->started_at->toISOString(),
+                'ended_at' => null,
+                'total_duration' => $timer->total_duration_seconds,
+            ],
+        ]);
+    }
+
+    private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder): void
+    {
+        $orderedIds = $locationOrder ? explode(',', $locationOrder) : [];
+        $locationsToSync = [];
+
+        // Ensure all selected locations are in the ordered list to avoid data loss
+        $finalOrderedIds = collect($orderedIds)->unique()->filter(fn ($id) => in_array($id, $locationIds));
+        foreach ($locationIds as $id) {
+            if (! $finalOrderedIds->contains($id)) {
+                $finalOrderedIds->push($id);
+            }
+        }
+
+        foreach ($finalOrderedIds as $index => $locationId) {
+            $locationsToSync[$locationId] = ['sort_order' => $index];
+        }
+
+        $planning->locations()->sync($locationsToSync);
+    }
+
+    private function createPlanningTasks(Planning $planning, array $validatedData): void
+    {
+        // Logic for adding default tasks
+        if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
+            $selected_location_ids = collect($validatedData['location_ids']);
+            $default_task_templates = DefaultTask::with('locations')->findMany($validatedData['selected_default_tasks']);
+
+            foreach ($selected_location_ids as $location_id) {
+                foreach ($default_task_templates as $template) {
+                    if ($template->locations->contains($location_id)) {
+                        $planning->planningTasks()->create([
+                            'location_id' => $location_id,
+                            'default_task_id' => $template->id,
+                            'title' => $template->title,
+                            'description' => $template->description,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Logic for adding backlog tasks
+        if (! empty($validatedData['selected_backlog_tasks'])) {
+            $backlogTasks = Task::findMany($validatedData['selected_backlog_tasks']);
+            foreach ($backlogTasks as $backlogTask) {
+                $planning->planningTasks()->create([
+                    'task_id' => $backlogTask->id,
+                    'title' => $backlogTask->title,
+                    'description' => $backlogTask->description,
+                    'location_id' => $backlogTask->location_id,
+                    'priority' => $backlogTask->priority,
+                    'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
+                ]);
+            }
+        }
+    }
+
+    private function updatePlanningTasks(Planning $planning, array $validatedData): void
+    {
+        // Logic for adding/removing default tasks based on selection
+        $current_default_planning_tasks = $planning->planningTasks()
+            ->whereNotNull('default_task_id')
+            ->get()
+            ->keyBy(fn ($pt) => $pt->location_id.'-'.$pt->default_task_id);
+
+        $desired_default_task_state = collect();
+        if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
+            $selected_location_ids_for_planning = collect($validatedData['location_ids']);
+            $default_task_templates = DefaultTask::with('locations')->findMany($validatedData['selected_default_tasks']);
+
+            foreach ($selected_location_ids_for_planning as $location_id_for_planning) {
+                foreach ($default_task_templates as $default_task_template) {
+                    if ($default_task_template->locations->contains($location_id_for_planning)) {
+                        $desired_default_task_state->put($location_id_for_planning.'-'.$default_task_template->id, [
+                            'location_id' => $location_id_for_planning,
+                            'default_task_id' => $default_task_template->id,
+                            'title' => $default_task_template->title,
+                            'description' => $default_task_template->description,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        $task_ids_to_delete = $current_default_planning_tasks->diffKeys($desired_default_task_state)->pluck('id');
+        if ($task_ids_to_delete->isNotEmpty()) {
+            $planning->planningTasks()->whereIn('id', $task_ids_to_delete)->delete();
+        }
+
+        $tasks_to_add_data = $desired_default_task_state->diffKeys($current_default_planning_tasks);
+        foreach ($tasks_to_add_data as $data) {
+            $planning->planningTasks()->create($data);
+        }
+
+        // Logic for adding/removing backlog tasks
+        $selected_backlog_task_ids = collect($validatedData['selected_backlog_tasks'] ?? [])->map(fn ($id) => (int) $id);
+        $current_planning_tasks_from_backlog = $planning->planningTasks()->whereNotNull('task_id')->get();
+
+        $backlog_task_ids_to_delete_from_planning = $current_planning_tasks_from_backlog
+            ->filter(fn ($pt) => ! $selected_backlog_task_ids->contains($pt->task_id))
+            ->pluck('id');
+        if ($backlog_task_ids_to_delete_from_planning->isNotEmpty()) {
+            $planning->planningTasks()->whereIn('id', $backlog_task_ids_to_delete_from_planning)->delete();
+        }
+
+        $current_linked_backlog_task_ids = $current_planning_tasks_from_backlog->pluck('task_id');
+        $new_backlog_task_ids_to_add = $selected_backlog_task_ids->diff($current_linked_backlog_task_ids);
+        if ($new_backlog_task_ids_to_add->isNotEmpty()) {
+            $backlogTasksToAdd = Task::findMany($new_backlog_task_ids_to_add);
+            foreach ($backlogTasksToAdd as $backlogTask) {
+                $planning->planningTasks()->create([
+                    'task_id' => $backlogTask->id,
+                    'title' => $backlogTask->title,
+                    'description' => $backlogTask->description,
+                    'location_id' => $backlogTask->location_id,
+                    'priority' => $backlogTask->priority,
+                    'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
+                ]);
+            }
+        }
+    }
 }

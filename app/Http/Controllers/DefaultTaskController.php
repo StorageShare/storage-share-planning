@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DefaultTask;
 use App\Http\Requests\StoreDefaultTaskRequest;
 use App\Http\Requests\UpdateDefaultTaskRequest;
+use App\Models\DefaultTask;
 use App\Models\Location;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,19 +23,19 @@ class DefaultTaskController extends Controller
         $activeFilter = null;
 
         $validSortColumns = ['title', 'created_at'];
-        if (!in_array($sortBy, $validSortColumns)) {
+        if (! in_array($sortBy, $validSortColumns)) {
             $sortBy = 'created_at';
         }
-        if (!in_array(strtolower($sortDirection), ['asc', 'desc'])) {
+        if (! in_array(strtolower($sortDirection), ['asc', 'desc'])) {
             $sortDirection = 'desc';
         }
 
         $defaultTasksQuery = DefaultTask::query();
 
-        if (!empty($searchTerm)) {
+        if (! empty($searchTerm)) {
             $defaultTasksQuery->where(function ($query) use ($searchTerm) {
                 $query->where('title', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                    ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             });
         }
 
@@ -58,7 +58,10 @@ class DefaultTaskController extends Controller
     public function create(): View
     {
         $locations = Location::orderBy('name')->get();
-        return view('default-tasks.create', compact('locations'));
+        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
+        $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
+
+        return view('default-tasks.create', compact('locations', 'benodigdheden', 'availableDoorTypes'));
     }
 
     /**
@@ -68,11 +71,30 @@ class DefaultTaskController extends Controller
     {
         $validatedData = $request->validated();
         $validatedData['created_by'] = auth()->id();
-        
+
+        // Sanitize door types (hoofdletter ongevoelig)
+        if (!empty($validatedData['door_types'])) {
+            $validatedData['door_types'] = array_map('trim', array_map('strtolower', $validatedData['door_types']));
+        }
+
         $defaultTask = DefaultTask::create($validatedData);
 
-        if (!empty($validatedData['locations'])) {
+        // Handle location assignments based on different criteria
+        if (!empty($validatedData['applies_to_all_locations'])) {
+            // Sync met alle bestaande locaties
+            $allLocationIds = Location::pluck('id')->toArray();
+            $defaultTask->locations()->sync($allLocationIds);
+        } elseif (!empty($validatedData['applies_to_door_types']) && !empty($validatedData['door_types'])) {
+            // Sync met locaties die de geselecteerde deur types hebben
+            $matchingLocationIds = $defaultTask->applicableLocationsByDoorType()->pluck('id')->toArray();
+            $defaultTask->locations()->sync($matchingLocationIds);
+        } elseif (!empty($validatedData['locations'])) {
+            // Sync met specifiek geselecteerde locaties
             $defaultTask->locations()->sync($validatedData['locations']);
+        }
+
+        if (! empty($validatedData['benodigdheden'])) {
+            $defaultTask->benodigdheden()->sync($validatedData['benodigdheden']);
         }
 
         return redirect()->route('default-tasks.index')->with('success', 'Standaardtaak succesvol aangemaakt.');
@@ -84,6 +106,7 @@ class DefaultTaskController extends Controller
     public function show(DefaultTask $defaultTask): View
     {
         $defaultTask->load('locations');
+
         return view('default-tasks.show', compact('defaultTask'));
     }
 
@@ -94,7 +117,11 @@ class DefaultTaskController extends Controller
     {
         $locations = Location::orderBy('name')->get();
         $selectedLocations = $defaultTask->locations()->pluck('locations.id')->toArray();
-        return view('default-tasks.edit', compact('defaultTask', 'locations', 'selectedLocations'));
+        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
+        $selectedBenodigdheden = $defaultTask->benodigdheden->pluck('id')->toArray();
+        $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
+
+        return view('default-tasks.edit', compact('defaultTask', 'locations', 'selectedLocations', 'benodigdheden', 'selectedBenodigdheden', 'availableDoorTypes'));
     }
 
     /**
@@ -103,9 +130,29 @@ class DefaultTaskController extends Controller
     public function update(UpdateDefaultTaskRequest $request, DefaultTask $defaultTask): RedirectResponse
     {
         $validatedData = $request->validated();
+        
+        // Sanitize door types (hoofdletter ongevoelig)
+        if (!empty($validatedData['door_types'])) {
+            $validatedData['door_types'] = array_map('trim', array_map('strtolower', $validatedData['door_types']));
+        }
+        
         $defaultTask->update($validatedData);
 
-        $defaultTask->locations()->sync($validatedData['locations'] ?? []);
+        // Handle location assignments based on different criteria
+        if (!empty($validatedData['applies_to_all_locations'])) {
+            // Sync met alle bestaande locaties
+            $allLocationIds = Location::pluck('id')->toArray();
+            $defaultTask->locations()->sync($allLocationIds);
+        } elseif (!empty($validatedData['applies_to_door_types']) && !empty($validatedData['door_types'])) {
+            // Sync met locaties die de geselecteerde deur types hebben
+            $matchingLocationIds = $defaultTask->applicableLocationsByDoorType()->pluck('id')->toArray();
+            $defaultTask->locations()->sync($matchingLocationIds);
+        } else {
+            // Sync met specifiek geselecteerde locaties
+            $defaultTask->locations()->sync($validatedData['locations'] ?? []);
+        }
+        
+        $defaultTask->benodigdheden()->sync($validatedData['benodigdheden'] ?? []);
 
         return redirect()->route('default-tasks.index')->with('success', 'Standaardtaak succesvol bijgewerkt.');
     }
@@ -116,6 +163,7 @@ class DefaultTaskController extends Controller
     public function destroy(DefaultTask $defaultTask): RedirectResponse
     {
         $defaultTask->delete();
+
         return redirect()->route('default-tasks.index')->with('success', 'Standaardtaak succesvol verwijderd.');
     }
 }

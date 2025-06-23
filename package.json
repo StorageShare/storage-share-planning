@@ -21,6 +21,9 @@
     },
     "dependencies": {
         "@alpinejs/persist": "^3.14.9",
-        "preline": "^3.0.1"
+        "flatpickr": "^4.6.13",
+        "preline": "^3.0.1",
+        "sortablejs": "^1.15.6",
+        "tom-select": "^2.4.3"
     }
 }

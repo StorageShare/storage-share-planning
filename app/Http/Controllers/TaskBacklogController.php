@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TaskPriority;
 use App\Models\Location;
 use App\Models\Task;
-use App\Enums\TaskPriority;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\DB; // Added for DB::raw
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View; // Added for DB::raw
 
 class TaskBacklogController extends Controller
 {
@@ -16,9 +16,13 @@ class TaskBacklogController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Task::query()
-            ->whereIn('status', ['open', 'in_progress'])
-            ->with(['location', 'planningTasks']);
+        $query = Task::query();
+
+        $showCompleted = $request->boolean('show_completed');
+
+        if (! $showCompleted) {
+            $query->whereIn('status', ['open', 'in_progress']);
+        }
 
         $searchTerm = $request->input('search_term', '');
         $locationId = $request->input('location_id');
@@ -32,10 +36,10 @@ class TaskBacklogController extends Controller
             $query->where('priority', $priorityFilter);
         }
 
-        if (!empty($searchTerm)) {
+        if (! empty($searchTerm)) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('tasks.title', 'LIKE', "%{$searchTerm}%") // tasks.title to be explicit due to potential join
-                  ->orWhere('tasks.description', 'LIKE', "%{$searchTerm}%");
+                    ->orWhere('tasks.description', 'LIKE', "%{$searchTerm}%");
             });
         }
 
@@ -44,23 +48,21 @@ class TaskBacklogController extends Controller
         $sortByInput = $request->input('sort_by');
         $sortDirectionInput = $request->input('sort_direction');
 
-        if (!$sortByInput) {
+        if (! $sortByInput) {
             // DEFAULT SORTING (no sort parameters in URL)
-            $query->orderByRaw('(SELECT COUNT(*) FROM planning_tasks WHERE planning_tasks.task_id = tasks.id) ASC') // Unplanned first
-                  ->orderByRaw('tasks.deadline IS NULL ASC, tasks.deadline ASC') // Then by Deadline ASC (NULLs last, earliest first)
-                  ->orderByRaw("CASE tasks.priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC", [
-                      TaskPriority::HIGH->value,
-                      TaskPriority::NORMAL->value,
-                      TaskPriority::LOW->value
-                  ]) // Priority ASC
-                  ->orderBy('tasks.created_at', 'desc'); // Created_at DESC
+            $query->orderByRaw('tasks.deadline IS NULL ASC, tasks.deadline ASC') // Then by Deadline ASC (NULLs last, earliest first)
+                ->orderByRaw('CASE tasks.priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
+                    TaskPriority::HIGH->value,
+                    TaskPriority::NORMAL->value,
+                    TaskPriority::LOW->value,
+                ]); // Priority ASC
 
             $sortBy = 'deadline'; // Conceptual primary for view icon
             $sortDirection = 'asc';
         } else {
             // USER SPECIFIED SORTING
             $sortBy = $sortByInput;
-            if (!in_array($sortBy, $sortableColumns)) {
+            if (! in_array($sortBy, $sortableColumns)) {
                 $sortBy = 'created_at'; // Fallback
                 $sortDirection = 'desc';
             } else {
@@ -71,11 +73,11 @@ class TaskBacklogController extends Controller
 
             if ($sortBy === 'location_name') {
                 $query->join('locations', 'tasks.location_id', '=', 'locations.id')
-                      ->orderBy('locations.name', $sortDirection)
-                      ->select('tasks.*'); // Ensure we only select task columns after join
+                    ->orderBy('locations.name', $sortDirection)
+                    ->select('tasks.*'); // Ensure we only select task columns after join
             } elseif ($sortBy === 'priority') {
                 $query->orderByRaw(
-                    "CASE {$taskTablePrefix}priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END " . $sortDirection,
+                    "CASE {$taskTablePrefix}priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ".$sortDirection,
                     [TaskPriority::HIGH->value, TaskPriority::NORMAL->value, TaskPriority::LOW->value]
                 );
             } elseif ($sortBy === 'deadline') {
@@ -85,7 +87,7 @@ class TaskBacklogController extends Controller
                     $query->orderByRaw("{$taskTablePrefix}deadline IS NULL ASC, {$taskTablePrefix}deadline DESC");
                 }
             } else {
-                $query->orderBy($taskTablePrefix . $sortBy, $sortDirection);
+                $query->orderBy($taskTablePrefix.$sortBy, $sortDirection);
             }
 
             // Consistent tie-breakers for user-defined sorts
@@ -93,8 +95,8 @@ class TaskBacklogController extends Controller
                 $query->orderByRaw('tasks.deadline IS NULL ASC, tasks.deadline ASC');
             }
             if ($sortBy !== 'priority') {
-                $query->orderByRaw("CASE tasks.priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC", [
-                    TaskPriority::HIGH->value, TaskPriority::NORMAL->value, TaskPriority::LOW->value
+                $query->orderByRaw('CASE tasks.priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
+                    TaskPriority::HIGH->value, TaskPriority::NORMAL->value, TaskPriority::LOW->value,
                 ]);
             }
             if ($sortBy !== 'created_at') {
@@ -105,6 +107,11 @@ class TaskBacklogController extends Controller
         // --- End of Corrected Sorting Logic ---
 
         $tasks = $query->paginate(15)->withQueryString();
+
+        // Eager load relationships on the paginated collection.
+        // This is more reliable than using with() before complex sorts/queries.
+        $tasks->load('location', 'planningTasks.planning');
+
         $locations = Location::orderBy('name')->get();
         $priorities = TaskPriority::cases();
 
@@ -112,6 +119,7 @@ class TaskBacklogController extends Controller
         $activeFilters = [
             'location_id' => $locationId,
             'priority' => $priorityFilter,
+            'show_completed' => $showCompleted,
             // Add other simple string-based filters here if any in the future
         ];
 

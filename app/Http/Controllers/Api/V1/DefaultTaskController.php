@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\DefaultTask;
 use App\Http\Requests\StoreDefaultTaskRequest;
 use App\Http\Requests\UpdateDefaultTaskRequest;
 use App\Http\Resources\DefaultTaskResource;
+use App\Models\DefaultTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,9 +27,10 @@ class DefaultTaskController extends Controller
     public function store(StoreDefaultTaskRequest $request): JsonResponse
     {
         $defaultTask = DefaultTask::create($request->validated());
+
         return (new DefaultTaskResource($defaultTask))
-                ->response()
-                ->setStatusCode(Response::HTTP_CREATED);
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -46,6 +47,7 @@ class DefaultTaskController extends Controller
     public function update(UpdateDefaultTaskRequest $request, DefaultTask $defaultTask): DefaultTaskResource
     {
         $defaultTask->update($request->validated());
+
         return new DefaultTaskResource($defaultTask);
     }
 
@@ -55,6 +57,7 @@ class DefaultTaskController extends Controller
     public function destroy(DefaultTask $defaultTask): JsonResponse
     {
         $defaultTask->delete();
+
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }

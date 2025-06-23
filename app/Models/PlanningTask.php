@@ -23,6 +23,8 @@ class PlanningTask extends Model
         'location_id',
         'title',
         'description',
+        'status',
+        'review_notes',
         'completed_at',
         'completed_notes',
     ];
@@ -34,6 +36,7 @@ class PlanningTask extends Model
      */
     protected $casts = [
         'completed_at' => 'datetime',
+        'status' => \App\Enums\TaskStatus::class,
     ];
 
     /**
@@ -74,5 +77,13 @@ class PlanningTask extends Model
     public function planningTaskPhotos(): HasMany
     {
         return $this->hasMany(PlanningTaskPhoto::class);
+    }
+
+    /**
+     * Get the completion history for the planning task.
+     */
+    public function completions(): HasMany
+    {
+        return $this->hasMany(PlanningTaskCompletion::class);
     }
 }

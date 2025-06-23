@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class PlanningTaskCompletion extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'planning_task_id',
+        'user_id',
+        'comment',
+        'is_fully_completed',
+        'review_notes',
+        'reviewed_at',
+        'review_outcome',
+        'reviewed_by',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'reviewed_at' => 'datetime',
+    ];
+
+    public function planningTask(): BelongsTo
+    {
+        return $this->belongsTo(PlanningTask::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(PlanningTaskCompletionPhoto::class, 'completion_id');
+    }
+}

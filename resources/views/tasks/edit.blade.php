@@ -9,7 +9,13 @@
         <form action="{{ route('tasks.update', $task) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
-            @include('tasks._form', ['task' => $task, 'location' => $task->location, 'submitButtonText' => 'Wijzigingen Opslaan'])
+            @include('tasks._form', [
+                'task' => $task, 
+                'location' => $task->location, 
+                'submitButtonText' => 'Wijzigingen Opslaan',
+                'benodigdheden' => $benodigdheden ?? collect(),
+                'selectedBenodigdheden' => old('benodigdheden', $selectedBenodigdheden ?? [])
+            ])
         </form>
     </div>
 </x-app-layout> 

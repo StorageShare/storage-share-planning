@@ -13,7 +13,10 @@
                 'defaultTask' => $defaultTask, 
                 'submitButtonText' => 'Wijzigingen Opslaan',
                 'locations' => $locations,
-                'selectedLocations' => old('locations', $selectedLocations)
+                'selectedLocations' => old('locations', $selectedLocations),
+                'benodigdheden' => $benodigdheden ?? collect(),
+                'selectedBenodigdheden' => old('benodigdheden', $selectedBenodigdheden ?? []),
+                'availableDoorTypes' => $availableDoorTypes ?? []
             ])
         </form>
     </div>
