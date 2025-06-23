@@ -39,6 +39,5 @@ php artisan migrate --force
 # Set proper permissions
 echo "🔐 Setting permissions..."
 chmod -R 755 storage bootstrap/cache
-chown -R master:master storage bootstrap/cache
 
 echo "✅ Deployment completed successfully!"
