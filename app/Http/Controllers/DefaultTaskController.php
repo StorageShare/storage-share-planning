@@ -72,6 +72,11 @@ class DefaultTaskController extends Controller
         $validatedData = $request->validated();
         $validatedData['created_by'] = auth()->id();
 
+        // Ensure boolean fields are set correctly if not present in the request
+        $validatedData['applies_to_all_locations'] = $request->has('applies_to_all_locations');
+        $validatedData['applies_to_lift_locations'] = $request->has('applies_to_lift_locations');
+        $validatedData['applies_to_door_types'] = $request->has('applies_to_door_types');
+
         // Sanitize door types (hoofdletter ongevoelig)
         if (!empty($validatedData['door_types'])) {
             $validatedData['door_types'] = array_map('trim', array_map('strtolower', $validatedData['door_types']));
@@ -80,11 +85,13 @@ class DefaultTaskController extends Controller
         $defaultTask = DefaultTask::create($validatedData);
 
         // Handle location assignments based on different criteria
-        if (!empty($validatedData['applies_to_all_locations'])) {
+        if ($validatedData['applies_to_all_locations']) {
             // Sync met alle bestaande locaties
             $allLocationIds = Location::pluck('id')->toArray();
             $defaultTask->locations()->sync($allLocationIds);
-        } elseif (!empty($validatedData['applies_to_door_types']) && !empty($validatedData['door_types'])) {
+        } elseif ($validatedData['applies_to_lift_locations']) {
+            // Dit wordt afgehandeld door de DefaultTaskObserver
+        } elseif ($validatedData['applies_to_door_types'] && !empty($validatedData['door_types'])) {
             // Sync met locaties die de geselecteerde deur types hebben
             $matchingLocationIds = $defaultTask->applicableLocationsByDoorType()->pluck('id')->toArray();
             $defaultTask->locations()->sync($matchingLocationIds);
@@ -130,6 +137,11 @@ class DefaultTaskController extends Controller
     public function update(UpdateDefaultTaskRequest $request, DefaultTask $defaultTask): RedirectResponse
     {
         $validatedData = $request->validated();
+
+        // Ensure boolean fields are set correctly if not present in the request
+        $validatedData['applies_to_all_locations'] = $request->has('applies_to_all_locations');
+        $validatedData['applies_to_lift_locations'] = $request->has('applies_to_lift_locations');
+        $validatedData['applies_to_door_types'] = $request->has('applies_to_door_types');
         
         // Sanitize door types (hoofdletter ongevoelig)
         if (!empty($validatedData['door_types'])) {
@@ -139,11 +151,13 @@ class DefaultTaskController extends Controller
         $defaultTask->update($validatedData);
 
         // Handle location assignments based on different criteria
-        if (!empty($validatedData['applies_to_all_locations'])) {
+        if ($validatedData['applies_to_all_locations']) {
             // Sync met alle bestaande locaties
             $allLocationIds = Location::pluck('id')->toArray();
             $defaultTask->locations()->sync($allLocationIds);
-        } elseif (!empty($validatedData['applies_to_door_types']) && !empty($validatedData['door_types'])) {
+        } elseif ($validatedData['applies_to_lift_locations']) {
+            // De observer zal de synchronisatie afhandelen
+        } elseif ($validatedData['applies_to_door_types'] && !empty($validatedData['door_types'])) {
             // Sync met locaties die de geselecteerde deur types hebben
             $matchingLocationIds = $defaultTask->applicableLocationsByDoorType()->pluck('id')->toArray();
             $defaultTask->locations()->sync($matchingLocationIds);

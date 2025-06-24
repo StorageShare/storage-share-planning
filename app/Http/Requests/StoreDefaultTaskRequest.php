@@ -27,6 +27,7 @@ class StoreDefaultTaskRequest extends FormRequest
             'description' => 'required|string',
             'estimated_time_minutes' => 'nullable|integer|min:0',
             'applies_to_all_locations' => 'nullable|boolean',
+            'applies_to_lift_locations' => 'nullable|boolean',
             'applies_to_door_types' => 'nullable|boolean',
             'door_types' => 'nullable|array',
             'door_types.*' => 'string|max:255',

@@ -135,6 +135,7 @@ class SyncExternalLocationsCommand extends Command
                         'intratone_number' => $extLocation['intratone_number'] ?? null,
                         'intratone_multiple_numbers' => $extLocation['intratone_multiple_numbers'] ?? null,
                         'gate_number' => $extLocation['gate_number'] ?? null,
+                        'lift' => $extLocation['lift'] ?? null,
                         'bv' => $extLocation['bv'] ?? null,
                         'last_synced_at' => Carbon::now(),
                         'deleted_at' => null, // Explicitly restore if found (or ensure it's null for new/updated)

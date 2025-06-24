@@ -118,6 +118,14 @@
                                                                 <span class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">
                                                                     🌍 Alle locaties
                                                                 </span>
+                                                            @elseif($defaultTask->applies_to_lift_locations)
+                                                                <span class="px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded-full dark:bg-purple-900 dark:text-purple-200">
+                                                                    🛗 Alleen lift locaties
+                                                                </span>
+                                                            @elseif($defaultTask->applies_to_door_types)
+                                                                <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-200">
+                                                                    🚪 Specifieke deur types
+                                                                </span>
                                                             @endif
                                                         </div>
                                                         <p class="text-sm font-normal text-gray-600 dark:text-gray-400">{{ Str::limit($defaultTask->description, 50) }}</p>

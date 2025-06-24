@@ -59,6 +59,21 @@
             </p>
         </div>
 
+        {{-- Lift locaties optie --}}
+        <div class="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+            <div class="flex items-center">
+                <input id="applies_to_lift_locations" name="applies_to_lift_locations" type="checkbox" value="1"
+                       class="shrink-0 mt-0.5 border-gray-200 rounded text-purple-600 focus:ring-purple-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-purple-500"
+                       {{ old('applies_to_lift_locations', $defaultTask->applies_to_lift_locations ?? false) ? 'checked' : '' }}>
+                <label for="applies_to_lift_locations" class="ms-3 text-sm font-bold text-purple-800 dark:text-purple-200">
+                    🛗 Van toepassing op locaties met een lift
+                </label>
+            </div>
+            <p class="text-xs text-purple-600 dark:text-purple-300 mt-2 ml-8">
+                Wanneer deze optie is geselecteerd, wordt deze standaard taak automatisch beschikbaar voor alle huidige en toekomstige locaties waar lift informatie is ingevuld.
+            </p>
+        </div>
+
         <div class="mt-2 space-y-3" id="door-types-section" @if(!old('applies_to_door_types', $defaultTask->applies_to_door_types ?? false)) style="display: none;" @endif>
             <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Selecteer deur types</h4>
@@ -198,47 +213,44 @@
     document.addEventListener('DOMContentLoaded', function () {
         const appliesToAllCheckbox = document.getElementById('applies_to_all_locations');
         const appliesToDoorTypesCheckbox = document.getElementById('applies_to_door_types');
+        const appliesToLiftCheckbox = document.getElementById('applies_to_lift_locations');
         const specificLocationsSection = document.getElementById('specific-locations-section');
         const doorTypesSection = document.getElementById('door-types-section');
         const selectAllCheckbox = document.getElementById('select_all_locations');
         const locationCheckboxes = document.querySelectorAll('.location-checkbox');
 
-        // Toggle sections based on checkbox states
         function toggleSections() {
-            if (appliesToAllCheckbox.checked) {
-                // Als "alle locaties" is geselecteerd, verberg beide andere secties
-                doorTypesSection.style.display = 'none';
+            if (appliesToAllCheckbox.checked || appliesToLiftCheckbox.checked) {
                 specificLocationsSection.style.display = 'none';
+                doorTypesSection.style.display = 'none';
             } else if (appliesToDoorTypesCheckbox.checked) {
-                // Als "deur types" is geselecteerd, toon deur types maar verberg specifieke locaties
-                doorTypesSection.style.display = 'block';
                 specificLocationsSection.style.display = 'none';
+                doorTypesSection.style.display = 'block';
             } else {
-                // Anders toon specifieke locaties en verberg deur types
-                doorTypesSection.style.display = 'none';
                 specificLocationsSection.style.display = 'block';
+                doorTypesSection.style.display = 'none';
             }
         }
 
-        if (appliesToAllCheckbox) {
-            appliesToAllCheckbox.addEventListener('change', function() {
-                // Als "alle locaties" wordt aangevinkt, vink "deur types" uit
-                if (this.checked && appliesToDoorTypesCheckbox) {
+        function handleCheckboxChange(changedCheckbox) {
+            if (changedCheckbox.checked) {
+                if (changedCheckbox === appliesToAllCheckbox) {
+                    appliesToDoorTypesCheckbox.checked = false;
+                    appliesToLiftCheckbox.checked = false;
+                } else if (changedCheckbox === appliesToDoorTypesCheckbox) {
+                    appliesToAllCheckbox.checked = false;
+                    appliesToLiftCheckbox.checked = false;
+                } else if (changedCheckbox === appliesToLiftCheckbox) {
+                    appliesToAllCheckbox.checked = false;
                     appliesToDoorTypesCheckbox.checked = false;
                 }
-                toggleSections();
-            });
+            }
+            toggleSections();
         }
 
-        if (appliesToDoorTypesCheckbox) {
-            appliesToDoorTypesCheckbox.addEventListener('change', function() {
-                // Als "deur types" wordt aangevinkt, vink "alle locaties" uit
-                if (this.checked && appliesToAllCheckbox) {
-                    appliesToAllCheckbox.checked = false;
-                }
-                toggleSections();
-            });
-        }
+        appliesToAllCheckbox.addEventListener('change', () => handleCheckboxChange(appliesToAllCheckbox));
+        appliesToDoorTypesCheckbox.addEventListener('change', () => handleCheckboxChange(appliesToDoorTypesCheckbox));
+        appliesToLiftCheckbox.addEventListener('change', () => handleCheckboxChange(appliesToLiftCheckbox));
 
         // Set initial state
         toggleSections();
@@ -250,35 +262,6 @@
                 });
             });
         }
-
-        // Benodigdheden select all functionality
-        const selectAllBenodigdhedenCheckbox = document.getElementById('select_all_benodigdheden_default');
-        const benodigdheidCheckboxes = document.querySelectorAll('.benodigdheid-checkbox-default');
-
-        if (selectAllBenodigdhedenCheckbox) {
-            selectAllBenodigdhedenCheckbox.addEventListener('change', function () {
-                benodigdheidCheckboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                });
-            });
-        }
-
-
-
-        // Optioneel: Update "Selecteer alles" status gebaseerd op individuele checkboxes
-        // locationCheckboxes.forEach(checkbox => {
-        //     checkbox.addEventListener('change', function () {
-        //         if (!this.checked) {
-        //             selectAllCheckbox.checked = false;
-        //         }
-        //         // Om "Selecteer alles" aan te vinken als alle items handmatig zijn geselecteerd:
-        //         // let allChecked = true;
-        //         // locationCheckboxes.forEach(cb => {
-        //         //     if (!cb.checked) allChecked = false;
-        //         // });
-        //         // selectAllCheckbox.checked = allChecked;
-        //     });
-        // });
     });
 </script>
 @endpush

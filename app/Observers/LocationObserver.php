@@ -12,6 +12,20 @@ use Illuminate\Support\Facades\Auth;
 class LocationObserver
 {
     /**
+     * Handle the Location "saved" event.
+     */
+    public function saved(Location $location): void
+    {
+        if ($location->isDirty('lift') && !empty($location->lift)) {
+            $taskIds = DefaultTask::where('applies_to_lift_locations', true)->pluck('id');
+            $location->defaultTasks()->syncWithoutDetaching($taskIds);
+        } elseif ($location->isDirty('lift') && empty($location->lift)) {
+            $taskIds = DefaultTask::where('applies_to_lift_locations', true)->pluck('id');
+            $location->defaultTasks()->detach($taskIds);
+        }
+    }
+
+    /**
      * Handle the Location "created" event.
      */
     public function created(Location $location): void

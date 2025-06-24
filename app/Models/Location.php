@@ -36,6 +36,7 @@ class Location extends Model
         'intratone_number',
         'intratone_multiple_numbers',
         'gate_number',
+        'lift',
         'bv',
     ];
 

@@ -21,15 +21,21 @@ class DefaultTask extends Model
         'description',
         'estimated_time_minutes',
         'applies_to_all_locations',
+        'applies_to_lift_locations',
         'applies_to_door_types',
-        'door_types',
-        'created_by',
+        'end_day_action_required',
         'end_day_action_title',
         'end_day_action_description',
+        'door_type_vergrendeling',
+        'door_type_stalen_deur',
+        'door_type_houten_deur',
+        'door_type_glazen_deur',
+        'door_type_andere_deur',
     ];
 
     protected $casts = [
         'applies_to_all_locations' => 'boolean',
+        'applies_to_lift_locations' => 'boolean',
         'applies_to_door_types' => 'boolean',
         'door_types' => 'array',
     ];
