@@ -82,6 +82,9 @@
                                     <x-dropdown-link :href="route('admin.bv-stats.index')">
                                         📊 {{ __('BV Statistieken') }}
                                     </x-dropdown-link>
+                                    <x-dropdown-link :href="route('admin.logs.syslog')">
+                                        📋 {{ __('Syslog Viewer') }}
+                                    </x-dropdown-link>
                                 </x-slot>
                             </x-dropdown>
                         </div>

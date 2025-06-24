@@ -110,6 +110,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/timers/{planning}/live-data', [\App\Http\Controllers\Admin\TimerController::class, 'getLiveData'])->name('timers.live-data');
         Route::get('/timers/export', [\App\Http\Controllers\Admin\TimerController::class, 'export'])->name('timers.export');
         Route::get('/bv-stats', [\App\Http\Controllers\Admin\BvStatsController::class, 'index'])->name('bv-stats.index');
+        
+        // Syslog routes
+        Route::get('/logs/syslog', [\App\Http\Controllers\Admin\SyslogController::class, 'index'])->name('logs.syslog');
+        Route::get('/logs/syslog/api', [\App\Http\Controllers\Admin\SyslogController::class, 'api'])->name('logs.syslog.api');
     });
 });
 

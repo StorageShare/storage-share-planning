@@ -1,6 +1,7 @@
 <?php
 
 use App\Logging\CustomizeLogHandler;
+use App\Logging\CloudwaysLogHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -19,7 +20,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => env('LOG_CHANNEL', 'syslog'),
 
     /*
     |--------------------------------------------------------------------------
@@ -61,7 +62,7 @@ return [
 
         'single' => [
             'driver' => 'single',
-            'tap' => [CustomizeLogHandler::class],
+            'tap' => [CloudwaysLogHandler::class],
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
@@ -69,7 +70,7 @@ return [
 
         'daily' => [
             'driver' => 'daily',
-            'tap' => [CustomizeLogHandler::class],
+            'tap' => [CloudwaysLogHandler::class],
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
@@ -113,6 +114,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'facility' => env('LOG_SYSLOG_FACILITY', LOG_USER),
             'replace_placeholders' => true,
+            'ident' => env('APP_NAME', 'Laravel') . '-' . env('APP_ENV', 'production'),
         ],
 
         'errorlog' => [
