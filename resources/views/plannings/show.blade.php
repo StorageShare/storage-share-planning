@@ -37,7 +37,7 @@
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             
             @if (session('success'))
                 <div class="mb-6 p-4 bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100 rounded-md shadow-sm">

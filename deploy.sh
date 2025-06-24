@@ -40,4 +40,10 @@ php artisan migrate --force
 echo "🔐 Setting permissions..."
 chmod -R 755 storage bootstrap/cache
 
+# Post-deployment permission fix
+chown -R cpbwahmrsn:cpbwahmrsn storage/ bootstrap/cache/
+chmod -R 755 storage/ bootstrap/cache/
+chmod -R 775 storage/logs/ storage/framework/
+php artisan config:clear && php artisan cache:clear && php artisan view:clear
+
 echo "✅ Deployment completed successfully!"

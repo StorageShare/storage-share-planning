@@ -2,7 +2,7 @@
     <x-slot name="header">
     </x-slot>
 
-    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 py-12">
+    <div class="max-w-4xl mx-auto px-2 sm:px-6 lg:px-8 py-12">
         <div class="sm:flex sm:items-center sm:justify-between mb-6">
             <div>
                 <div class="flex items-center gap-x-3">

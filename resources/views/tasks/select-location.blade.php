@@ -10,7 +10,7 @@ De daadwerkelijke content wordt door de volgende tool call geplaatst.
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">{{ __('Kies een Locatie') }}</h1>
 
             {{-- Search Form for Select Location Page --}}

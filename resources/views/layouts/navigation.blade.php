@@ -1,6 +1,6 @@
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
     <!-- Primary Navigation Menu -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
                 <!-- Logo -->
@@ -92,7 +92,44 @@
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
                             <div>
-                                {{ Auth::user()->name }} ({{ \Illuminate\Support\Str::title(Auth::user()->role->value) }})
+                                <div>{{ Auth::user()->name }} ({{ \Illuminate\Support\Str::title(Auth::user()->role->value) }})</div>
+                                
+                                <!-- Desktop Offline Status Indicator -->
+                                <div x-data="offlineStatus()" 
+                                     x-init="init()"
+                                     class="mt-1">
+                                     
+                                    <!-- Online status -->
+                                    <div x-show="isOnline && pendingSync === 0" 
+                                         x-transition
+                                         class="flex items-center text-green-600 dark:text-green-400">
+                                        <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="text-xs font-medium">Online</span>
+                                    </div>
+                                    
+                                    <!-- Offline status -->
+                                    <div x-show="!isOnline" 
+                                         x-transition
+                                         class="flex items-center text-red-600 dark:text-red-400">
+                                        <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 818.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="text-xs font-medium">Offline</span>
+                                    </div>
+                                    
+                                    <!-- Pending sync -->
+                                    <div x-show="pendingSync > 0" 
+                                         x-transition
+                                         class="flex items-center text-orange-600 dark:text-orange-400">
+                                        <svg class="w-2.5 h-2.5 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span class="text-xs font-medium" x-text="`${pendingSync} items`"></span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="ms-1">
@@ -139,8 +176,48 @@
                 </x-dropdown>
             </div>
 
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
+            <!-- Mobile: Offline Status + Hamburger -->
+            <div class="flex items-center sm:hidden space-x-2">
+                <!-- Mobile Offline Status Indicator -->
+                <div x-data="offlineStatus()" 
+                     x-init="init()">
+                     
+                    <!-- Online status - klein groen bolletje -->
+                    <div x-show="isOnline && pendingSync === 0" 
+                         x-transition
+                         class="bg-green-500 rounded-full p-1 shadow-md">
+                        <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    
+                    <!-- Offline status - rood bolletje -->
+                    <div x-show="!isOnline" 
+                         x-transition
+                         class="bg-red-500 text-white px-1 py-0.5 rounded-full shadow-md">
+                        <div class="flex items-center">
+                            <svg class="w-2 h-2 mr-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 818.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-xs">Off</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Pending sync - oranje met aantal -->
+                    <div x-show="pendingSync > 0" 
+                         x-transition
+                         class="bg-orange-500 text-white px-1 py-0.5 rounded-full shadow-md">
+                        <div class="flex items-center">
+                            <svg class="w-2 h-2 mr-0.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span class="text-xs font-medium" x-text="pendingSync"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hamburger -->
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />

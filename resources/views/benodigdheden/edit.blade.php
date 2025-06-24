@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 py-12">
+    <div class="max-w-4xl mx-auto px-2 sm:px-6 lg:px-8 py-12">
         <form action="{{ route('benodigdheden.update', $benodigdheden) }}" method="POST">
             @csrf
             @method('PUT')
