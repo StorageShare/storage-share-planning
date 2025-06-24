@@ -2,19 +2,13 @@
     <div>
         <x-input-label for="naam" class="block text-sm font-medium mb-2">Naam</x-input-label>
         <x-text-input type="text" name="naam" id="naam" value="{{ old('naam', $benodigdheid->naam ?? '') }}" required
-                      class="py-3 px-4 block w-full rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none @error('naam') border-red-500 @enderror" />
-        @error('naam')
-        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-        @enderror
+                      class="py-3 px-4 block w-full rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none" />
     </div>
 
     <div>
         <x-input-label for="beschrijving" class="block text-sm font-medium mb-2">Beschrijving (optioneel)</x-input-label>
         <textarea name="beschrijving" id="beschrijving" rows="4"
-                  class="py-3 px-4 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm @error('beschrijving') border-red-500 @enderror">{{ old('beschrijving', $benodigdheid->beschrijving ?? '') }}</textarea>
-        @error('beschrijving')
-        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-        @enderror
+                  class="py-3 px-4 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('beschrijving', $benodigdheid->beschrijving ?? '') }}</textarea>
     </div>
 
     {{-- Automatisch nodig voor locaties sectie --}}
@@ -47,12 +41,6 @@
                 </div>
             </div>
         </div>
-        @error('required_for_locations')
-        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-        @enderror
-        @error('required_for_locations.*')
-        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-        @enderror
     </div>
     @endif
 </div>

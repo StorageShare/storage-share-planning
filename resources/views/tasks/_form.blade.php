@@ -10,23 +10,22 @@
 <input type="hidden" name="location_id" value="{{ $currentLocation?->id }}">
 
 <div class="space-y-6">
-    <div>
-        <x-input-label for="title" class="block text-sm font-medium mb-2">Titel</x-input-label>
-        <x-text-input type="text" name="title" id="title" value="{{ old('title') ?: ($prefillData['title'] ?? $currentTask->title ?? '') }}" required
-               class="py-3 px-4 block w-full text-sm @error('title') border-red-500 @enderror" />
-        @error('title')
-        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-        @enderror
-    </div>
+    <x-form-input 
+        name="title" 
+        label="Titel" 
+        :value="$prefillData['title'] ?? $currentTask->title ?? ''"
+        placeholder="Vul de titel van de taak in" 
+        required 
+    />
 
-    <div>
-        <x-input-label for="description" class="block text-sm font-medium mb-2">Omschrijving</x-input-label>
-        <textarea name="description" id="description" rows="4" required
-                  class="py-3 px-4 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm @error('description') border-red-500 @enderror">{{ old('description') ?: ($prefillData['description'] ?? $currentTask->description ?? '') }}</textarea>
-        @error('description')
-        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-        @enderror
-    </div>
+    <x-form-textarea 
+        name="description" 
+        label="Omschrijving" 
+        :value="$prefillData['description'] ?? $currentTask->description ?? ''"
+        placeholder="Beschrijf de taak in detail"
+        rows="4"
+        required
+    />
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
@@ -47,23 +46,21 @@
             <x-input-label for="deadline" class="block text-sm font-medium mb-2">Deadline (optioneel)</x-input-label>
             <div class="relative">
                 <x-text-input type="text" name="deadline" id="deadline" value="{{ old('deadline', isset($currentTask) && $currentTask->deadline ? $currentTask->deadline->format('Y-m-d') : '') }}"
-                       class="datepicker py-3 px-4 pl-11 block w-full text-sm @error('deadline') border-red-500 @enderror" placeholder="Selecteer een datum" />
+                       class="datepicker py-3 px-4 pl-11 block w-full text-sm" placeholder="Selecteer een datum" />
                 <div class="absolute inset-y-0 left-0 flex items-center pointer-events-none z-20 ps-4">
                     <svg class="flex-shrink-0 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
                 </div>
             </div>
-            @error('deadline')
-            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
         </div>
-        <div>
-            <x-input-label for="estimated_time_minutes" class="block text-sm font-medium mb-2">Geschatte tijd (minuten, optioneel)</x-input-label>
-            <x-text-input type="number" name="estimated_time_minutes" id="estimated_time_minutes" step="1" min="0" max="99999" value="{{ old('estimated_time_minutes', $currentTask->estimated_time_minutes ?? 0) }}"
-                   class="py-3 px-4 block w-full text-sm @error('estimated_time_minutes') border-red-500 @enderror" />
-            @error('estimated_time_minutes')
-            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-            @enderror
-        </div>
+        <x-form-input 
+            name="estimated_time_minutes" 
+            type="number"
+            label="Geschatte tijd (minuten, optioneel)" 
+            :value="$currentTask->estimated_time_minutes ?? 0"
+            placeholder="0"
+            min="0"
+            max="99999"
+        />
     </div>
 
     {{-- Terugkerende taak sectie --}}
@@ -89,7 +86,7 @@
                     <x-text-input type="number" name="recurring_interval_value" id="recurring_interval_value" 
                            value="{{ old('recurring_interval_value', $currentTask->recurring_interval_value ?? 1) }}"
                            min="1" max="365"
-                           class="py-3 px-4 block w-full text-sm @error('recurring_interval_value') border-red-500 @enderror" />
+                           class="py-3 px-4 block w-full text-sm" />
                     @error('recurring_interval_value')
                     <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                     @enderror
@@ -98,7 +95,7 @@
                 <div>
                     <x-input-label for="recurring_interval_type" class="block text-sm font-medium mb-2 text-blue-800 dark:text-blue-200">Tijdseenheid</x-input-label>
                     <select name="recurring_interval_type" id="recurring_interval_type"
-                            class="py-3 px-4 pe-9 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm @error('recurring_interval_type') border-red-500 @enderror">
+                            class="py-3 px-4 pe-9 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
                         <option value="">Selecteer tijdseenheid</option>
                         <option value="days" {{ old('recurring_interval_type', $currentTask->recurring_interval_type ?? '') == 'days' ? 'selected' : '' }}>Dagen</option>
                         <option value="weeks" {{ old('recurring_interval_type', $currentTask->recurring_interval_type ?? '') == 'weeks' ? 'selected' : '' }}>Weken</option>
@@ -121,7 +118,7 @@
     <div>
         <x-input-label for="status" class="block text-sm font-medium mb-2">Status</x-input-label>
         <select name="status" id="status" required
-                class="py-3 px-4 pe-9 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm @error('status') border-red-500 @enderror">
+                class="py-3 px-4 pe-9 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
             <option value="open" {{ old('status', $currentTask->status ?? 'open') == 'open' ? 'selected' : '' }}>Open</option>
             <option value="in_progress" {{ old('status', $currentTask->status ?? '') == 'in_progress' ? 'selected' : '' }}>In uitvoering</option>
             <option value="completed" {{ old('status', $currentTask->status ?? '') == 'completed' ? 'selected' : '' }}>Voltooid</option>
@@ -179,16 +176,12 @@
         </p>
         
         <div class="space-y-4">
-            <div>
-                <x-input-label for="end_day_action_title" class="block text-sm font-medium mb-2">Titel eindactie</x-input-label>
-                <x-text-input type="text" name="end_day_action_title" id="end_day_action_title" 
-                       value="{{ old('end_day_action_title', $currentTask->end_day_action_title ?? '') }}"
-                       placeholder=""
-                       class="py-3 px-4 block w-full rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none @error('end_day_action_title') border-red-500 @enderror" />
-                @error('end_day_action_title')
-                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+            <x-form-input 
+                name="end_day_action_title"
+                label="Titel eindactie"
+                :value="$currentTask->end_day_action_title ?? ''"
+                placeholder=""
+            />
             
             <div>
                 <x-input-label for="end_day_action_description" class="block text-sm font-medium mb-2">Omschrijving eindactie</x-input-label>

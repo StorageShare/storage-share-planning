@@ -4,6 +4,10 @@ namespace App\Observers;
 
 use App\Models\Location;
 use App\Models\DefaultTask;
+use App\Models\Task;
+use App\Enums\TaskStatus;
+use App\Enums\TaskPriority;
+use Illuminate\Support\Facades\Auth;
 
 class LocationObserver
 {
@@ -36,6 +40,47 @@ class LocationObserver
                 }
             }
         }
+
+        // Maak automatisch Schoonmaken en Controleronde taken aan
+        $this->createDefaultTasksForLocation($location);
+    }
+
+    /**
+     * Create default Schoonmaken and Controleronde tasks for a new location.
+     */
+    private function createDefaultTasksForLocation(Location $location): void
+    {
+        $userId = Auth::id() ?? 1; // Fallback naar user ID 1 als er geen ingelogde gebruiker is
+
+        // Schoonmaken taak
+        $schoonmakenTask = Task::create([
+            'location_id' => $location->id,
+            'title' => 'Schoonmaken',
+            'description' => 'Vloer schrobben met schrobmachine + schoonmaken bezem/veger/blik en alle andere dingen die niet schoon zijn!',
+            'priority' => TaskPriority::NORMAL,
+            'status' => TaskStatus::OPEN,
+            'created_by' => $userId,
+            'deadline' => now()->addMonths(3),
+            'is_recurring' => true,
+            'recurring_interval_type' => 'months',
+            'recurring_interval_value' => 3,
+            'estimated_minutes' => 240, // 4 uur
+        ]);
+
+        // Controleronde taak
+        $controlerondeTask = Task::create([
+            'location_id' => $location->id,
+            'title' => 'Controleronde',
+            'description' => 'Voer een controleronde uit en noteer alle bijzonderheden en voeg voor elke bijzonderheid foto\'s toe!',
+            'priority' => TaskPriority::NORMAL,
+            'status' => TaskStatus::OPEN,
+            'created_by' => $userId,
+            'deadline' => now()->addMonths(6),
+            'is_recurring' => true,
+            'recurring_interval_type' => 'months',
+            'recurring_interval_value' => 6,
+            'estimated_minutes' => 240, // 4 uur
+        ]);
     }
 
     /**

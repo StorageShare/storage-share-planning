@@ -126,8 +126,12 @@ class PlanningController extends Controller
                 $query->whereIn('status', ['open', 'in_progress', 'rejected'])
                       ->whereDoesntHave('planningTasks');
             })
-            ->orderBy('priority', 'asc')
-            ->orderBy('created_at', 'asc')
+            ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
+            ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
+                'open', 'in_progress', 'rejected'
+            ]) // Daarna op status: open, in_progress, rejected
+            ->orderBy('priority', 'asc') // Als tie-breaker: priority
+            ->orderBy('created_at', 'asc') // Als laatste tie-breaker: created_at
             ->get();
 
         $backlogTasksByLocation = $all_backlog_tasks->groupBy('location_id')
@@ -137,7 +141,12 @@ class PlanningController extends Controller
                         'id' => $task->id,
                         'title' => $task->title,
                         'description' => $task->description,
-                        'priority' => $task->priority,
+                        'priority' => [
+                            'value' => $task->priority->value,
+                            'label' => $task->priority->label(),
+                        ],
+                        'status' => $task->status ?: \App\Enums\TaskStatus::OPEN,
+                        'deadline' => $task->deadline,
                         'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                     ];
                 });
@@ -323,8 +332,12 @@ class PlanningController extends Controller
                 // OF de taak is gekoppeld aan de HUIDIGE planning
                 $query->where('planning_id', $planning->id);
             })
-            ->orderBy('priority', 'asc')
-            ->orderBy('created_at', 'asc')
+            ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
+            ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
+                'open', 'in_progress', 'rejected'
+            ]) // Daarna op status: open, in_progress, rejected
+            ->orderBy('priority', 'asc') // Als tie-breaker: priority
+            ->orderBy('created_at', 'asc') // Als laatste tie-breaker: created_at
             ->get();
 
         $backlogTasksByLocation = $availableBacklogTasks->groupBy('location_id')
@@ -334,7 +347,12 @@ class PlanningController extends Controller
                         'id' => $task->id,
                         'title' => $task->title,
                         'description' => $task->description,
-                        'priority' => $task->priority,
+                        'priority' => [
+                            'value' => $task->priority->value,
+                            'label' => $task->priority->label(),
+                        ],
+                        'status' => $task->status ?: \App\Enums\TaskStatus::OPEN,
+                        'deadline' => $task->deadline,
                         'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                     ];
                 });

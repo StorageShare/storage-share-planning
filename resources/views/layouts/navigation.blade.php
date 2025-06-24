@@ -54,6 +54,9 @@
                                     <x-dropdown-link :href="route('users.index')">
                                         👥 {{ __('Gebruikers') }}
                                     </x-dropdown-link>
+                                    <x-dropdown-link :href="route('csv-import.index')">
+                                        📤 {{ __('CSV Import') }}
+                                    </x-dropdown-link>
                                 </x-slot>
                             </x-dropdown>
                         </div>

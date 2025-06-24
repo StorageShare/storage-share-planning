@@ -344,6 +344,14 @@
                     priorityHtml = `<span class="ms-2 text-xs font-medium px-1.5 py-0.5 rounded-full ${getPriorityClass(task.priority.value)}">${escapeHtml(task.priority.label)}</span>`;
                 }
 
+                // Status en deadline informatie voor backlog taken
+                let statusAndDeadlineHtml = '';
+                if (taskType === 'backlog_tasks') {
+                    const statusHtml = task.status ? `<span class="ms-2 text-xs font-medium px-1.5 py-0.5 rounded-full ${getStatusClass(task.status.value)}">${escapeHtml(getStatusLabel(task.status.value))}</span>` : '';
+                    const deadlineHtml = task.deadline ? `<span class="ms-2 text-xs text-gray-600 dark:text-gray-400">📅 ${escapeHtml(formatDeadline(task.deadline))}</span>` : '';
+                    statusAndDeadlineHtml = `${statusHtml}${deadlineHtml}`;
+                }
+
                 let plannedElsewhereHtml = '';
                 if (isPlannedElsewhere) {
                     const url = planningShowRouteTemplate.replace('REPLACE_ID', plannedInfo.planning_id);
@@ -354,17 +362,25 @@
                 }
 
                 div.innerHTML = `
-                    <input id="${taskIdName}" name="selected_${taskType}[]" type="checkbox" value="${task.id}" ${isChecked ? 'checked' : ''} ${isPlannedElsewhere ? 'disabled' : ''} class="shrink-0 mt-1 border-gray-300 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none task-checkbox dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500" data-estimated-time="${taskEstimatedTime}" data-location-id="${locationIdForTaskName}">
-                    <label for="${taskIdName}" class="ms-3 text-sm text-gray-800 cursor-pointer flex-grow dark:text-gray-200">
-                        <div class="flex items-center">
-                            <span class="font-medium">${escapeHtml(task.title)}</span>
-                            ${task.applies_to_all_locations ? '<span class="ml-2 px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">🌍 Alle locaties</span>' : ''}
-                            ${timeHtml}
-                            ${priorityHtml}
-                        </div>
-                        ${descriptionHtml}
-                        ${plannedElsewhereHtml}
-                    </label>
+                    <div class="flex items-start gap-2">
+                        <input id="${taskIdName}" name="selected_${taskType}[]" type="checkbox" value="${task.id}" ${isChecked ? 'checked' : ''} ${isPlannedElsewhere ? 'disabled' : ''} class="shrink-0 mt-1 border-gray-300 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none task-checkbox dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500" data-estimated-time="${taskEstimatedTime}" data-location-id="${locationIdForTaskName}">
+                        <label for="${taskIdName}" class="ms-1 text-sm text-gray-800 cursor-pointer flex-grow dark:text-gray-200">
+                            <div class="flex items-center">
+                                <span class="font-medium">${escapeHtml(task.title)}</span>
+                                ${task.applies_to_all_locations ? '<span class="ml-2 px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">🌍 Alle locaties</span>' : ''}
+                                ${timeHtml}
+                                ${priorityHtml}
+                                ${statusAndDeadlineHtml}
+                            </div>
+                            ${descriptionHtml}
+                            ${plannedElsewhereHtml}
+                        </label>
+                        ${taskType === 'backlog_tasks' ? `<button type="button" class="edit-task-btn shrink-0 mt-1 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150 dark:hover:bg-blue-900/20" data-task-id="${task.id}" data-task-type="${taskType}" title="Taak bewerken">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>` : ''}
+                    </div>
                 `;
 
                 // Add event listener to update location times when checkbox changes
@@ -442,6 +458,83 @@
                     return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
                 default:
                     return 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
+            }
+        }
+
+        function getStatusClass(statusValue) {
+            const statusStr = String(statusValue).toLowerCase();
+            switch (statusStr) {
+                case 'open':
+                    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                case 'in_progress':
+                    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+                case 'review':
+                    return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+                case 'completed':
+                    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                case 'rejected':
+                    return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                case 'skipped':
+                    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                case 'closed':
+                    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                default:
+                    return 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
+            }
+        }
+
+        function getStatusLabel(statusValue) {
+            const statusStr = String(statusValue).toLowerCase();
+            switch (statusStr) {
+                case 'open':
+                    return 'Open';
+                case 'in_progress':
+                    return 'In uitvoering';
+                case 'review':
+                    return 'Ter beoordeling';
+                case 'completed':
+                    return 'Voltooid';
+                case 'rejected':
+                    return 'Afgekeurd';
+                case 'skipped':
+                    return 'Overgeslagen';
+                case 'closed':
+                    return 'Gesloten';
+                default:
+                    return statusValue;
+            }
+        }
+
+        function formatDeadline(deadline) {
+            if (!deadline) return '';
+            
+            try {
+                const date = new Date(deadline);
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const isToday = date.toDateString() === today.toDateString();
+                const isTomorrow = date.toDateString() === tomorrow.toDateString();
+                const isOverdue = date < today && !isToday;
+                
+                let formattedDate = date.toLocaleDateString('nl-NL', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric' 
+                });
+                
+                if (isOverdue) {
+                    return `⚠️ ${formattedDate} (verlopen)`;
+                } else if (isToday) {
+                    return `${formattedDate} (vandaag)`;
+                } else if (isTomorrow) {
+                    return `${formattedDate} (morgen)`;
+                } else {
+                    return formattedDate;
+                }
+            } catch (e) {
+                return deadline;
             }
         }
 
@@ -915,6 +1008,222 @@
                 subtree: true
             });
         }
+
+        // Task Edit Modal Functionality
+        const taskEditModal = document.getElementById('taskEditModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const taskEditForm = document.getElementById('taskEditForm');
+        let currentEditingTask = null;
+
+        // Close modal functions
+        function closeTaskModal() {
+            taskEditModal.classList.add('hidden');
+            currentEditingTask = null;
+            taskEditForm.reset();
+        }
+
+        // Event listeners for closing modal
+        closeModal.addEventListener('click', closeTaskModal);
+        cancelEdit.addEventListener('click', closeTaskModal);
+
+        // Close modal when clicking outside
+        taskEditModal.addEventListener('click', function(e) {
+            if (e.target === taskEditModal) {
+                closeTaskModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !taskEditModal.classList.contains('hidden')) {
+                closeTaskModal();
+            }
+        });
+
+        // Handle edit button clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.edit-task-btn')) {
+                const button = e.target.closest('.edit-task-btn');
+                const taskId = button.dataset.taskId;
+                const taskType = button.dataset.taskType;
+                
+                if (taskType === 'backlog_tasks') {
+                    openTaskEditModal(taskId);
+                }
+            }
+        });
+
+        function openTaskEditModal(taskId) {
+            // Find the task data
+            let taskData = null;
+            for (const locationId in backlogTasksByLocation) {
+                const tasks = backlogTasksByLocation[locationId];
+                const task = tasks.find(t => t.id.toString() === taskId.toString());
+                if (task) {
+                    taskData = task;
+                    break;
+                }
+            }
+
+            if (!taskData) {
+                console.error('Task not found:', taskId);
+                return;
+            }
+
+            currentEditingTask = taskData;
+
+            // Populate form fields
+            document.getElementById('editTaskId').value = taskData.id;
+            document.getElementById('editTaskTitle').value = taskData.title;
+            document.getElementById('editTaskDescription').value = taskData.description;
+            document.getElementById('editTaskPriority').value = taskData.priority.value;
+            
+            // Set status to 'open' if no status is set, otherwise use the existing status
+            const statusValue = taskData.status && taskData.status.value ? taskData.status.value : 'open';
+            document.getElementById('editTaskStatus').value = statusValue;
+            
+            document.getElementById('editTaskDeadline').value = taskData.deadline ? taskData.deadline.split('T')[0] : '';
+            document.getElementById('editTaskEstimatedTime').value = taskData.estimated_time_minutes || '';
+
+            // Show modal
+            taskEditModal.classList.remove('hidden');
+        }
+
+        // Handle form submission
+        taskEditForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(taskEditForm);
+            const taskId = formData.get('task_id');
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (!csrfToken) {
+                showNotification('CSRF token niet gevonden. Ververs de pagina en probeer opnieuw.', 'error');
+                return;
+            }
+
+            // Debug logging
+            console.log('Updating task:', {
+                taskId: taskId,
+                csrfToken: csrfToken ? 'Found' : 'Missing',
+                url: `/tasks/${taskId}`,
+                formData: {
+                    title: formData.get('title'),
+                    description: formData.get('description'),
+                    priority: formData.get('priority'),
+                    status: formData.get('status'),
+                    deadline: formData.get('deadline'),
+                    estimated_time_minutes: formData.get('estimated_time_minutes')
+                }
+            });
+
+            try {
+                const response = await fetch(`/tasks/${taskId}`, {
+                    method: 'POST', // Use POST instead of PUT for better compatibility
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        _method: 'PUT', // Laravel method spoofing
+                        title: formData.get('title'),
+                        description: formData.get('description'),
+                        priority: formData.get('priority'),
+                        status: formData.get('status'),
+                        deadline: formData.get('deadline') || null,
+                        estimated_time_minutes: formData.get('estimated_time_minutes') || null
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                if (response.ok) {
+                    const updatedTask = await response.json();
+                    console.log('Updated task data:', updatedTask);
+                    
+                    // Update the task data in memory
+                    if (currentEditingTask) {
+                        Object.assign(currentEditingTask, {
+                            title: updatedTask.title,
+                            description: updatedTask.description,
+                            priority: {
+                                value: updatedTask.priority,
+                                label: getPriorityLabel(updatedTask.priority)
+                            },
+                            status: updatedTask.status,
+                            deadline: updatedTask.deadline,
+                            estimated_time_minutes: updatedTask.estimated_time_minutes
+                        });
+                    }
+
+                    // Refresh the tasks display
+                    populateTasks();
+                    
+                    // Close modal
+                    closeTaskModal();
+                    
+                    // Show success message
+                    showNotification('Taak succesvol bijgewerkt!', 'success');
+                } else {
+                    let errorMessage = 'Onbekende fout';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData.error || 'Onbekende fout';
+                        console.log('Error response:', errorData);
+                    } catch (parseError) {
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        console.log('Parse error:', parseError);
+                    }
+                    showNotification('Fout bij bijwerken van taak: ' + errorMessage, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating task:', error);
+                showNotification('Fout bij bijwerken van taak: ' + error.message, 'error');
+            }
+        });
+
+        function getPriorityLabel(priorityValue) {
+            const labels = {
+                'high': 'Hoog',
+                'normal': 'Normaal',
+                'low': 'Laag'
+            };
+            return labels[priorityValue] || priorityValue;
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-md shadow-lg transition-all duration-300 transform translate-x-full ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
     });
 </script>
 
@@ -976,4 +1285,80 @@
         }
     }
 </style>
+
+<!-- Task Edit Modal -->
+<div id="taskEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100" id="modalTitle">Taak Bewerken</h3>
+                <button type="button" id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="taskEditForm" class="space-y-4">
+                <input type="hidden" id="editTaskId" name="task_id">
+                
+                <div>
+                    <label for="editTaskTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel</label>
+                    <input type="text" id="editTaskTitle" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required>
+                </div>
+                
+                <div>
+                    <label for="editTaskDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beschrijving</label>
+                    <textarea id="editTaskDescription" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="editTaskPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioriteit</label>
+                        <select id="editTaskPriority" name="priority" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                            <option value="high">Hoog</option>
+                            <option value="normal">Normaal</option>
+                            <option value="low">Laag</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="editTaskStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                        <select id="editTaskStatus" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                            <option value="open">Open</option>
+                            <option value="in_progress">In uitvoering</option>
+                            <option value="review">Ter beoordeling</option>
+                            <option value="completed">Voltooid</option>
+                            <option value="rejected">Afgekeurd</option>
+                            <option value="skipped">Overgeslagen</option>
+                            <option value="closed">Gesloten</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="editTaskDeadline" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deadline</label>
+                        <input type="date" id="editTaskDeadline" name="deadline" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                    </div>
+                    
+                    <div>
+                        <label for="editTaskEstimatedTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Geschatte tijd (minuten)</label>
+                        <input type="number" id="editTaskEstimatedTime" name="estimated_time_minutes" min="0" max="99999" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelEdit" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                        Annuleren
+                    </button>
+                    <button type="submit" id="saveTaskEdit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Opslaan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endpush

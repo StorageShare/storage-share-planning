@@ -9,6 +9,7 @@ use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Location;
 use App\Models\Task;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -257,9 +258,15 @@ class TaskController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateTaskRequest $request, Task $task): RedirectResponse
+    public function update(UpdateTaskRequest $request, Task $task): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validatedData = $request->validated();
+        
+        // Set default status to 'open' if no status is provided
+        if (!isset($validatedData['status']) || empty($validatedData['status'])) {
+            $validatedData['status'] = 'open';
+        }
+        
         $task->update($validatedData);
 
         // Sync benodigdheden
@@ -289,6 +296,20 @@ class TaskController extends Controller
                     \Illuminate\Support\Facades\Log::error('Error uploading task photo: ' . $e->getMessage());
                 }
             }
+        }
+
+        // Return JSON response for AJAX requests, redirect for normal requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'priority' => $task->priority->value,
+                'status' => $task->status->value,
+                'deadline' => $task->deadline,
+                'estimated_time_minutes' => $task->estimated_time_minutes,
+                'message' => 'Taak succesvol bijgewerkt.'
+            ]);
         }
 
         // Redirect naar de taak show pagina, of de taken index van de locatie.

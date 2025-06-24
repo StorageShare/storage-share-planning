@@ -15,6 +15,7 @@ enum TaskStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::OPEN => 'Open',
             self::IN_PROGRESS => 'In uitvoering',
             self::REVIEW => 'Ter beoordeling',
             self::COMPLETED => 'Voltooid',

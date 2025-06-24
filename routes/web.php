@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\TaskReviewController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\BenodigdheidController;
+use App\Http\Controllers\CsvImportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DefaultTaskController;
 use App\Http\Controllers\EndChecklistController;
@@ -32,6 +33,11 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('default-tasks', DefaultTaskController::class);
     Route::resource('benodigdheden', BenodigdheidController::class);
     Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
+    
+    // CSV Import routes
+    Route::get('csv-import', [CsvImportController::class, 'show'])->name('csv-import.index');
+    Route::post('csv-import', [CsvImportController::class, 'import'])->name('csv-import.import');
+    Route::get('csv-import/template', [CsvImportController::class, 'downloadTemplate'])->name('csv-import.template');
 
     Route::post('tasks/{task}/approve', [TaskController::class, 'approve'])->name('tasks.approve');
     Route::post('tasks/{task}/reject', [TaskController::class, 'reject'])->name('tasks.reject');
