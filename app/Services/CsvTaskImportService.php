@@ -163,7 +163,7 @@ class CsvTaskImportService
     }
 
     /**
-     * Find existing location by name.
+     * Find existing location by name using advanced fuzzy matching.
      *
      * @param string $locationName
      * @return Location|null
@@ -176,94 +176,170 @@ class CsvTaskImportService
             return null;
         }
 
-        // Try to find existing location by exact name match first
+        // Step 1: Try exact match first
         $location = Location::where('name', $locationName)->first();
-        
         if ($location) {
             return $location;
         }
         
-        // Try case-insensitive exact match
+        // Step 2: Try case-insensitive exact match
         $location = Location::whereRaw('LOWER(name) = ?', [strtolower($locationName)])->first();
-        
         if ($location) {
             return $location;
         }
 
-        // Try to match by address if the CSV contains a street name
-        // This is more precise than just matching city names
-        $words = explode(' ', $locationName);
-        if (count($words) >= 2) {
-            // Look for street name patterns (usually the last part after the city)
-            $streetPart = end($words);
-            $cityPart = implode(' ', array_slice($words, 0, -1));
+        // Step 3: Normalize the input and try fuzzy matching
+        $normalizedInput = $this->normalizeLocationString($locationName);
+        
+        // Get all locations for comparison
+        $allLocations = Location::all();
+        $bestMatch = null;
+        $bestScore = 0;
+        $matchDetails = [];
+
+        foreach ($allLocations as $location) {
+            $normalizedDbName = $this->normalizeLocationString($location->name);
+            $normalizedDbAddress = $this->normalizeLocationString($location->address ?? '');
             
-            // Try to find by street name in address field
-            $location = Location::where('address', 'LIKE', '%' . $streetPart . '%')
-                              ->where(function($query) use ($cityPart) {
-                                  $query->where('name', 'LIKE', '%' . $cityPart . '%')
-                                        ->orWhere('address', 'LIKE', '%' . $cityPart . '%');
-                              })
-                              ->first();
+            // Calculate similarity scores
+            $nameScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName);
+            $addressScore = $this->calculateSimilarity($normalizedInput, $normalizedDbAddress);
+            $combinedScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName . ' ' . $normalizedDbAddress);
             
-            if ($location) {
-                return $location;
+            // Take the best score of the three comparisons
+            $score = max($nameScore, $addressScore, $combinedScore);
+            
+            $matchDetails[] = [
+                'location' => $location,
+                'score' => $score,
+                'name_score' => $nameScore,
+                'address_score' => $addressScore,
+                'combined_score' => $combinedScore,
+                'normalized_name' => $normalizedDbName,
+                'normalized_address' => $normalizedDbAddress
+            ];
+            
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $location;
             }
         }
 
-        // Try partial match but be more strict - require at least 70% of the words to match
-        $csvWords = array_filter(explode(' ', strtolower($locationName)), function($word) {
-            return strlen($word) >= 3;
-        });
-        
-        if (!empty($csvWords)) {
-            $locations = Location::where(function($query) use ($csvWords) {
-                foreach ($csvWords as $word) {
-                    $query->where(function($q) use ($word) {
-                        $q->where('name', 'LIKE', '%' . $word . '%')
-                          ->orWhere('address', 'LIKE', '%' . $word . '%');
-                    });
-                }
-            })->get();
+        // Log the matching process for debugging
+        if (!empty($matchDetails)) {
+            // Sort by score descending
+            usort($matchDetails, fn($a, $b) => $b['score'] <=> $a['score']);
             
-            // Find the best match by calculating similarity
-            $bestMatch = null;
-            $bestScore = 0;
-            
-            foreach ($locations as $loc) {
-                $locWords = array_filter(explode(' ', strtolower($loc->name . ' ' . $loc->address)), function($word) {
-                    return strlen($word) >= 3;
-                });
-                
-                $commonWords = array_intersect($csvWords, $locWords);
-                $score = count($commonWords) / max(count($csvWords), count($locWords));
-                
-                if ($score > $bestScore && $score >= 0.7) {
-                    $bestScore = $score;
-                    $bestMatch = $loc;
-                }
-            }
-            
-            if ($bestMatch) {
-                return $bestMatch;
-            }
-        }
-
-        // Fallback: try simple partial match but log it for debugging
-        $location = Location::where('name', 'LIKE', '%' . $locationName . '%')
-                          ->orWhere('address', 'LIKE', '%' . $locationName . '%')
-                          ->first();
-        
-        if ($location) {
-            Log::warning('Location found with fallback matching', [
-                'csv_location' => $locationName,
-                'found_location' => $location->name,
-                'found_address' => $location->address
+            Log::info('Location matching results', [
+                'input' => $locationName,
+                'normalized_input' => $normalizedInput,
+                'best_score' => $bestScore,
+                'top_matches' => array_slice($matchDetails, 0, 3)
             ]);
-            return $location;
+        }
+
+        // Return the best match if the score is above threshold
+        if ($bestScore >= 0.6) {  // Lower threshold for better matching
+            Log::info('Location matched with fuzzy matching', [
+                'csv_location' => $locationName,
+                'found_location' => $bestMatch->name,
+                'found_address' => $bestMatch->address,
+                'similarity_score' => $bestScore
+            ]);
+            return $bestMatch;
         }
 
         return null;
+    }
+
+    /**
+     * Normalize location string for better matching.
+     *
+     * @param string $locationString
+     * @return string
+     */
+    private function normalizeLocationString(string $locationString): string
+    {
+        // Convert to lowercase
+        $normalized = strtolower(trim($locationString));
+        
+        // Remove common punctuation that might differ between sources
+        $normalized = preg_replace('/[,\.\-_\(\)\[\]]+/', ' ', $normalized);
+        
+        // Replace multiple spaces with single space
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        // Remove common Dutch abbreviations and normalize them
+        $replacements = [
+            'str ' => 'straat ',
+            'straat' => 'straat',
+            'laan' => 'laan',
+            'weg' => 'weg',
+            'plein' => 'plein',
+            'kade' => 'kade',
+            'gracht' => 'gracht',
+            'singel' => 'singel',
+            'markt' => 'markt'
+        ];
+        
+        foreach ($replacements as $search => $replace) {
+            $normalized = str_replace($search, $replace, $normalized);
+        }
+        
+        return trim($normalized);
+    }
+
+    /**
+     * Calculate similarity between two normalized strings.
+     *
+     * @param string $string1
+     * @param string $string2
+     * @return float
+     */
+    private function calculateSimilarity(string $string1, string $string2): float
+    {
+        if (empty($string1) || empty($string2)) {
+            return 0.0;
+        }
+        
+        // If strings are identical after normalization, perfect match
+        if ($string1 === $string2) {
+            return 1.0;
+        }
+        
+        // Split into words for word-based comparison
+        $words1 = array_filter(explode(' ', $string1), fn($w) => strlen($w) >= 2);
+        $words2 = array_filter(explode(' ', $string2), fn($w) => strlen($w) >= 2);
+        
+        if (empty($words1) || empty($words2)) {
+            return 0.0;
+        }
+        
+        // Calculate word-based similarity
+        $matchingWords = 0;
+        $totalWords = max(count($words1), count($words2));
+        
+        foreach ($words1 as $word1) {
+            $bestWordMatch = 0;
+            foreach ($words2 as $word2) {
+                // Use Levenshtein distance for individual word similarity
+                $wordSimilarity = 1 - (levenshtein($word1, $word2) / max(strlen($word1), strlen($word2)));
+                $bestWordMatch = max($bestWordMatch, $wordSimilarity);
+            }
+            
+            // Count as matching if similarity is above 80%
+            if ($bestWordMatch >= 0.8) {
+                $matchingWords++;
+            }
+        }
+        
+        $wordScore = $matchingWords / $totalWords;
+        
+        // Also calculate string similarity as backup
+        $stringSimilarity = 1 - (levenshtein($string1, $string2) / max(strlen($string1), strlen($string2)));
+        
+        // Return the best score of the two methods
+        return max($wordScore, $stringSimilarity);
     }
 
     /**
