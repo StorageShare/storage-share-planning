@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\CustomizeLogHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -60,18 +61,18 @@ return [
 
         'single' => [
             'driver' => 'single',
+            'tap' => [CustomizeLogHandler::class],
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'permission' => 0666,
             'replace_placeholders' => true,
         ],
 
         'daily' => [
             'driver' => 'daily',
+            'tap' => [CustomizeLogHandler::class],
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
-            'permission' => 0666,
             'replace_placeholders' => true,
         ],
 
