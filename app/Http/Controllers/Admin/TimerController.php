@@ -18,7 +18,7 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || $user->role->value !== 'admin') {
+        if (!$user || !$user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
@@ -59,7 +59,7 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || $user->role->value !== 'admin') {
+        if (!$user || !$user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
@@ -98,7 +98,7 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || $user->role->value !== 'admin') {
+        if (!$user || !$user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
@@ -142,7 +142,7 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || $user->role->value !== 'admin') {
+        if (!$user || !$user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 

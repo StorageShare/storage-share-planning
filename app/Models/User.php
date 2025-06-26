@@ -60,4 +60,34 @@ class User extends Authenticatable
     {
         return $this->role === Role::ADMIN;
     }
+
+    public function isAlgemeenMedewerker(): bool
+    {
+        return $this->role === Role::ALGEMEEN_MEDEWERKER;
+    }
+
+    public function isGebruiker(): bool
+    {
+        return $this->role === Role::GEBRUIKER;
+    }
+
+    public function canManagePlannings(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canExecutePlannings(): bool
+    {
+        return $this->isAdmin() || $this->isAlgemeenMedewerker();
+    }
+
+    public function canViewBacklog(): bool
+    {
+        return true; // Alle gebruikers kunnen backlog bekijken
+    }
+
+    public function canCreateTasks(): bool
+    {
+        return true; // Alle gebruikers kunnen taken aanmaken
+    }
 }

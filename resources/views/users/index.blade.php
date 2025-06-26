@@ -48,11 +48,16 @@
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap">
                                                     <div class="inline px-3 py-1 text-sm font-normal rounded-full {{ match($user->role->value) {
                                                         'admin' => 'text-blue-500 bg-blue-100/60 dark:bg-gray-800',
-                                                        'employee' => 'text-emerald-500 bg-emerald-100/60 dark:bg-gray-800',
-                                                        'user' => 'text-gray-500 bg-gray-100/60 dark:bg-gray-800',
+                                                        'algemeen_medewerker' => 'text-emerald-500 bg-emerald-100/60 dark:bg-gray-800',
+                                                        'gebruiker' => 'text-gray-500 bg-gray-100/60 dark:bg-gray-800',
                                                         default => 'text-gray-500 bg-gray-100/60 dark:bg-gray-800',
                                                     } }}">
-                                                        {{ $user->role->value }}
+                                                        {{ match($user->role->value) {
+                                                            'admin' => 'Administrator',
+                                                            'algemeen_medewerker' => 'Algemeen Medewerker',
+                                                            'gebruiker' => 'Gebruiker',
+                                                            default => ucfirst($user->role->value),
+                                                        } }}
                                                     </div>
                                                 </td>
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap text-right">

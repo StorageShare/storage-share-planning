@@ -32,7 +32,6 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('locations', LocationController::class);
     Route::resource('default-tasks', DefaultTaskController::class);
     Route::resource('benodigdheden', BenodigdheidController::class);
-    Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
     
     // CSV Import routes
     Route::get('csv-import', [CsvImportController::class, 'show'])->name('csv-import.index');
@@ -65,8 +64,8 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('plannings', PlanningController::class)->only(['index', 'show']);
 });
 
-Route::middleware('auth')->group(function () {
-
+// Routes voor gebruikers die planningen kunnen uitvoeren (Admin + Algemeen Medewerker)
+Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     Route::get('my-planning', [MyPlanningController::class, 'show'])->name('my-planning.show');
     Route::get('my-planning/{planning}', [MyPlanningController::class, 'show'])->name('my-planning.planning');
 
@@ -92,16 +91,20 @@ Route::middleware('auth')->group(function () {
     Route::post('end-checklist-items/{item}/upload-photo', [EndChecklistController::class, 'uploadPhoto'])->name('end-checklist-items.upload-photo');
     Route::delete('end-checklist-items/{item}/photo', [EndChecklistController::class, 'deletePhoto'])->name('end-checklist-items.delete-photo');
 
+    Route::get('/plannings/{planning}/locations/{location}/timer', [PlanningController::class, 'getLocationTimer']);
+    Route::post('/plannings/{planning}/locations/{location}/timer/start', [PlanningController::class, 'startLocationTimer']);
+    Route::post('/plannings/{planning}/locations/{location}/timer/stop', [PlanningController::class, 'stopLocationTimer']);
+    Route::post('/plannings/{planning}/locations/{location}/timer/restart', [PlanningController::class, 'restartLocationTimer']);
+});
+
+Route::middleware('auth')->group(function () {
+    // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
+    Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
     Route::get('tasks/select-location', [TaskController::class, 'selectLocationForTask'])->name('tasks.select-location');
     Route::resource('locations.tasks', TaskController::class)->shallow();
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::get('/plannings/{planning}/locations/{location}/timer', [PlanningController::class, 'getLocationTimer']);
-    Route::post('/plannings/{planning}/locations/{location}/timer/start', [PlanningController::class, 'startLocationTimer']);
-    Route::post('/plannings/{planning}/locations/{location}/timer/stop', [PlanningController::class, 'stopLocationTimer']);
-    Route::post('/plannings/{planning}/locations/{location}/timer/restart', [PlanningController::class, 'restartLocationTimer']);
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {

@@ -16,15 +16,25 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    
+                    @if (Auth::user()->canExecutePlannings())
+                        <x-nav-link :href="route('my-planning.show')" :active="request()->routeIs('my-planning.*')">
+                            {{ __('Mijn Planning') }}
+                        </x-nav-link>
+                    @endif
+                    
+                    @if (Auth::user()->canViewBacklog())
+                        <x-nav-link :href="route('backlog.index')" :active="request()->routeIs('backlog.*')">
+                            {{ __('Taken') }}
+                        </x-nav-link>
+                    @endif
+                    
                     @if (Auth::user()->isAdmin())
                         <x-nav-link :href="route('admin.tasks.review')" :active="request()->routeIs('admin.tasks.review') || request()->routeIs('admin.tasks.show')">
                             {{ __('Te Beoordelen') }}
                         </x-nav-link>
                         <x-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
                             {{ __('Planningen') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('backlog.index')" :active="request()->routeIs('backlog.*')">
-                            {{ __('Taken') }}
                         </x-nav-link>
 
                         <!-- Configuratie Dropdown -->
@@ -98,7 +108,12 @@
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
                             <div>
-                                <div>{{ Auth::user()->name }} ({{ \Illuminate\Support\Str::title(Auth::user()->role->value) }})</div>
+                                <div>{{ Auth::user()->name }} ({{ match(Auth::user()->role->value) {
+                                'admin' => 'Administrator',
+                                'algemeen_medewerker' => 'Algemeen Medewerker',
+                                'gebruiker' => 'Gebruiker',
+                                default => ucfirst(Auth::user()->role->value),
+                            } }})</div>
                                 
                                 <!-- Desktop Offline Status Indicator -->
                                 <div x-data="offlineStatus()" 
