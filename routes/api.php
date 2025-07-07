@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\DefaultTaskController;
 use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\LocationDistanceController;
 use App\Http\Controllers\Api\V1\PlanningController as PlanningControllerV1;
 use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TaskPhotoController;
@@ -28,6 +29,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('v1')->group(function () {
     Route::post('/travel-times/calculate', [TravelTimeController::class, 'calculate']);
     Route::post('/travel-times/sequence', [TravelTimeController::class, 'calculateSequence']);
+    
+    // Location distances - cached database distances for better performance
+    Route::get('/location-distances/stats', [LocationDistanceController::class, 'getCacheStats']);
+    Route::get('/location-distances/{locationId}/sorted', [LocationDistanceController::class, 'getSortedDistances']);
+    Route::post('/location-distances/sort', [LocationDistanceController::class, 'sortLocationsByDistance']);
+    Route::get('/location-distances/{fromLocationId}/to/{toLocationId}', [LocationDistanceController::class, 'getDistanceBetween']);
+    Route::post('/location-distances/{fromLocationId}/to/{toLocationId}/recalculate', [LocationDistanceController::class, 'recalculateDistance']);
 });
 
 // Offline API endpoints - using web auth for session-based authentication

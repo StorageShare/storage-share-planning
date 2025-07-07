@@ -18,13 +18,12 @@
         @enderror
     </div>
 
-    {{-- Two Column Layout --}}
-
-    <div class="md:grid md:grid-cols-12 md:gap-x-8">
-        {{-- Left Column: Locations --}}
+    {{-- Two Column Layout for Locations --}}
+    <div class="md:grid md:grid-cols-12 md:gap-x-8 mb-6">
+        {{-- Left Column: Available Locations --}}
         <div class="md:col-span-5 space-y-3">
             <div>
-                <label class="block text-sm font-medium mb-2 dark:text-gray-300">Locatie(s) <span class="text-xs text-gray-500 dark:text-gray-400">(meerdere selecteren mogelijk)</span></label>
+                <label class="block text-sm font-medium mb-2 dark:text-gray-300">Beschikbare Locaties <span class="text-xs text-gray-500 dark:text-gray-400">(klik op + om toe te voegen)</span></label>
 
                 {{-- Filter Input --}}
                 <div class="mb-3">
@@ -34,7 +33,7 @@
                 @php
                 $old_location_ids = collect(old('location_ids', $current_selected_location_ids ?? ($selected_location_id ? [$selected_location_id] : []) ))->map(fn($id) => (string)$id);
                 @endphp
-                <div class="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto border border-gray-200 rounded-md p-3 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+                <div class="space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto border border-gray-200 rounded-md p-3 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
                     @forelse($locations as $location_option)
                     @php
                     $location_id_str = (string)$location_option->id;
@@ -45,16 +44,8 @@
                     $count_normal = $priority_counts['normal'] ?? ($priority_counts[App\Enums\TaskPriority::NORMAL->value] ?? 0);
                     $count_low = $priority_counts['low'] ?? ($priority_counts[App\Enums\TaskPriority::LOW->value] ?? 0);
                     @endphp
-                    <div class="location-item relative flex items-start p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors duration-150 dark:border-gray-700 dark:hover:bg-gray-800">
-                        <div class="flex items-center h-5 mt-1">
-                            <input type="checkbox"
-                                name="location_ids[]"
-                                id="location_{{ $location_option->id }}"
-                                value="{{ $location_option->id }}"
-                                class="location-checkbox shrink-0 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500"
-                                {{ $old_location_ids->contains($location_id_str) ? 'checked' : '' }}>
-                        </div>
-                        <label for="location_{{ $location_option->id }}" class="ms-3 flex-grow cursor-pointer">
+                    <div class="location-item relative flex items-start p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors duration-150 dark:border-gray-700 dark:hover:bg-gray-800" data-location-id="{{ $location_option->id }}">
+                        <div class="flex-grow">
                             <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $location_option->name }}</span>
                             <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
                                 <p>Open Taken:
@@ -64,7 +55,24 @@
                                 </p>
                                 <p>Totale Tijd: <span class="font-medium">{{ $total_time }} min</span></p>
                             </div>
-                        </label>
+                        </div>
+                        <div class="ml-3">
+                            <button type="button" 
+                                class="add-location-btn p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors duration-150 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20" 
+                                data-location-id="{{ $location_option->id }}"
+                                title="Toevoegen aan planning">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        {{-- Hidden checkbox for form submission --}}
+                        <input type="checkbox"
+                            name="location_ids[]"
+                            id="location_{{ $location_option->id }}"
+                            value="{{ $location_option->id }}"
+                            class="location-checkbox hidden"
+                            {{ $old_location_ids->contains($location_id_str) ? 'checked' : '' }}>
                     </div>
                     @empty
                     <p class="text-sm text-gray-500 dark:text-gray-400">Geen locaties beschikbaar.</p>
@@ -79,19 +87,30 @@
             </div>
         </div>
 
-        {{-- Right Column: Tasks by Location --}}
-        <div class="md:col-span-7 space-y-4 mt-6 md:mt-0">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Geselecteerde Taken</h3>
-            
-            <div class="space-y-4 max-h-[calc(100vh-22rem)] overflow-y-auto border border-gray-200 rounded-md p-4 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700" id="tasks_by_location_container">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Selecteer eerst een of meerdere locaties om de bijbehorende taken te zien.</p>
+        {{-- Right Column: Selected Locations --}}
+        <div class="md:col-span-7 space-y-3 mt-6 md:mt-0">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Geselecteerde Locaties voor Planning</h3>
+                
+                <div class="max-h-80 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-700" id="selected_locations_container">
+                    <p class="text-sm text-gray-500 dark:text-gray-400" id="no_selected_locations_msg">Geen locaties geselecteerd voor deze planning.</p>
+                </div>
             </div>
-            {{-- Errors for task selection --}}
-            @error('selected_default_tasks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-            @error('selected_default_tasks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-            @error('selected_backlog_tasks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-            @error('selected_backlog_tasks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
         </div>
+    </div>
+
+    {{-- Full Width Tasks Section --}}
+    <div class="space-y-4 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Taken voor Geselecteerde Locaties</h3>
+        
+        <div class="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-md p-4 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700" id="tasks_by_location_container">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Selecteer eerst een of meerdere locaties om de bijbehorende taken te zien.</p>
+        </div>
+        {{-- Errors for task selection --}}
+        @error('selected_default_tasks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+        @error('selected_default_tasks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+        @error('selected_backlog_tasks') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+        @error('selected_backlog_tasks.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
     </div>
 
     {{-- Fields below the columns --}}
@@ -237,12 +256,13 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const scriptDataElement = document.getElementById('planning_form_script_data');
-        const locationCheckboxes = document.querySelectorAll('input[name="location_ids[]"].location-checkbox');
         const tasksByLocationContainer = document.getElementById('tasks_by_location_container');
         const locationFilterInput = document.getElementById('location_filter_input');
         const locationItems = document.querySelectorAll('.location-item');
         const sortableLocationsContainer = document.getElementById('sortable_locations_container');
         const locationOrderInput = document.getElementById('location_order_input');
+        const selectedLocationsContainer = document.getElementById('selected_locations_container');
+        const noSelectedLocationsMsg = document.getElementById('no_selected_locations_msg');
         const plannedBacklogTasks = JSON.parse(scriptDataElement.dataset.plannedBacklogTasks || '{}');
         const planningShowRouteTemplate = scriptDataElement.dataset.planningsShowRoute;
 
@@ -261,6 +281,9 @@
         const currentSelectedBacklogTasks = JSON.parse(scriptDataElement.dataset.currentSelectedBacklogTasks);
         const isEditMode = scriptDataElement.dataset.isEditMode === 'true';
         const initialSelectedLocationIds = JSON.parse(scriptDataElement.dataset.initialSelectedLocationIds).map(id => id.toString());
+
+        // Set voor geselecteerde locaties
+        const selectedLocationIds = new Set(initialSelectedLocationIds);
 
         // --- BEGINNING OF MODIFICATIONS FOR STATE PRESERVATION ---
         const liveSelectedDefaultTaskIds = new Set(
@@ -394,21 +417,19 @@
         }
 
         function populateTasks() {
-            const selectedLocationIds = Array.from(locationCheckboxes)
-                .filter(checkbox => checkbox.checked)
-                .map(checkbox => checkbox.value);
+            const selectedLocationIdsArray = Array.from(selectedLocationIds);
 
             tasksByLocationContainer.innerHTML = '';
 
-            if (selectedLocationIds.length === 0) {
+            if (selectedLocationIdsArray.length === 0) {
                 tasksByLocationContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Selecteer eerst een of meerdere locaties om de bijbehorende taken te zien.</p>';
                 updateSelectedTasksTotalTime(); // Update total time even when empty
                 return;
             }
 
             // --- MODIFICATION FOR CREATE MODE DEFAULT TASK AUTO-SELECTION ---
-            if (!isEditMode && !hasOldInput && !createModeInitialDefaultTasksAdded && selectedLocationIds.length > 0) {
-                selectedLocationIds.forEach(locId => {
+            if (!isEditMode && !hasOldInput && !createModeInitialDefaultTasksAdded && selectedLocationIdsArray.length > 0) {
+                selectedLocationIdsArray.forEach(locId => {
                     const defaultsForThisLoc = defaultTasksByLocation[locId] || [];
                     defaultsForThisLoc.forEach(dTask => {
                         liveSelectedDefaultTaskIds.add(dTask.id.toString());
@@ -416,13 +437,13 @@
                 });
                 // Set the flag only if there were actually locations and potential defaults to add.
                 // This ensures if the first selection is a location with no default tasks, the flag isn't prematurely set.
-                if (selectedLocationIds.some(locId => (defaultTasksByLocation[locId] || []).length > 0)) {
+                if (selectedLocationIdsArray.some(locId => (defaultTasksByLocation[locId] || []).length > 0)) {
                     createModeInitialDefaultTasksAdded = true;
                 }
             }
             // --- END MODIFICATION ---
 
-            selectedLocationIds.forEach(locationId => {
+            selectedLocationIdsArray.forEach(locationId => {
                 const locationName = getLocationNameById(locationId);
 
                 const locationGroupDiv = document.createElement('div');
@@ -622,6 +643,329 @@
             });
         }
 
+        // Nieuwe functie om geselecteerde locaties te beheren
+        function updateSelectedLocationsList() {
+            selectedLocationsContainer.innerHTML = '';
+            
+            if (selectedLocationIds.size === 0) {
+                noSelectedLocationsMsg.style.display = 'block';
+                return;
+            }
+
+            noSelectedLocationsMsg.style.display = 'none';
+
+            // Gebruik de volgorde uit sortable als die er is, anders gebruik de volgorde van toevoegen
+            const currentOrder = locationOrderInput.value.split(',').filter(id => id && selectedLocationIds.has(id));
+            const unorderedIds = Array.from(selectedLocationIds).filter(id => !currentOrder.includes(id));
+            const orderedIds = [...currentOrder, ...unorderedIds];
+
+            orderedIds.forEach(locationId => {
+                if (selectedLocationIds.has(locationId)) {
+                    const locationName = getLocationNameById(locationId);
+                    const locationItem = createSelectedLocationItem(locationId, locationName);
+                    selectedLocationsContainer.appendChild(locationItem);
+                }
+            });
+
+            // Update hidden checkboxes
+            document.querySelectorAll('input[name="location_ids[]"].location-checkbox').forEach(checkbox => {
+                checkbox.checked = selectedLocationIds.has(checkbox.value);
+            });
+
+            // Update add/remove buttons visibility
+            updateLocationButtonStates();
+        }
+
+        function createSelectedLocationItem(locationId, locationName) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-2 bg-white border border-gray-200 rounded-md shadow-sm dark:bg-gray-900 dark:border-gray-700';
+            div.dataset.locationId = locationId;
+
+            div.innerHTML = `
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${escapeHtml(locationName)}</span>
+                <button type="button" 
+                    class="remove-location-btn p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-150 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20" 
+                    data-location-id="${locationId}"
+                    title="Verwijderen uit planning">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            `;
+
+            return div;
+        }
+
+        function updateLocationButtonStates() {
+            // Update add buttons and location appearance
+            document.querySelectorAll('.location-item').forEach(item => {
+                const locationId = item.dataset.locationId;
+                const addBtn = item.querySelector('.add-location-btn');
+                
+                if (selectedLocationIds.has(locationId)) {
+                    // Geselecteerde locatie - verberg add button en markeer als geselecteerd
+                    if (addBtn) addBtn.style.display = 'none';
+                    item.classList.add('opacity-60', 'bg-gray-100', 'dark:bg-gray-700');
+                    item.classList.remove('hover:bg-gray-50', 'dark:hover:bg-gray-800');
+                    
+                    // Voeg een "geselecteerd" indicator toe
+                    if (!item.querySelector('.selected-indicator')) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'selected-indicator ml-3 flex items-center text-green-600 dark:text-green-400';
+                        indicator.innerHTML = `
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        `;
+                        const buttonContainer = item.querySelector('.ml-3');
+                        if (buttonContainer) {
+                            buttonContainer.appendChild(indicator);
+                        }
+                    }
+                } else {
+                    // Beschikbare locatie - toon add button en normale styling
+                    if (addBtn) addBtn.style.display = 'block';
+                    item.classList.remove('opacity-60', 'bg-gray-100', 'dark:bg-gray-700');
+                    item.classList.add('hover:bg-gray-50', 'dark:hover:bg-gray-800');
+                    
+                    // Verwijder "geselecteerd" indicator
+                    const indicator = item.querySelector('.selected-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                }
+            });
+        }
+
+        function addLocationToPlanning(locationId) {
+            selectedLocationIds.add(locationId);
+            updateSelectedLocationsList();
+            updateSortableLocationsList();
+            populateTasks();
+            
+            // Sort available locations by distance to the newly selected location
+            sortAvailableLocationsByDistance(locationId);
+        }
+
+        function removeLocationFromPlanning(locationId) {
+            selectedLocationIds.delete(locationId);
+            updateSelectedLocationsList();
+            updateSortableLocationsList();
+            populateTasks();
+        }
+
+        // Database-gebaseerde afstand service
+        class LocationDistanceService {
+            constructor() {
+                this.baseUrl = '/api/v1/location-distances';
+            }
+
+            // Haal afstand op tussen twee locaties vanuit database
+            async getDistance(fromLocationId, toLocationId) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/${fromLocationId}/to/${toLocationId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        // Als afstand niet gevonden, return null (niet loggen als error)
+                        if (response.status === 404) {
+                            return null;
+                        }
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        return {
+                            distance_km: data.data.distance_km,
+                            duration_minutes: data.data.duration_minutes,
+                            is_recent: data.data.is_recent
+                        };
+                    }
+                    return null;
+                } catch (error) {
+                    console.warn(`Could not get distance from ${fromLocationId} to ${toLocationId}:`, error);
+                    return null;
+                }
+            }
+
+            // Sorteer locatie IDs op afstand vanuit database
+            async sortLocationsByDistance(fromLocationId, locationIds) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/sort`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            from_location_id: fromLocationId,
+                            location_ids: locationIds
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        return data.data.sorted_location_ids;
+                    }
+                    throw new Error('Invalid response format');
+                } catch (error) {
+                    console.error('Error sorting locations by distance:', error);
+                    // Fallback: return original order
+                    return locationIds;
+                }
+            }
+
+            // Haal alle afstanden op vanaf een locatie (gesorteerd)
+            async getDistancesFromLocation(fromLocationId) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/${fromLocationId}/sorted`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        return data.data.distances;
+                    }
+                    return [];
+                } catch (error) {
+                    console.error('Error getting distances from location:', error);
+                    return [];
+                }
+            }
+
+            // Debug method om cache stats op te halen
+            async getCacheStats() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/stats`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    return data.success ? data.data : null;
+                } catch (error) {
+                    console.error('Error getting cache stats:', error);
+                    return null;
+                }
+            }
+        }
+
+        const locationDistanceService = new LocationDistanceService();
+
+        // Maak service beschikbaar in console voor debugging
+        window.planningLocationDistanceService = locationDistanceService;
+
+        async function sortAvailableLocationsByDistance(referencLocationId) {
+            const availableLocationItems = Array.from(document.querySelectorAll('.location-item')).filter(item => {
+                const locationId = item.dataset.locationId;
+                return !selectedLocationIds.has(locationId) && locationId !== referencLocationId;
+            });
+
+            if (availableLocationItems.length === 0) return;
+
+            // Voeg een loading indicator toe
+            showSortingIndicator();
+
+            try {
+                // Haal locatie IDs op van beschikbare locaties
+                const availableLocationIds = availableLocationItems.map(item => parseInt(item.dataset.locationId));
+                
+                // Sorteer via database service
+                const sortedLocationIds = await locationDistanceService.sortLocationsByDistance(
+                    parseInt(referencLocationId), 
+                    availableLocationIds
+                );
+
+                // Maak een map van locatie ID naar item voor snelle lookup
+                const locationItemMap = new Map();
+                availableLocationItems.forEach(item => {
+                    locationItemMap.set(parseInt(item.dataset.locationId), item);
+                });
+
+                // Sorteer items volgens database resultaat
+                const sortedItems = sortedLocationIds
+                    .map(locationId => locationItemMap.get(locationId))
+                    .filter(item => item); // Filter out any missing items
+
+                // Reorganiseer de DOM - behoud geselecteerde locaties bovenaan
+                const container = availableLocationItems[0].parentNode;
+                const allItems = Array.from(container.children);
+                const selectedItems = allItems.filter(item => selectedLocationIds.has(item.dataset.locationId));
+                
+                // Clear container
+                container.innerHTML = '';
+                
+                // Voeg eerst geselecteerde locaties toe (bovenaan)
+                selectedItems.forEach(item => {
+                    container.appendChild(item);
+                });
+                
+                // Voeg daarna beschikbare locaties toe in database-gesorteerde volgorde
+                sortedItems.forEach(item => {
+                    container.appendChild(item);
+                });
+
+                // Voeg eventuele overgebleven items toe (als er iets mis ging met de sortering)
+                availableLocationItems.forEach(item => {
+                    if (!container.contains(item)) {
+                        container.appendChild(item);
+                    }
+                });
+
+                hideSortingIndicator();
+            } catch (error) {
+                console.error('Error sorting locations by distance:', error);
+                hideSortingIndicator();
+            }
+        }
+
+
+
+        function showSortingIndicator() {
+            // Voeg een subtiele loading indicator toe aan de locaties header
+            const header = document.querySelector('.md\\:col-span-5 label');
+            if (header && !header.querySelector('.sorting-indicator')) {
+                const indicator = document.createElement('span');
+                indicator.className = 'sorting-indicator text-xs text-blue-600 ml-2';
+                indicator.innerHTML = '<svg class="inline-block w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sorteren op afstand...';
+                header.appendChild(indicator);
+            }
+        }
+
+        function hideSortingIndicator() {
+            const indicator = document.querySelector('.sorting-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
         function updateTasksForSelectedLocations() {
             // --- PRESERVE CURRENT TASK SELECTIONS BEFORE REPOPULATING ---
             const currentlyCheckedDefaultTasks = tasksByLocationContainer.querySelectorAll('input[name="selected_default_tasks[]"]:checked');
@@ -639,41 +983,22 @@
             });
             // --- END PRESERVE SELECTIONS ---
 
-            // --- Sortable List Update ---
-            const checkedCheckboxes = Array.from(locationCheckboxes).filter(cb => cb.checked);
+            // Update sortable list
+            updateSortableLocationsList();
 
-            // Update sortable list based on checked status
-            sortableLocationsContainer.innerHTML = '';
-            const currentOrder = locationOrderInput.value.split(',').filter(id => id);
-
-            // Re-add based on existing order first
-            currentOrder.forEach(id => {
-                const checkbox = document.getElementById(`location_${id}`);
-                if (checkbox && checkbox.checked) {
-                    const locationName = checkbox.closest('.location-item').querySelector('label > span.block.text-sm.font-semibold').textContent;
-                    addLocationToSortableList(id, locationName);
-                }
-            });
-
-            // Add any newly checked items that weren't in the order
-            checkedCheckboxes.forEach(checkbox => {
-                if (!currentOrder.includes(checkbox.value)) {
-                    const locationName = checkbox.closest('.location-item').querySelector('label > span.block.text-sm.font-semibold').textContent;
-                    addLocationToSortableList(checkbox.value, locationName);
-                }
-            });
-
-            updateLocationOrderInput();
-            // --- End Sortable List Update ---
-
-            // *** THIS IS THE FIX: Call populateTasks to update the task list ***
+            // Update tasks
             populateTasks();
         }
 
-        locationCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                updateTasksForSelectedLocations(); // This function now also handles the sortable list
-            });
+        // Event listeners voor add/remove buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.add-location-btn')) {
+                const locationId = e.target.closest('.add-location-btn').dataset.locationId;
+                addLocationToPlanning(locationId);
+            } else if (e.target.closest('.remove-location-btn')) {
+                const locationId = e.target.closest('.remove-location-btn').dataset.locationId;
+                removeLocationFromPlanning(locationId);
+            }
         });
 
         // Initialize SortableJS
@@ -690,7 +1015,14 @@
             locationOrderInput.value = locationIds.join(',');
 
             // Calculate travel times when order changes
-            calculateTravelTimes(locationIds);
+            if (locationIds.length >= 2) {
+                calculateTravelTimes(locationIds);
+            } else {
+                // Reset travel time display when less than 2 locations
+                document.getElementById('travel_times_container').style.display = 'none';
+                document.getElementById('total_travel_time_display').textContent = '0 min';
+                updateGrandTotal();
+            }
         }
 
         function calculateTravelTimes(locationIds) {
@@ -841,6 +1173,22 @@
             }
         }
 
+        function updateSortableLocationsList() {
+            sortableLocationsContainer.innerHTML = '';
+            const currentOrder = locationOrderInput.value.split(',').filter(id => id && selectedLocationIds.has(id));
+            const unorderedIds = Array.from(selectedLocationIds).filter(id => !currentOrder.includes(id));
+            const orderedIds = [...currentOrder, ...unorderedIds];
+
+            orderedIds.forEach(locationId => {
+                if (selectedLocationIds.has(locationId)) {
+                    const locationName = getLocationNameById(locationId);
+                    addLocationToSortableList(locationId, locationName);
+                }
+            });
+
+            updateLocationOrderInput();
+        }
+
         function addLocationToSortableList(locationId, locationName) {
             if (document.querySelector(`#sortable_locations_container .sortable-item[data-location-id="${locationId}"]`)) {
                 return; // Already exists
@@ -866,27 +1214,20 @@
             }
         }
 
-        function initializeSortableList() {
-            const initialLocationIds = JSON.parse(scriptDataElement.dataset.initialSelectedLocationIds || '[]');
-            const allLocations = JSON.parse(scriptDataElement.dataset.locations || '[]');
-            const locationsById = Object.fromEntries(allLocations.map(loc => [loc.id, loc.name]));
-
-            initialLocationIds.forEach(id => {
-                if (locationsById[id]) {
-                    addLocationToSortableList(id, locationsById[id]);
-                }
-            });
-            updateLocationOrderInput();
+        function initializeLocationSelections() {
+            // Update initial state
+            updateSelectedLocationsList();
+            updateSortableLocationsList();
+            populateTasks();
 
             // Calculate initial travel times if there are locations
-            if (initialLocationIds.length >= 2) {
-                calculateTravelTimes(initialLocationIds);
+            if (selectedLocationIds.size >= 2) {
+                calculateTravelTimes(Array.from(selectedLocationIds));
             }
         }
 
         // Final setup on DOMContentLoaded
-        initializeSortableList();
-        populateTasks();
+        initializeLocationSelections();
 
         const startAddressOption = document.getElementById('start_address_option');
         const customAddressWrapper = document.getElementById('start_address_custom_wrapper');
