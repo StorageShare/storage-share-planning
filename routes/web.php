@@ -98,6 +98,12 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Serve media files from the public storage via Laravel to avoid web server 403s
+    Route::get('media/{path}', function (string $path) {
+        abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($path), 404);
+        return \Illuminate\Support\Facades\Storage::disk('public')->response($path);
+    })->where('path', '.*')->name('media');
+
     // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
     Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
     Route::get('tasks/select-location', [TaskController::class, 'selectLocationForTask'])->name('tasks.select-location');

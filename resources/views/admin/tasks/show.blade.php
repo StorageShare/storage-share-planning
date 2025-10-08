@@ -95,12 +95,12 @@
                                             <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Foto's:</h4>
                                             @if ($completion->photos && $completion->photos->count() > 0)
                                                 @php
-                                                    $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
+                                                    $completionPhotos = $completion->photos->map(fn($photo) => route('media', ['path' => $photo->file_path]))->values()->all();
                                                 @endphp
                                                 <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ completionPhotos: @json($completionPhotos) }'>
                                                     @foreach ($completion->photos as $index => $photo)
                                                         <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: completionPhotos, startIndex: {{ $index }} })">
-                                                            <img src="{{ Storage::url($photo->file_path) }}" alt="Completion Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-32 w-32">
+                                                            <img src="{{ route('media', ['path' => $photo->file_path]) }}" alt="Completion Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-32 w-32">
                                                         </button>
                                                     @endforeach
                                                 </div>
@@ -266,12 +266,12 @@
                                     @if($skipCompletion->photos && $skipCompletion->photos->count() > 0)
                                         <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-4 mb-2">Foto's bij overslaan:</h4>
                                         @php
-                                            $skipPhotos = $skipCompletion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
+                                            $skipPhotos = $skipCompletion->photos->map(fn($photo) => route('media', ['path' => $photo->file_path]))->values()->all();
                                         @endphp
                                         <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ skipPhotos: @json($skipPhotos) }'>
                                             @foreach ($skipCompletion->photos as $index => $photo)
                                                 <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: skipPhotos, startIndex: {{ $index }} })">
-                                                    <img src="{{ Storage::url($photo->file_path) }}" alt="Skip Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-24 w-24">
+                                                    <img src="{{ route('media', ['path' => $photo->file_path]) }}" alt="Skip Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-24 w-24">
                                                 </button>
                                             @endforeach
                                         </div>
