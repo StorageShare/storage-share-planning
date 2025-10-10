@@ -105,10 +105,10 @@ class PlanningController extends Controller
             // Haal alle default tasks op die specifiek aan deze locatie zijn gekoppeld OF die voor alle locaties gelden
             $locationSpecificTasks = $location->defaultTasks;
             $allLocationTasks = DefaultTask::forAllLocations()->get();
-            
+
             // Combineer beide collecties en verwijder duplicaten
             $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
-            
+
             return [$location->id => $allTasks->map(function ($task) {
                 return [
                     'id' => $task->id,
@@ -303,10 +303,10 @@ class PlanningController extends Controller
             // Haal alle default tasks op die specifiek aan deze locatie zijn gekoppeld OF die voor alle locaties gelden
             $locationSpecificTasks = $location->defaultTasks;
             $allLocationTasks = DefaultTask::forAllLocations()->get();
-            
+
             // Combineer beide collecties en verwijder duplicaten
             $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
-            
+
             return [$location->id => $allTasks->map(function ($task) {
                 return [
                     'id' => $task->id,
@@ -505,25 +505,31 @@ class PlanningController extends Controller
         // Determine location type and actual location ID
         $actualLocationId = null;
         $locationType = 'location';
-        
+
         if ($locationId === 'backlog') {
             $actualLocationId = null;
             $locationType = 'backlog';
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
+            // If travelling to the first location of the planning, mark as shared_travel
+            $firstLocationId = optional($planning->locations()->orderBy('sort_order')->first())->id;
+            if ((string) $actualLocationId === (string) $firstLocationId) {
+                $locationType = 'shared_travel';
+            } else {
+                $locationType = 'travel';
+            }
         } else {
             // Regular location
             $actualLocationId = $locationId;
             $locationType = 'location';
         }
-        
+
         $timer = PlanningLocationTimer::where('planning_id', $planning->id)
             ->where('location_id', $actualLocationId)
             ->where('location_type', $locationType)
             ->first();
-        
+
         if (!$timer) {
             return response()->json([
                 'started_at' => null,
@@ -531,14 +537,14 @@ class PlanningController extends Controller
                 'total_duration' => 0,
             ]);
         }
-        
+
         return response()->json([
             'started_at' => $timer->started_at?->toISOString(),
             'ended_at' => $timer->ended_at?->toISOString(),
             'total_duration' => $timer->total_duration_seconds,
         ]);
     }
-    
+
     /**
      * Start timer for a specific location in a planning.
      */
@@ -547,25 +553,31 @@ class PlanningController extends Controller
         // Determine location type and actual location ID
         $actualLocationId = null;
         $locationType = 'location';
-        
+
         if ($locationId === 'backlog') {
             $actualLocationId = null;
             $locationType = 'backlog';
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
+            // If travelling to the first location of the planning, mark as shared_travel
+            $firstLocationId = optional($planning->locations()->orderBy('sort_order')->first())->id;
+            if ((string) $actualLocationId === (string) $firstLocationId) {
+                $locationType = 'shared_travel';
+            } else {
+                $locationType = 'travel';
+            }
         } else {
             // Regular location
             $actualLocationId = $locationId;
             $locationType = 'location';
         }
-        
+
         $timer = PlanningLocationTimer::where('planning_id', $planning->id)
             ->where('location_id', $actualLocationId)
             ->where('location_type', $locationType)
             ->first();
-            
+
         if ($timer) {
             // Timer exists - just update start time and clear end time
             $timer->update([
@@ -583,7 +595,7 @@ class PlanningController extends Controller
                 'total_duration_seconds' => 0,
             ]);
         }
-        
+
         return response()->json([
             'success' => true,
             'timer' => [
@@ -592,7 +604,7 @@ class PlanningController extends Controller
             ],
         ]);
     }
-    
+
     /**
      * Stop timer for a specific location in a planning.
      */
@@ -601,38 +613,93 @@ class PlanningController extends Controller
         $request->validate([
             'total_duration' => 'required|integer|min:0',
         ]);
-        
+
         // Determine location type and actual location ID
         $actualLocationId = null;
         $locationType = 'location';
-        
+
         if ($locationId === 'backlog') {
             $actualLocationId = null;
             $locationType = 'backlog';
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
+            // If travelling to the first location of the planning, mark as shared_travel
+            $firstLocationId = optional($planning->locations()->orderBy('sort_order')->first())->id;
+            if ((string) $actualLocationId === (string) $firstLocationId) {
+                $locationType = 'shared_travel';
+            } else {
+                $locationType = 'travel';
+            }
         } else {
             // Regular location
             $actualLocationId = $locationId;
             $locationType = 'location';
         }
-        
+
         $timer = PlanningLocationTimer::where('planning_id', $planning->id)
             ->where('location_id', $actualLocationId)
             ->where('location_type', $locationType)
             ->first();
-        
+
         if (!$timer) {
             return response()->json(['error' => 'Timer not found'], 404);
         }
-        
+
+        // End the timer and persist total duration
         $timer->update([
             'ended_at' => now(),
             'total_duration_seconds' => $request->input('total_duration'),
         ]);
-        
+
+        // If this was a shared_travel timer, split the travel time across all planning locations
+        if ($locationType === 'shared_travel' && $timer->total_duration_seconds > 0) {
+            DB::transaction(function () use ($planning, $timer) {
+                // Get all locations for this planning (ordered)
+                $locations = $planning->locations()->get();
+                $count = $locations->count();
+
+                if ($count === 0) {
+                    return; // Nothing to split
+                }
+
+                $total = (int) $timer->total_duration_seconds;
+                $base = intdiv($total, $count);
+                $remainder = $total % $count;
+
+                // For idempotency: if travel timer rows already exist for this planning with the same timestamps, skip creation
+                // We'll check per location to only create missing ones
+                foreach ($locations as $index => $location) {
+                    $share = $base + ($index < $remainder ? 1 : 0);
+
+                    // Only create when share > 0 to avoid zero-duration noise
+                    if ($share <= 0) {
+                        continue;
+                    }
+
+                    $existingTimer = PlanningLocationTimer::where('planning_id', $planning->id)
+                        ->where('location_id', $location->id)
+                        ->where('location_type', 'shared_travel')
+                        ->where('started_at', $timer->started_at)
+                        ->where('ended_at', $timer->ended_at)
+                        ->first();
+
+                    if (!$existingTimer) {
+                        PlanningLocationTimer::create([
+                            'planning_id' => $planning->id,
+                            'location_id' => $location->id,
+                            'location_type' => 'shared_travel',
+                            'started_at' => $timer->started_at,
+                            'ended_at' => $timer->ended_at,
+                            'total_duration_seconds' => $share,
+                        ]);
+                    } else {
+                        $existingTimer->update(['total_duration_seconds' => $share]);
+                    }
+                }
+            });
+        }
+
         return response()->json([
             'success' => true,
             'timer' => [
@@ -652,40 +719,46 @@ class PlanningController extends Controller
         $request->validate([
             'previous_duration' => 'required|integer|min:0',
         ]);
-        
+
         // Determine location type and actual location ID
         $actualLocationId = null;
         $locationType = 'location';
-        
+
         if ($locationId === 'backlog') {
             $actualLocationId = null;
             $locationType = 'backlog';
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
+            // If travelling to the first location of the planning, mark as shared_travel
+            $firstLocationId = optional($planning->locations()->orderBy('sort_order')->first())->id;
+            if ((string) $actualLocationId === (string) $firstLocationId) {
+                $locationType = 'shared_travel';
+            } else {
+                $locationType = 'travel';
+            }
         } else {
             // Regular location
             $actualLocationId = $locationId;
             $locationType = 'location';
         }
-        
+
         $timer = PlanningLocationTimer::where('planning_id', $planning->id)
             ->where('location_id', $actualLocationId)
             ->where('location_type', $locationType)
             ->first();
-        
+
         if (!$timer) {
             return response()->json(['error' => 'Timer not found'], 404);
         }
-        
+
         // Restart the timer - set new start time, clear end time, preserve previous duration
         $timer->update([
             'started_at' => now(),
             'ended_at' => null,
             'total_duration_seconds' => $request->input('previous_duration'), // Keep the accumulated time
         ]);
-        
+
         return response()->json([
             'success' => true,
             'timer' => [
