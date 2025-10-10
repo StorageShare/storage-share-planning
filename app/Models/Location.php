@@ -38,6 +38,7 @@ class Location extends Model
         'gate_number',
         'lift',
         'bv',
+        'type_deur',
     ];
 
     /**
