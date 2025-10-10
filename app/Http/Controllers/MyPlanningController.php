@@ -29,29 +29,33 @@ class MyPlanningController extends Controller
         // If no planning is provided, find today's planning (original behavior)
         if (!$planning) {
             $today = now()->startOfDay();
-            
+
             $planning = Planning::where('planned_date', $today)
                 ->whereHas('users', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                 })
                 ->with(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.benodigdheden', 'planningTasks.defaultTask.benodigdheden', 'planningTasks.completions.photos'])
-                ->firstOrFail();
+                ->first();
         } else {
             // Load necessary relationships for the provided planning
             $planning->load(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.benodigdheden', 'planningTasks.defaultTask.benodigdheden', 'planningTasks.completions.photos']);
-            
+
             // Check if user has access to this planning
             if (!$user->isAdmin() && !$planning->users->contains($user)) {
                 abort(403, 'Je hebt geen toegang tot deze planning.');
             }
         }
 
+        if (!$planning) {
+            return view('my-planning.show-empty');
+        }
+
         $locationSteps = [];
-        
+
         // Collect all benodigdheden from tasks AND automatically required ones for locations
         $allBenodigdheden = collect();
         $locationSpecificBenodigdheden = collect(); // Track location-specific variants
-        
+
         // Get benodigdheden from tasks (these don't get location replacement)
         foreach ($planning->planningTasks as $planningTask) {
             // Get benodigdheden from backlog tasks
@@ -63,14 +67,14 @@ class MyPlanningController extends Controller
                 $allBenodigdheden = $allBenodigdheden->merge($planningTask->defaultTask->benodigdheden);
             }
         }
-        
+
         // Get automatically required benodigdheden for selected locations
         if (!empty($planning->locations)) {
             foreach ($planning->locations as $location) {
                 $automaticBenodigdheden = Benodigdheid::whereHas('requiredForLocations', function ($query) use ($location) {
                     $query->where('location_id', $location->id);
                 })->get();
-                
+
                 foreach ($automaticBenodigdheden as $benodigdheid) {
                     if (str_contains($benodigdheid->naam, '[locatie]')) {
                         // Create location-specific variant
@@ -89,10 +93,10 @@ class MyPlanningController extends Controller
                 }
             }
         }
-        
+
         // Merge regular benodigdheden with location-specific variants
         $allBenodigdhedenWithVariants = $allBenodigdheden->concat($locationSpecificBenodigdheden);
-        
+
         // Remove duplicates (only for regular benodigdheden, keep all location-specific variants)
         $uniqueBenodigdheden = $allBenodigdhedenWithVariants->unique(function ($item) {
             if (isset($item->is_location_specific) && $item->is_location_specific) {
@@ -100,7 +104,7 @@ class MyPlanningController extends Controller
             }
             return $item->id; // Use original ID for regular items
         })->sortBy('naam');
-        
+
         // Add benodigdheden checklist as first step (only if there are benodigdheden)
         if ($uniqueBenodigdheden->isNotEmpty()) {
             $locationSteps[] = [
@@ -116,14 +120,14 @@ class MyPlanningController extends Controller
                 })->values()->all(),
             ];
         }
-        
+
         // Add summary as second step
         $locationSteps[] = [
             'type' => 'summary',
             'title' => 'Samenvatting van je dag',
             'details' => 'Bekijk je planning overzicht voordat je begint',
         ];
-        
+
         // Group tasks by their effective location_id (from planning_task or fallback to parent task)
         $tasksByLocation = $planning->planningTasks->groupBy(function ($planningTask) {
             return $planningTask->location_id ?? $planningTask->task?->location_id;
@@ -146,11 +150,11 @@ class MyPlanningController extends Controller
             foreach ($sortedTasks as $task) {
                 $latestCompletion = $task->completions->sortByDesc('created_at')->first();
                 $backlogPhotos = $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($photo) => $photo->url)->toArray() : [];
-                
+
                 // Check if task was skipped - only use skip data if task status is actually 'skipped'
                 $skipCompletion = $task->completions->where('review_outcome', 'skipped')->sortByDesc('created_at')->first();
                 $isSkipped = $task->status === TaskStatus::SKIPPED;
-                
+
                 $tasksForBacklog[] = [
                     'title' => $task->title,
                     'details' => $task->description,
@@ -205,11 +209,11 @@ class MyPlanningController extends Controller
             foreach ($sortedLocationTasks as $task) {
                 $latestCompletion = $task->completions->sortByDesc('created_at')->first();
                 $backlogPhotos = $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($photo) => $photo->url)->toArray() : [];
-                
+
                 // Check if task was skipped - only use skip data if task status is actually 'skipped'
                 $skipCompletion = $task->completions->where('review_outcome', 'skipped')->sortByDesc('created_at')->first();
                 $isSkipped = $task->status === TaskStatus::SKIPPED;
-                
+
                 $tasksForLocation[] = [
                     'title' => $task->title,
                     'details' => $task->description,
@@ -222,7 +226,7 @@ class MyPlanningController extends Controller
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
                 ];
             }
-            
+
             // Calculate travel info to this location
             $travelInfo = null;
             if ($index === 0) {
@@ -304,11 +308,11 @@ class MyPlanningController extends Controller
         $endDayActions = collect();
         foreach ($planning->planningTasks as $planningTask) {
             // Check if task is completed or in review (handle both enum and string values)
-            $isCompletedOrReview = $planningTask->status === TaskStatus::COMPLETED || 
+            $isCompletedOrReview = $planningTask->status === TaskStatus::COMPLETED ||
                                   $planningTask->status === 'completed' ||
                                   $planningTask->status === TaskStatus::REVIEW ||
                                   $planningTask->status === 'review';
-            
+
             if ($isCompletedOrReview) {
                 // Get end day actions from backlog task
                 if ($planningTask->task && ($planningTask->task->end_day_action_title || $planningTask->task->end_day_action_description)) {
@@ -320,7 +324,7 @@ class MyPlanningController extends Controller
                         'location' => $planningTask->task->location->name ?? $planningTask->specificLocation->name ?? 'Onbekende locatie',
                     ]);
                 }
-                
+
                 // Get end day actions from default task
                 if ($planningTask->defaultTask && ($planningTask->defaultTask->end_day_action_title || $planningTask->defaultTask->end_day_action_description)) {
                     $endDayActions->push([
@@ -338,10 +342,10 @@ class MyPlanningController extends Controller
         if ($uniqueBenodigdheden->isNotEmpty() || $endDayActions->isNotEmpty()) {
             // Create end checklist items if they don't exist yet for this planning
             $this->ensureEndChecklistItemsExist($planning, $uniqueBenodigdheden, $endDayActions);
-            
+
             // Get the current checklist items with their status and photos
             $checklistItems = $planning->endChecklistItems()->with(['benodigdheid', 'reviewer'])->get();
-            
+
             $locationSteps[] = [
                 'type' => 'end_checklist',
                 'title' => 'Eind checklist',
@@ -396,7 +400,7 @@ class MyPlanningController extends Controller
         ];
 
         return view('my-planning.show', [
-            'planning' => $planning, 
+            'planning' => $planning,
             'locationSteps' => $locationSteps,
             'travelTimes' => $travelTimes,
             'timeOverview' => $timeOverview
@@ -412,40 +416,46 @@ class MyPlanningController extends Controller
         $request->validate([
             'previous_duration' => 'required|integer|min:0',
         ]);
-        
+
         // Determine location type and actual location ID
         $actualLocationId = null;
         $locationType = 'location';
-        
+
         if ($locationId === 'backlog') {
             $actualLocationId = null;
             $locationType = 'backlog';
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
+            // If travelling to the first location of the planning, mark as shared_travel
+            $firstLocationId = optional($planning->locations()->orderBy('sort_order')->first())->id;
+            if ((string) $actualLocationId === (string) $firstLocationId) {
+                $locationType = 'shared_travel';
+            } else {
+                $locationType = 'travel';
+            }
         } else {
             // Regular location
             $actualLocationId = $locationId;
             $locationType = 'location';
         }
-        
+
         $timer = PlanningLocationTimer::where('planning_id', $planning->id)
             ->where('location_id', $actualLocationId)
             ->where('location_type', $locationType)
             ->first();
-        
+
         if (!$timer) {
             return response()->json(['error' => 'Timer not found'], 404);
         }
-        
+
         // Restart the timer - set new start time, clear end time, preserve previous duration
         $timer->update([
             'started_at' => now(),
             'ended_at' => null,
             'total_duration_seconds' => $request->input('previous_duration'), // Keep the accumulated time
         ]);
-        
+
         return response()->json([
             'success' => true,
             'timer' => [
@@ -490,24 +500,24 @@ class MyPlanningController extends Controller
     {
         // Get existing checklist items
         $existingItems = $planning->endChecklistItems()->get();
-        
+
         // Create a list of expected items
         $expectedItems = collect();
-        
+
         // Add material items (benodigdheden)
         foreach ($uniqueBenodigdheden as $benodigdheid) {
             $expectedItems->push([
                 'type' => 'material',
-                'benodigdheid_id' => isset($benodigdheid->is_location_specific) && $benodigdheid->is_location_specific ? 
+                'benodigdheid_id' => isset($benodigdheid->is_location_specific) && $benodigdheid->is_location_specific ?
                     $benodigdheid->original_id : $benodigdheid->id,
                 'location_id' => isset($benodigdheid->location_id) ? $benodigdheid->location_id : null,
                 'title' => $benodigdheid->naam,
                 'description' => "Terugbrengen: {$benodigdheid->naam}",
-                'unique_key' => 'material_' . (isset($benodigdheid->is_location_specific) && $benodigdheid->is_location_specific ? 
+                'unique_key' => 'material_' . (isset($benodigdheid->is_location_specific) && $benodigdheid->is_location_specific ?
                     $benodigdheid->id : $benodigdheid->id), // Use composite ID for location-specific items
             ]);
         }
-        
+
         // Add end action items
         foreach ($endDayActions as $endAction) {
             // Try to find the location ID based on the location name
@@ -516,7 +526,7 @@ class MyPlanningController extends Controller
                 $location = $planning->locations->firstWhere('name', $endAction['location']);
                 $locationId = $location?->id;
             }
-            
+
             $expectedItems->push([
                 'type' => 'end_action',
                 'benodigdheid_id' => null,
@@ -526,23 +536,23 @@ class MyPlanningController extends Controller
                 'unique_key' => 'end_action_' . $endAction['id'],
             ]);
         }
-        
+
         // Create items that don't exist yet
         foreach ($expectedItems as $expectedItem) {
             $exists = $existingItems->contains(function ($item) use ($expectedItem) {
                 if ($item->type !== $expectedItem['type']) {
                     return false;
                 }
-                
+
                 if ($expectedItem['type'] === 'material') {
-                    return $item->benodigdheid_id == $expectedItem['benodigdheid_id'] && 
+                    return $item->benodigdheid_id == $expectedItem['benodigdheid_id'] &&
                            $item->title === $expectedItem['title'];
                 } else {
-                    return $item->title === $expectedItem['title'] && 
+                    return $item->title === $expectedItem['title'] &&
                            $item->description === $expectedItem['description'];
                 }
             });
-            
+
             if (!$exists) {
                 EndChecklistItem::create([
                     'planning_id' => $planning->id,
@@ -554,18 +564,18 @@ class MyPlanningController extends Controller
                 ]);
             }
         }
-        
+
         // Remove items that are no longer needed (only if they haven't been reviewed yet)
         $expectedKeys = $expectedItems->pluck('unique_key');
         foreach ($existingItems as $existingItem) {
-            $currentKey = $existingItem->type . '_' . 
-                ($existingItem->type === 'material' ? $existingItem->benodigdheid_id : 
+            $currentKey = $existingItem->type . '_' .
+                ($existingItem->type === 'material' ? $existingItem->benodigdheid_id :
                  ($existingItem->type === 'end_action' ? $existingItem->title : 'unknown'));
-            
+
             if (!$expectedKeys->contains($currentKey) && $existingItem->status === 'pending' && !$existingItem->photo_path) {
                 // Only delete items that haven't been started yet
                 $existingItem->delete();
             }
         }
     }
-} 
+}

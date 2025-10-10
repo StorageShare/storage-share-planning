@@ -32,7 +32,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('locations', LocationController::class);
     Route::resource('default-tasks', DefaultTaskController::class);
     Route::resource('benodigdheden', BenodigdheidController::class);
-    
+
     // CSV Import routes
     Route::get('csv-import', [CsvImportController::class, 'show'])->name('csv-import.index');
     Route::post('csv-import', [CsvImportController::class, 'import'])->name('csv-import.import');
@@ -59,7 +59,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::patch('plannings/{planning}', [PlanningController::class, 'update']);
     Route::delete('plannings/{planning}', [PlanningController::class, 'destroy'])->name('plannings.destroy');
     Route::post('plannings/{planning}/send-notifications', [PlanningController::class, 'sendNotifications'])->name('plannings.send-notifications');
-    
+
     // Only admins can view plannings via /plannings routes
     Route::resource('plannings', PlanningController::class)->only(['index', 'show']);
 });
@@ -72,7 +72,7 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     // Routes for completing and uncompleting a task within a planning
     Route::post('plannings/{planning}/tasks/{planning_task}/complete', [PlanningTaskController::class, 'complete'])->name('plannings.tasks.complete');
     Route::post('plannings/{planning}/tasks/{planning_task}/uncomplete', [PlanningTaskController::class, 'uncomplete'])->name('plannings.tasks.uncomplete');
-    
+
     // Route for the step-by-step completion form
     Route::post('plannings/{planning}/tasks/{planning_task}/submit-completion', [PlanningTaskController::class, 'submitCompletion'])->name('plannings.tasks.submit-completion');
 
@@ -98,6 +98,12 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Serve media files from the public storage via Laravel to avoid web server 403s
+    Route::get('media/{path}', function (string $path) {
+        abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($path), 404);
+        return \Illuminate\Support\Facades\Storage::disk('public')->response($path);
+    })->where('path', '.*')->name('media');
+
     // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
     Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
     Route::get('tasks/select-location', [TaskController::class, 'selectLocationForTask'])->name('tasks.select-location');
@@ -113,7 +119,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/timers/{planning}/live-data', [\App\Http\Controllers\Admin\TimerController::class, 'getLiveData'])->name('timers.live-data');
         Route::get('/timers/export', [\App\Http\Controllers\Admin\TimerController::class, 'export'])->name('timers.export');
         Route::get('/bv-stats', [\App\Http\Controllers\Admin\BvStatsController::class, 'index'])->name('bv-stats.index');
-        
+
         // Syslog routes
         Route::get('/logs/syslog', [\App\Http\Controllers\Admin\SyslogController::class, 'index'])->name('logs.syslog');
         Route::get('/logs/syslog/api', [\App\Http\Controllers\Admin\SyslogController::class, 'api'])->name('logs.syslog.api');
@@ -124,10 +130,10 @@ Route::post('/deploy', function () {
     // Verificatie van Bitbucket payload
     $payload = request()->getContent();
     $signature = request()->header('X-Hub-Signature');
-    
+
     // Voer deployment script uit
     $output = shell_exec('cd applications/cpbwahmrsn/public_html && bash deploy.sh 2>&1');
-    
+
     return response()->json(['status' => 'success', 'output' => $output]);
 });
 
