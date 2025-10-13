@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Enums\Role;
+use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +34,11 @@ class TaskController extends Controller
     public function store(StoreTaskRequest $request, Location $location): JsonResponse
     {
         // StoreTaskRequest zorgt voor validatie en het mergen van location_id van de route.
-        $task = $location->tasks()->create($request->validated());
+        $data = $request->validated();
+        if (auth()->check() && auth()->user()->role === Role::CUSTOMER_SERVICE) {
+            $data['status'] = TaskStatus::CONCEPT;
+        }
+        $task = $location->tasks()->create($data);
         $task->load('taskPhotos'); // Laad relaties voor de resource response
 
         return (new TaskResource($task))

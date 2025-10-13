@@ -57,8 +57,8 @@
                             </div>
                         </div>
                         <div class="ml-3">
-                            <button type="button" 
-                                class="add-location-btn p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors duration-150 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20" 
+                            <button type="button"
+                                class="add-location-btn p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors duration-150 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
                                 data-location-id="{{ $location_option->id }}"
                                 title="Toevoegen aan planning">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +91,7 @@
         <div class="md:col-span-7 space-y-3 mt-6 md:mt-0">
             <div>
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Geselecteerde Locaties voor Planning</h3>
-                
+
                 <div class="max-h-80 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-700" id="selected_locations_container">
                     <p class="text-sm text-gray-500 dark:text-gray-400" id="no_selected_locations_msg">Geen locaties geselecteerd voor deze planning.</p>
                 </div>
@@ -102,7 +102,7 @@
     {{-- Full Width Tasks Section --}}
     <div class="space-y-4 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Taken voor Geselecteerde Locaties</h3>
-        
+
         <div class="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-md p-4 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700" id="tasks_by_location_container">
             <p class="text-sm text-gray-500 dark:text-gray-400">Selecteer eerst een of meerdere locaties om de bijbehorende taken te zien.</p>
         </div>
@@ -177,7 +177,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
                 <div class="flex items-center">
                     <svg class="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,7 +189,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-700">
                 <div class="flex items-center">
                     <svg class="w-4 h-4 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -528,23 +528,23 @@
 
         function formatDeadline(deadline) {
             if (!deadline) return '';
-            
+
             try {
                 const date = new Date(deadline);
                 const today = new Date();
                 const tomorrow = new Date(today);
                 tomorrow.setDate(tomorrow.getDate() + 1);
-                
+
                 const isToday = date.toDateString() === today.toDateString();
                 const isTomorrow = date.toDateString() === tomorrow.toDateString();
                 const isOverdue = date < today && !isToday;
-                
-                let formattedDate = date.toLocaleDateString('nl-NL', { 
-                    day: '2-digit', 
-                    month: '2-digit', 
-                    year: 'numeric' 
+
+                let formattedDate = date.toLocaleDateString('nl-NL', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
                 });
-                
+
                 if (isOverdue) {
                     return `⚠️ ${formattedDate} (verlopen)`;
                 } else if (isToday) {
@@ -592,7 +592,7 @@
 
             // Update location time displays in sortable list
             updateLocationTimesInSortableList();
-            
+
             // Update grand total
             updateGrandTotal();
         }
@@ -646,7 +646,7 @@
         // Nieuwe functie om geselecteerde locaties te beheren
         function updateSelectedLocationsList() {
             selectedLocationsContainer.innerHTML = '';
-            
+
             if (selectedLocationIds.size === 0) {
                 noSelectedLocationsMsg.style.display = 'block';
                 return;
@@ -683,8 +683,8 @@
 
             div.innerHTML = `
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${escapeHtml(locationName)}</span>
-                <button type="button" 
-                    class="remove-location-btn p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-150 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20" 
+                <button type="button"
+                    class="remove-location-btn p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-150 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
                     data-location-id="${locationId}"
                     title="Verwijderen uit planning">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -701,13 +701,13 @@
             document.querySelectorAll('.location-item').forEach(item => {
                 const locationId = item.dataset.locationId;
                 const addBtn = item.querySelector('.add-location-btn');
-                
+
                 if (selectedLocationIds.has(locationId)) {
                     // Geselecteerde locatie - verberg add button en markeer als geselecteerd
                     if (addBtn) addBtn.style.display = 'none';
                     item.classList.add('opacity-60', 'bg-gray-100', 'dark:bg-gray-700');
                     item.classList.remove('hover:bg-gray-50', 'dark:hover:bg-gray-800');
-                    
+
                     // Voeg een "geselecteerd" indicator toe
                     if (!item.querySelector('.selected-indicator')) {
                         const indicator = document.createElement('div');
@@ -727,7 +727,7 @@
                     if (addBtn) addBtn.style.display = 'block';
                     item.classList.remove('opacity-60', 'bg-gray-100', 'dark:bg-gray-700');
                     item.classList.add('hover:bg-gray-50', 'dark:hover:bg-gray-800');
-                    
+
                     // Verwijder "geselecteerd" indicator
                     const indicator = item.querySelector('.selected-indicator');
                     if (indicator) {
@@ -742,7 +742,7 @@
             updateSelectedLocationsList();
             updateSortableLocationsList();
             populateTasks();
-            
+
             // Sort available locations by distance to the newly selected location
             sortAvailableLocationsByDistance(locationId);
         }
@@ -896,10 +896,10 @@
             try {
                 // Haal locatie IDs op van beschikbare locaties
                 const availableLocationIds = availableLocationItems.map(item => parseInt(item.dataset.locationId));
-                
+
                 // Sorteer via database service
                 const sortedLocationIds = await locationDistanceService.sortLocationsByDistance(
-                    parseInt(referencLocationId), 
+                    parseInt(referencLocationId),
                     availableLocationIds
                 );
 
@@ -918,15 +918,15 @@
                 const container = availableLocationItems[0].parentNode;
                 const allItems = Array.from(container.children);
                 const selectedItems = allItems.filter(item => selectedLocationIds.has(item.dataset.locationId));
-                
+
                 // Clear container
                 container.innerHTML = '';
-                
+
                 // Voeg eerst geselecteerde locaties toe (bovenaan)
                 selectedItems.forEach(item => {
                     container.appendChild(item);
                 });
-                
+
                 // Voeg daarna beschikbare locaties toe in database-gesorteerde volgorde
                 sortedItems.forEach(item => {
                     container.appendChild(item);
@@ -1105,12 +1105,12 @@
                 const isReturn = segment.is_return || false;
                 const iconColor = isReturn ? 'text-green-600' : 'text-blue-600';
                 const returnLabel = isReturn ? ' (terug)' : '';
-                
+
                 html += `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
                             <svg class="w-4 h-4 mr-2 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                ${isReturn ? 
+                                ${isReturn ?
                                     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>' :
                                     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>'
                                 }
@@ -1128,15 +1128,15 @@
 
             travelTimesContent.innerHTML = html;
             totalTravelTime.innerHTML = `Totale reistijd: ${travelData.total_duration_formatted}`;
-            
+
             // Update time overview displays
             const travelMinutes = travelData.total_duration_minutes;
             document.getElementById('total_travel_time_display').textContent = formatMinutes(travelMinutes);
-            
+
             // Update grand total
             updateGrandTotal();
         }
-        
+
         function formatMinutes(minutes) {
             if (minutes < 60) {
                 return minutes + ' min';
@@ -1148,19 +1148,19 @@
             }
             return hours + 'u ' + remainingMinutes + 'm';
         }
-        
+
         function updateGrandTotal() {
             const taskTimeText = document.getElementById('total_task_time_display').textContent;
             const travelTimeText = document.getElementById('total_travel_time_display').textContent;
-            
+
             // Extract minutes from text
             const taskMinutes = extractMinutesFromText(taskTimeText);
             const travelMinutes = extractMinutesFromText(travelTimeText);
             const totalMinutes = taskMinutes + travelMinutes;
-            
+
             document.getElementById('grand_total_time_display').textContent = formatMinutes(totalMinutes);
         }
-        
+
         function extractMinutesFromText(text) {
             if (text.includes('u')) {
                 const parts = text.split('u');
@@ -1388,7 +1388,7 @@
                 const button = e.target.closest('.edit-task-btn');
                 const taskId = button.dataset.taskId;
                 const taskType = button.dataset.taskType;
-                
+
                 if (taskType === 'backlog_tasks') {
                     openTaskEditModal(taskId);
                 }
@@ -1419,11 +1419,11 @@
             document.getElementById('editTaskTitle').value = taskData.title;
             document.getElementById('editTaskDescription').value = taskData.description;
             document.getElementById('editTaskPriority').value = taskData.priority.value;
-            
+
             // Set status to 'open' if no status is set, otherwise use the existing status
             const statusValue = taskData.status && taskData.status.value ? taskData.status.value : 'open';
             document.getElementById('editTaskStatus').value = statusValue;
-            
+
             document.getElementById('editTaskDeadline').value = taskData.deadline ? taskData.deadline.split('T')[0] : '';
             document.getElementById('editTaskEstimatedTime').value = taskData.estimated_time_minutes || '';
 
@@ -1486,7 +1486,7 @@
                 if (response.ok) {
                     const updatedTask = await response.json();
                     console.log('Updated task data:', updatedTask);
-                    
+
                     // Update the task data in memory
                     if (currentEditingTask) {
                         Object.assign(currentEditingTask, {
@@ -1504,10 +1504,10 @@
 
                     // Refresh the tasks display
                     populateTasks();
-                    
+
                     // Close modal
                     closeTaskModal();
-                    
+
                     // Show success message
                     showNotification('Taak succesvol bijgewerkt!', 'success');
                 } else {
@@ -1639,20 +1639,20 @@
                     </svg>
                 </button>
             </div>
-            
+
             <form id="taskEditForm" class="space-y-4">
                 <input type="hidden" id="editTaskId" name="task_id">
-                
+
                 <div>
                     <label for="editTaskTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel</label>
                     <input type="text" id="editTaskTitle" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required>
                 </div>
-                
+
                 <div>
                     <label for="editTaskDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beschrijving</label>
                     <textarea id="editTaskDescription" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required></textarea>
                 </div>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="editTaskPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioriteit</label>
@@ -1662,10 +1662,11 @@
                             <option value="low">Laag</option>
                         </select>
                     </div>
-                    
+
                     <div>
                         <label for="editTaskStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                         <select id="editTaskStatus" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                            <option value="concept">Concept</option>
                             <option value="open">Open</option>
                             <option value="in_progress">In uitvoering</option>
                             <option value="review">Ter beoordeling</option>
@@ -1676,19 +1677,19 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="editTaskDeadline" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deadline</label>
                         <input type="date" id="editTaskDeadline" name="deadline" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
                     </div>
-                    
+
                     <div>
                         <label for="editTaskEstimatedTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Geschatte tijd (minuten)</label>
                         <input type="number" id="editTaskEstimatedTime" name="estimated_time_minutes" min="0" max="99999" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
                     </div>
                 </div>
-                
+
                 <div class="flex items-center justify-end space-x-3 pt-4">
                     <button type="button" id="cancelEdit" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
                         Annuleren

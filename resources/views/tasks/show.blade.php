@@ -73,8 +73,9 @@
                                 <div class="py-3 flex justify-between text-sm font-medium">
                                     <dt class="text-gray-500 dark:text-gray-400">Status</dt>
                                     <dd class="text-gray-900 dark:text-gray-100">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @switch($task->status)
+                                                @case(App\Enums\TaskStatus::CONCEPT) bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 @break
                                                 @case(App\Enums\TaskStatus::OPEN) bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
                                                 @case(App\Enums\TaskStatus::IN_PROGRESS) bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 @break
                                                 @case(App\Enums\TaskStatus::REVIEW) bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 @break
@@ -212,7 +213,7 @@
                                             </span>
                                         </div>
                                         <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap mb-4">{{ $completion->comment }}</p>
-    
+
                                         @if($completion->photos->isNotEmpty())
                                             @php
                                                 $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
@@ -235,10 +236,10 @@
                                             <p class="text-sm font-medium text-gray-700 dark:text-gray-200">
                                                 Beoordeling door {{ $completion->reviewer->name ?? 'Admin' }} op {{ optional($completion->reviewed_at)->format('d-m-Y \o\m H:i') }}
                                             </p>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if($completion->review_outcome == 'approved') 
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                @if($completion->review_outcome == 'approved')
                                                     bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                                @else 
+                                                @else
                                                     bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
                                                 @endif
                                             ">
@@ -261,4 +262,4 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</x-app-layout>

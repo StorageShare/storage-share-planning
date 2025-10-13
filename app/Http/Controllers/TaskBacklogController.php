@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View; // Added for DB::raw
 
@@ -20,8 +22,14 @@ class TaskBacklogController extends Controller
 
         $showCompleted = $request->boolean('show_completed');
 
-        if (! $showCompleted) {
-            $query->whereIn('status', ['open', 'in_progress']);
+        $user = Auth::user();
+        if ($user && $user->role === Role::CUSTOMER_SERVICE) {
+            // Customer service users should only see concept tasks in the backlog
+            $query->where('status', 'concept');
+        } else {
+            if (! $showCompleted) {
+                $query->whereIn('status', ['concept', 'open', 'in_progress']);
+            }
         }
 
         $searchTerm = $request->input('search_term', '');

@@ -50,8 +50,10 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::post('end-checklist-items/{item}/approve', [EndChecklistController::class, 'approveItem'])->name('admin.end-checklist.approve');
     Route::get('end-checklist-items/{item}/reject', [EndChecklistController::class, 'showRejectForm'])->name('admin.end-checklist.reject');
     Route::post('end-checklist-items/{item}/reject', [EndChecklistController::class, 'rejectItem'])->name('admin.end-checklist.reject.process');
+});
 
-    // Only admins can create, edit, and delete plannings
+// Only admins and facility coordinators can create, edit, and delete plannings
+Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
     Route::get('plannings/create', [PlanningController::class, 'create'])->name('plannings.create');
     Route::post('plannings', [PlanningController::class, 'store'])->name('plannings.store');
     Route::get('plannings/{planning}/edit', [PlanningController::class, 'edit'])->name('plannings.edit');

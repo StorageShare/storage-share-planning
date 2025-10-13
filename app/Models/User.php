@@ -73,7 +73,7 @@ class User extends Authenticatable
 
     public function canManagePlannings(): bool
     {
-        return $this->isAdmin();
+        return $this->role === Role::ADMIN || $this->role === Role::FACILITIES_COORDINATOR;
     }
 
     public function canExecutePlannings(): bool
