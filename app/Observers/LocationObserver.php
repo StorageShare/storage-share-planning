@@ -32,7 +32,7 @@ class LocationObserver
     {
         // Zoek alle default tasks die van toepassing zijn op alle locaties
         $defaultTasksForAllLocations = DefaultTask::where('applies_to_all_locations', true)->get();
-        
+
         // Koppel de nieuwe locatie aan deze default tasks
         foreach ($defaultTasksForAllLocations as $defaultTask) {
             $defaultTask->locations()->attach($location->id);
@@ -64,7 +64,7 @@ class LocationObserver
      */
     private function createDefaultTasksForLocation(Location $location): void
     {
-        $userId = Auth::id() ?? 1; // Fallback naar user ID 1 als er geen ingelogde gebruiker is
+        $userId = Auth::id(); // When unauthenticated during tests or system actions, this will be null (allowed)
 
         // Schoonmaken taak
         $schoonmakenTask = Task::create([
@@ -78,7 +78,7 @@ class LocationObserver
             'is_recurring' => true,
             'recurring_interval_type' => 'months',
             'recurring_interval_value' => 3,
-            'estimated_minutes' => 240, // 4 uur
+            'estimated_time_minutes' => 240, // 4 uur
         ]);
 
         // Controleronde taak
@@ -93,7 +93,7 @@ class LocationObserver
             'is_recurring' => true,
             'recurring_interval_type' => 'months',
             'recurring_interval_value' => 6,
-            'estimated_minutes' => 240, // 4 uur
+            'estimated_time_minutes' => 240, // 4 uur
         ]);
     }
 
