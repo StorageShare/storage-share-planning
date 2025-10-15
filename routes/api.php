@@ -29,7 +29,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('v1')->group(function () {
     Route::post('/travel-times/calculate', [TravelTimeController::class, 'calculate']);
     Route::post('/travel-times/sequence', [TravelTimeController::class, 'calculateSequence']);
-    
+
     // Location distances - cached database distances for better performance
     Route::get('/location-distances/stats', [LocationDistanceController::class, 'getCacheStats']);
     Route::get('/location-distances/{locationId}/sorted', [LocationDistanceController::class, 'getSortedDistances']);

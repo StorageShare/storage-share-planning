@@ -114,7 +114,7 @@ class TaskBacklogController extends Controller
         }
         // --- End of Corrected Sorting Logic ---
 
-        $tasks = $query->paginate(15)->withQueryString();
+        $tasks = $query->paginate(30)->withQueryString();
 
         // Eager load relationships on the paginated collection.
         // This is more reliable than using with() before complex sorts/queries.

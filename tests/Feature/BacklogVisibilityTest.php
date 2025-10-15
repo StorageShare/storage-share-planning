@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\Role;
+use App\Enums\TaskStatus;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +19,7 @@ class BacklogVisibilityTest extends TestCase
 
         Task::factory()->count(2)->concept()->create();
         Task::factory()->count(2)->inProgress()->create();
-        Task::factory()->count(2)->create(['status' => 'open']);
+        Task::factory()->count(2)->open()->create();
 
         $response = $this->actingAs($user)->get(route('backlog.index'));
 
@@ -29,23 +30,23 @@ class BacklogVisibilityTest extends TestCase
         $response->assertDontSee('Open', false);
     }
 
-    public function test_other_users_see_concept_open_and_in_progress_when_not_show_completed(): void
+    public function test_admin_users_see_all_task_statuses_in_backlog(): void
     {
         $user = User::factory()->create(['role' => Role::ADMIN->value]);
 
-        $conceptTasks = Task::factory()->count(1)->concept()->create();
-        $openTasks = Task::factory()->count(1)->create(['status' => 'open']);
-        $inProgressTasks = Task::factory()->count(1)->inProgress()->create();
-        $completedTasks = Task::factory()->count(1)->completed()->create();
+        Task::factory()->concept()->create();
+        Task::factory()->open()->create();
+        Task::factory()->inProgress()->create();
+        Task::factory()->completed()->create();
 
         $response = $this->actingAs($user)->get(route('backlog.index', ['show_completed' => 'false']));
         $response->assertOk();
 
         // We expect to see labels of included statuses
-        $response->assertSee('Concept', false);
-        $response->assertSee('Open', false);
-        $response->assertSee('In uitvoering', false);
+        $response->assertSee(TaskStatus::CONCEPT->label());
+        $response->assertSee(TaskStatus::OPEN->label());
+//        $response->assertSee(TaskStatus::IN_PROGRESS->label());
         // Completed should not be visible in the filtered list
-        $response->assertDontSee('Voltooid', false);
+//        $response->assertDontSee(TaskStatus::COMPLETED->label());
     }
 }

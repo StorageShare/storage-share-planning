@@ -8,11 +8,19 @@ use App\Models\Location;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class StorePlanningRequestValidationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->token = Str::random(40);
+        $this->withSession(['_token' => $this->token]);
+    }
 
     private function validPayload(array $overrides = []): array
     {
@@ -37,7 +45,10 @@ class StorePlanningRequestValidationTest extends TestCase
 
         $payload = $this->validPayload(['__location' => $location, 'selected_backlog_tasks' => [$conceptTask->id]]);
 
-        $response = $this->actingAs($admin)->post(route('plannings.store'), $payload);
+        $response = $this->actingAs($admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('plannings.store'), $payload);
+
         $response->assertSessionHasErrors(['selected_backlog_tasks.0']);
     }
 
@@ -50,7 +61,10 @@ class StorePlanningRequestValidationTest extends TestCase
 
         $payload = $this->validPayload(['__location' => $location, 'selected_backlog_tasks' => [$openTask->id, $inProgressTask->id]]);
 
-        $response = $this->actingAs($admin)->post(route('plannings.store'), $payload);
+        $response = $this->actingAs($admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('plannings.store'), $payload);
+
         $response->assertSessionHasNoErrors();
         $response->assertRedirect(route('plannings.index'));
     }

@@ -135,7 +135,7 @@
                                             <tr>
                                                 @php
                                                     $routeParams = array_merge(
-                                                        array_filter(request()->except('page')), // Get all current query params except pagination
+                                                        array_filter(request()->except('page')) // Get all current query params except pagination
                                                     );
                                                 @endphp
                                                 <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -223,7 +223,7 @@
                                                             @default bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200
                                                         @endswitch
                                                     ">
-                                                        {{ ucfirst(str_replace('_', ' ', $task->status->value)) }}
+                                                        {{ $task->status->label() }}
                                                     </span>
                                                 </td>
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap">

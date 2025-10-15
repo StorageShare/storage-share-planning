@@ -8,11 +8,19 @@ use App\Models\Location;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class TaskStoreDefaultConceptTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->token = Str::random(40);
+        $this->withSession(['_token' => $this->token]);
+    }
 
     public function test_customer_service_web_store_defaults_to_concept(): void
     {
@@ -25,7 +33,10 @@ class TaskStoreDefaultConceptTest extends TestCase
             'location_id' => $location->id,
         ];
 
-        $response = $this->actingAs($user)->post(route('locations.tasks.store', $location), $payload);
+        $response = $this->actingAs($user)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('locations.tasks.store', $location), $payload);
+
         $response->assertRedirect();
 
         $this->assertDatabaseHas('tasks', [
@@ -46,7 +57,10 @@ class TaskStoreDefaultConceptTest extends TestCase
             'location_id' => $location->id,
         ];
 
-        $response = $this->actingAs($user)->post(route('locations.tasks.store', $location), $payload);
+        $response = $this->actingAs($user)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('locations.tasks.store', $location), $payload);
+
         $response->assertRedirect();
 
         $this->assertDatabaseHas('tasks', [

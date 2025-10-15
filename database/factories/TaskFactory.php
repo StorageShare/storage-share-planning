@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
@@ -30,16 +31,29 @@ class TaskFactory extends Factory
 
     public function concept(): self
     {
-        return $this->state(fn() => ['status' => TaskStatus::CONCEPT->value]);
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::CONCEPT->value,
+        ]);
+    }
+
+    public function open(): self
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::OPEN->value,
+        ]);
     }
 
     public function inProgress(): self
     {
-        return $this->state(fn() => ['status' => TaskStatus::IN_PROGRESS->value]);
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::IN_PROGRESS->value,
+        ]);
     }
 
     public function completed(): self
     {
-        return $this->state(fn() => ['status' => TaskStatus::COMPLETED->value]);
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::COMPLETED->value,
+        ]);
     }
 }
