@@ -1,17 +1,15 @@
 <?php
 
-namespace Tests\Feature;
+namespace Feature\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskStatus;
-use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 

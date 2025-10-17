@@ -70,4 +70,4 @@ class Benodigdheid extends Model
             $q->where('location_id', $locationId);
         });
     }
-} 
+}

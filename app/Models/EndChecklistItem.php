@@ -16,6 +16,7 @@ class EndChecklistItem extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'title',
         'planning_id',
         'location_id',
         'type',

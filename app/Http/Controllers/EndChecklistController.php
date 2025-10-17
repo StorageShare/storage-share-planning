@@ -36,13 +36,13 @@ class EndChecklistController extends Controller
             // Create material checklist items
             foreach ($request->materials as $benodigdheidId) {
                 $benodigdheid = Benodigdheid::find($benodigdheidId);
-                
+
                 EndChecklistItem::create([
                     'planning_id' => $planning->id,
                     'type' => 'material',
                     'benodigdheid_id' => $benodigdheidId,
-                    'title' => $benodigdheid->name,
-                    'description' => "Terugbrengen: {$benodigdheid->name}",
+                    'title' => $benodigdheid->naam,
+                    'description' => "Terugbrengen: {$benodigdheid->naam}",
                 ]);
             }
 

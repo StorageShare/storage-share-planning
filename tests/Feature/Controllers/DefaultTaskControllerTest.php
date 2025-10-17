@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Feature;
+namespace Feature\Controllers;
 
 use App\Enums\Role;
+use App\Models\Benodigdheid;
 use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\User;
-use App\Models\Benodigdheid;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -85,7 +85,7 @@ class DefaultTaskControllerTest extends TestCase
         $payload = [
             'title' => 'Daily Sweep',
             'description' => 'Sweep all floors',
-            'applies_to_all_locations' => 'on',
+            'applies_to_all_locations' => true,
             'benodigdheden' => [$b1->id, $b2->id],
         ];
 
@@ -113,7 +113,7 @@ class DefaultTaskControllerTest extends TestCase
         $payload = [
             'title' => 'Door Cleaning',
             'description' => 'Clean doors',
-            'applies_to_door_types' => 'on',
+            'applies_to_door_types' => true,
             'door_types' => ['  houten deur ', 'glazen deur'],
         ];
 
@@ -205,7 +205,7 @@ class DefaultTaskControllerTest extends TestCase
         $payload = [
             'title' => 'Updated',
             'description' => 'Updated desc',
-            'applies_to_door_types' => 'on',
+            'applies_to_door_types' => true,
             'door_types' => [' HOUTEN DEUR ', 'glazen deur'],
             'benodigdheden' => [$b2->id],
         ];
