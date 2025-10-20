@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum TaskStatus: string
 {
+    case CONCEPT = 'concept';
     case OPEN = 'open';
     case IN_PROGRESS = 'in_progress';
     case REVIEW = 'review';
@@ -15,6 +16,7 @@ enum TaskStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::CONCEPT => 'Concept',
             self::OPEN => 'Open',
             self::IN_PROGRESS => 'In uitvoering',
             self::REVIEW => 'Ter beoordeling',

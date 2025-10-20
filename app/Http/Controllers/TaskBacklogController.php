@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View; // Added for DB::raw
 
@@ -20,8 +22,14 @@ class TaskBacklogController extends Controller
 
         $showCompleted = $request->boolean('show_completed');
 
-        if (! $showCompleted) {
-            $query->whereIn('status', ['open', 'in_progress']);
+        $user = Auth::user();
+        if ($user && $user->role === Role::CUSTOMER_SERVICE) {
+            // Customer service users should only see concept tasks in the backlog
+            $query->where('status', 'concept');
+        } else {
+            if (! $showCompleted) {
+                $query->whereIn('status', ['concept', 'open', 'in_progress']);
+            }
         }
 
         $searchTerm = $request->input('search_term', '');
@@ -106,7 +114,7 @@ class TaskBacklogController extends Controller
         }
         // --- End of Corrected Sorting Logic ---
 
-        $tasks = $query->paginate(15)->withQueryString();
+        $tasks = $query->paginate(30)->withQueryString();
 
         // Eager load relationships on the paginated collection.
         // This is more reliable than using with() before complex sorts/queries.

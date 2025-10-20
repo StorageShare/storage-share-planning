@@ -37,6 +37,7 @@
                                         'admin' => 'Administrator',
                                         'algemeen_medewerker' => 'Algemeen Medewerker',
                                         'gebruiker' => 'Gebruiker',
+                                        'customer_service' => 'Klantenservice',
                                         default => ucfirst($role->value),
                                     } }}
                                 </option>
@@ -55,4 +56,4 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</x-app-layout>

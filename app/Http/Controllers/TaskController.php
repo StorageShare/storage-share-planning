@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Enums\Role;
 use App\Events\LocationCompleted;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
@@ -23,6 +24,11 @@ class TaskController extends Controller
     public function index(Request $request, Location $location): View
     {
         $query = $location->tasks();
+
+        // If the authenticated user is in customer service, restrict to concept tasks
+        if (auth()->check() && auth()->user()->role === Role::CUSTOMER_SERVICE) {
+            $query->where('status', 'concept');
+        }
 
         $searchTerm = $request->input('search_term', '');
         $activeFilter = $request->input('filter');
@@ -159,10 +165,10 @@ class TaskController extends Controller
     public function create(Request $request, Location $location): View
     {
         $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
-        
+
         // Get prefilled data from session (if redirected from rejected checklist item)
         $prefill = session('prefill', []);
-        
+
         return view('tasks.create', compact('location', 'benodigdheden', 'prefill'));
     }
 
@@ -176,6 +182,11 @@ class TaskController extends Controller
         $validatedData = $request->validated();
         $validatedData['created_by'] = auth()->id();
 
+        // If the creator is a customer_service user, default the status to concept
+        if (auth()->check() && auth()->user()->role === Role::CUSTOMER_SERVICE) {
+            $validatedData['status'] = TaskStatus::CONCEPT;
+        }
+
         $new_task = $location->tasks()->create($validatedData); // Assign to variable to use in message if needed
 
         // Sync benodigdheden
@@ -186,10 +197,10 @@ class TaskController extends Controller
         // Handle photo uploads
         if ($request->hasFile('photos')) {
             $imageService = app(\App\Services\ImageService::class);
-            
+
             foreach ($request->file('photos') as $file) {
                 $filename = uniqid('tp_'.$new_task->id.'_', true).'.'.$file->getClientOriginalExtension();
-                
+
                 try {
                     $path = $imageService->saveCompressedImage(
                         $file,
@@ -261,12 +272,12 @@ class TaskController extends Controller
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validatedData = $request->validated();
-        
+
         // Set default status to 'open' if no status is provided
         if (!isset($validatedData['status']) || empty($validatedData['status'])) {
             $validatedData['status'] = 'open';
         }
-        
+
         $task->update($validatedData);
 
         // Sync benodigdheden
@@ -275,10 +286,10 @@ class TaskController extends Controller
         // Handle photo uploads
         if ($request->hasFile('photos')) {
             $imageService = app(\App\Services\ImageService::class);
-            
+
             foreach ($request->file('photos') as $file) {
                 $filename = uniqid('tp_'.$task->id.'_', true).'.'.$file->getClientOriginalExtension();
-                
+
                 try {
                     $path = $imageService->saveCompressedImage(
                         $file,
@@ -354,7 +365,7 @@ class TaskController extends Controller
         // After approval, check if the parent planning is now fully completed
         if ($triggering_planning_task && $triggering_planning_task->planning) {
             $triggering_planning_task->planning->checkAndUpdateStatus();
-            
+
             // Check if this location is now completed and notify if needed
             $this->checkLocationCompletionAndNotify($triggering_planning_task);
         }
@@ -362,7 +373,7 @@ class TaskController extends Controller
         // Handle recurring task creation if applicable
         $recurringService = app(\App\Services\RecurringTaskService::class);
         $newRecurringTask = $recurringService->createRecurringInstance($task);
-        
+
         $message = 'Taak goedgekeurd.';
         if ($newRecurringTask) {
             $intervalDescription = $task->getRecurringIntervalDescription();
@@ -397,7 +408,7 @@ class TaskController extends Controller
     private function checkLocationCompletionAndNotify(\App\Models\PlanningTask $planningTask): void
     {
         $planning = $planningTask->planning;
-        
+
         // Determine the location for this task
         $location = null;
         if ($planningTask->location_id) {

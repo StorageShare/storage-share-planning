@@ -10,17 +10,17 @@
 <input type="hidden" name="location_id" value="{{ $currentLocation?->id }}">
 
 <div class="space-y-6">
-    <x-form-input 
-        name="title" 
-        label="Titel" 
+    <x-form-input
+        name="title"
+        label="Titel"
         :value="$prefillData['title'] ?? $currentTask->title ?? ''"
-        placeholder="Vul de titel van de taak in" 
-        required 
+        placeholder="Vul de titel van de taak in"
+        required
     />
 
-    <x-form-textarea 
-        name="description" 
-        label="Omschrijving" 
+    <x-form-textarea
+        name="description"
+        label="Omschrijving"
         :value="$prefillData['description'] ?? $currentTask->description ?? ''"
         placeholder="Beschrijf de taak in detail"
         rows="4"
@@ -52,24 +52,24 @@
                 </div>
             </div>
         </div>
-        <x-form-input 
-            name="estimated_time_minutes" 
+        <x-form-input
+            name="estimated_time_minutes"
             type="number"
-            label="Geschatte tijd (minuten, optioneel)" 
+            label="Geschatte tijd (minuten, optioneel)"
             :value="$currentTask->estimated_time_minutes ?? 0"
             placeholder="0"
             min="0"
             max="99999"
         />
     </div>
-
+    @anyrole('admin', 'facilities_coordinator')
     {{-- Terugkerende taak sectie --}}
     <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
         <h3 class="text-md font-medium text-blue-900 dark:text-blue-100 mb-4">🔄 Terugkerende Taak (optioneel)</h3>
         <p class="text-sm text-blue-700 dark:text-blue-300 mb-4">
             Maak van deze taak een terugkerende taak die automatisch opnieuw wordt aangemaakt na goedkeuring.
         </p>
-        
+
         <div class="space-y-4">
             <div class="flex items-center">
                 <input id="is_recurring" name="is_recurring" type="checkbox" value="1"
@@ -79,11 +79,11 @@
                     Deze taak is terugkerend
                 </label>
             </div>
-            
+
             <div id="recurring-options" class="grid grid-cols-1 md:grid-cols-2 gap-4" style="{{ old('is_recurring', $currentTask->is_recurring ?? false) ? '' : 'display: none;' }}">
                 <div>
                     <x-input-label for="recurring_interval_value" class="block text-sm font-medium mb-2 text-blue-800 dark:text-blue-200">Herhaal elke</x-input-label>
-                    <x-text-input type="number" name="recurring_interval_value" id="recurring_interval_value" 
+                    <x-text-input type="number" name="recurring_interval_value" id="recurring_interval_value"
                            value="{{ old('recurring_interval_value', $currentTask->recurring_interval_value ?? 1) }}"
                            min="1" max="365"
                            class="py-3 px-4 block w-full text-sm" />
@@ -91,7 +91,7 @@
                     <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                     @enderror
                 </div>
-                
+
                 <div>
                     <x-input-label for="recurring_interval_type" class="block text-sm font-medium mb-2 text-blue-800 dark:text-blue-200">Tijdseenheid</x-input-label>
                     <select name="recurring_interval_type" id="recurring_interval_type"
@@ -107,7 +107,7 @@
                     @enderror
                 </div>
             </div>
-            
+
             <div id="recurring-preview" class="text-sm text-blue-600 dark:text-blue-300 font-medium" style="display: none;">
                 <!-- Preview tekst wordt hier getoond via JavaScript -->
             </div>
@@ -119,6 +119,7 @@
         <x-input-label for="status" class="block text-sm font-medium mb-2">Status</x-input-label>
         <select name="status" id="status" required
                 class="py-3 px-4 pe-9 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+            <option value="concept" {{ old('status', $currentTask->status ?? '') == 'concept' ? 'selected' : '' }}>Concept</option>
             <option value="open" {{ old('status', $currentTask->status ?? 'open') == 'open' ? 'selected' : '' }}>Open</option>
             <option value="in_progress" {{ old('status', $currentTask->status ?? '') == 'in_progress' ? 'selected' : '' }}>In uitvoering</option>
             <option value="completed" {{ old('status', $currentTask->status ?? '') == 'completed' ? 'selected' : '' }}>Voltooid</option>
@@ -174,15 +175,15 @@
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Specificeer acties die uitgevoerd moeten worden aan het eind van de dag voor deze taak.
         </p>
-        
+
         <div class="space-y-4">
-            <x-form-input 
+            <x-form-input
                 name="end_day_action_title"
                 label="Titel eindactie"
                 :value="$currentTask->end_day_action_title ?? ''"
                 placeholder=""
             />
-            
+
             <div>
                 <x-input-label for="end_day_action_description" class="block text-sm font-medium mb-2">Omschrijving eindactie</x-input-label>
                 <textarea name="end_day_action_description" id="end_day_action_description" rows="3"
@@ -194,11 +195,12 @@
             </div>
         </div>
     </div>
+    @endanyrole
 
     {{-- Foto sectie --}}
     <div>
         <x-input-label class="block text-sm font-medium mb-2">Foto's</x-input-label>
-        
+
         @if (isset($currentTask) && $currentTask->exists && $currentTask->taskPhotos && $currentTask->taskPhotos->count() > 0)
             <div class="mb-4">
                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Huidige foto's</h4>
@@ -206,7 +208,7 @@
                     @foreach($currentTask->taskPhotos as $photo)
                         <div class="relative group" data-photo-id="{{ $photo->id }}">
                             <img src="{{ $photo->url }}" alt="Taakfoto" class="w-full h-32 object-cover rounded-lg shadow">
-                            <button type="button" 
+                            <button type="button"
                                     onclick="removeExistingPhoto({{ $photo->id }})"
                                     class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,7 +241,7 @@
         </div>
 
         <div id="new-photos-preview" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 hidden"></div>
-        
+
         @error('photos')
         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
         @enderror
@@ -300,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateRecurringPreview() {
         const value = intervalValue ? intervalValue.value : '';
         const type = intervalType ? intervalType.value : '';
-        
+
         if (value && type && value > 0) {
             const typeLabels = {
                 'days': value == 1 ? 'dag' : 'dagen',
@@ -308,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 'months': value == 1 ? 'maand' : 'maanden',
                 'years': value == 1 ? 'jaar' : 'jaren'
             };
-            
+
             recurringPreview.textContent = `📅 Deze taak wordt elke ${value} ${typeLabels[type]} automatisch opnieuw aangemaakt na goedkeuring.`;
             recurringPreview.style.display = 'block';
         } else {
@@ -332,13 +334,13 @@ document.addEventListener('DOMContentLoaded', function () {
 function previewNewPhotos(event) {
     const files = event.target.files;
     const previewContainer = document.getElementById('new-photos-preview');
-    
+
     // Clear previous previews
     previewContainer.innerHTML = '';
-    
+
     if (files.length > 0) {
         previewContainer.classList.remove('hidden');
-        
+
         Array.from(files).forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -346,7 +348,7 @@ function previewNewPhotos(event) {
                 div.className = 'relative group';
                 div.innerHTML = `
                     <img src="${e.target.result}" alt="Preview" class="w-full h-32 object-cover rounded-lg shadow">
-                    <button type="button" 
+                    <button type="button"
                             onclick="removeNewPhoto(${index})"
                             class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,13 +369,13 @@ function removeNewPhoto(index) {
     const input = document.getElementById('new-photos');
     const dt = new DataTransfer();
     const files = input.files;
-    
+
     Array.from(files).forEach((file, i) => {
         if (i !== index) {
             dt.items.add(file);
         }
     });
-    
+
     input.files = dt.files;
     previewNewPhotos({ target: input });
 }
@@ -404,4 +406,4 @@ function removeExistingPhoto(photoId) {
     }
 }
 </script>
-@endpush 
+@endpush

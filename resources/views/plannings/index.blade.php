@@ -17,7 +17,7 @@
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">Overzicht van alle gemaakte planningen.</p>
                     </div>
 
-                    @if(Auth::user()->isAdmin())
+                    @anyrole('admin', 'facilities_coordinator')
                     <div class="flex items-center mt-4 gap-x-3">
                         <a href="{{ route('plannings.create') }}" class="flex items-center justify-center w-1/2 px-5 py-2 text-sm tracking-wide text-white transition-colors duration-200 bg-blue-500 rounded-lg shrink-0 sm:w-auto gap-x-2 hover:bg-blue-600 dark:hover:bg-blue-500 dark:bg-blue-600">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -26,7 +26,7 @@
                             <span>Nieuwe Planning</span>
                         </a>
                     </div>
-                    @endif
+                    @endanyrole
                 </div>
 
                 <form action="{{ route('plannings.index') }}" method="GET" id="planningSearchForm">
@@ -58,7 +58,7 @@
                                 </span>
                                 <input type="text" name="search_term" id="planningSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek in notities, locaties..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
                             </div>
-    
+
                             <div class="relative flex items-center">
                                 <input type="date" name="planned_date" id="planningDateInput" value="{{ request('planned_date') }}" class="block w-full py-1.5 px-3 text-gray-700 bg-white border border-gray-200 rounded-lg placeholder-gray-400/70 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
                             </div>
@@ -128,7 +128,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                         @switch(strtolower($planning->status ?? ''))
                                                             @case('open') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
                                                             @case('completed') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
@@ -147,7 +147,7 @@
                                                         @if($planning->users->isNotEmpty())
                                                             <form action="{{ route('plannings.send-notifications', $planning) }}" method="POST" class="inline-block">
                                                                 @csrf
-                                                                <button type="submit" 
+                                                                <button type="submit"
                                                                         class="px-2 py-1 text-xs text-green-600 transition-colors duration-200 rounded-md hover:bg-green-100 dark:hover:bg-gray-800 dark:text-green-400"
                                                                         onclick="return confirm('Weet je zeker dat je alle gebruikers van deze planning wilt notificeren?')"
                                                                         title="Stuur notificaties naar gebruikers">
@@ -175,7 +175,7 @@
                                                         </div>
                                                     @else
                                                         <p>Er zijn geen planningen beschikbaar.</p>
-                                                        @if(Auth::user()->isAdmin())
+                                                        @anyrole('admin', 'facilities_coordinator')
                                                         <div class="mt-4">
                                                             <a href="{{ route('plannings.create') }}" class="flex items-center justify-center w-1/2 px-5 py-2 mx-auto text-sm tracking-wide text-white transition-colors duration-200 bg-blue-500 rounded-lg shrink-0 sm:w-auto gap-x-2 hover:bg-blue-600 dark:hover:bg-blue-500 dark:bg-blue-600">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -184,7 +184,7 @@
                                                                 <span>Nieuwe Planning</span>
                                                             </a>
                                                         </div>
-                                                        @endif
+                                                        @endanyrole
                                                     @endif
                                                 </td>
                                             </tr>
@@ -241,12 +241,12 @@
                 // They are already part of the form as hidden inputs or will be added by filter links
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(function () {
-                    sessionStorage.setItem('planningSearchSubmitted', 'true'); 
+                    sessionStorage.setItem('planningSearchSubmitted', 'true');
                     searchForm.submit();
                 }, 500);
             });
         }
-        
+
         if (dateInput && searchForm) {
             dateInput.addEventListener('change', function() {
                 searchForm.submit();
@@ -255,4 +255,4 @@
     });
 </script>
 
-</x-app-layout> 
+</x-app-layout>

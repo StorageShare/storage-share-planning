@@ -16,25 +16,28 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    
+
                     @if (Auth::user()->canExecutePlannings())
                         <x-nav-link :href="route('my-planning.show')" :active="request()->routeIs('my-planning.*')">
                             {{ __('Mijn Planning') }}
                         </x-nav-link>
                     @endif
-                    
+
                     @if (Auth::user()->canViewBacklog())
                         <x-nav-link :href="route('backlog.index')" :active="request()->routeIs('backlog.*')">
                             {{ __('Taken') }}
                         </x-nav-link>
                     @endif
-                    
+
+                    @if (Auth::user()->canManagePlannings())
+                        <x-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
+                            {{ __('Planningen') }}
+                        </x-nav-link>
+                    @endif
+
                     @if (Auth::user()->isAdmin())
                         <x-nav-link :href="route('admin.tasks.review')" :active="request()->routeIs('admin.tasks.review') || request()->routeIs('admin.tasks.show')">
                             {{ __('Te Beoordelen') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
-                            {{ __('Planningen') }}
                         </x-nav-link>
 
                         <!-- Configuratie Dropdown -->
@@ -112,16 +115,17 @@
                                 'admin' => 'Administrator',
                                 'algemeen_medewerker' => 'Algemeen Medewerker',
                                 'gebruiker' => 'Gebruiker',
+                                'customer_service' => 'Klantenservice',
                                 default => ucfirst(Auth::user()->role->value),
                             } }})</div>
-                                
+
                                 <!-- Desktop Offline Status Indicator -->
-                                <div x-data="offlineStatus()" 
+                                <div x-data="offlineStatus()"
                                      x-init="init()"
                                      class="mt-1">
-                                     
+
                                     <!-- Online status -->
-                                    <div x-show="isOnline && pendingSync === 0" 
+                                    <div x-show="isOnline && pendingSync === 0"
                                          x-transition
                                          class="flex items-center text-green-600 dark:text-green-400">
                                         <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -129,9 +133,9 @@
                                         </svg>
                                         <span class="text-xs font-medium">Online</span>
                                     </div>
-                                    
+
                                     <!-- Offline status -->
-                                    <div x-show="!isOnline" 
+                                    <div x-show="!isOnline"
                                          x-transition
                                          class="flex items-center text-red-600 dark:text-red-400">
                                         <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -139,9 +143,9 @@
                                         </svg>
                                         <span class="text-xs font-medium">Offline</span>
                                     </div>
-                                    
+
                                     <!-- Pending sync -->
-                                    <div x-show="pendingSync > 0" 
+                                    <div x-show="pendingSync > 0"
                                          x-transition
                                          class="flex items-center text-orange-600 dark:text-orange-400">
                                         <svg class="animate-spin -ml-1 mr-2 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -200,20 +204,20 @@
             <!-- Mobile: Offline Status + Hamburger -->
             <div class="flex items-center sm:hidden space-x-2">
                 <!-- Mobile Offline Status Indicator -->
-                <div x-data="offlineStatus()" 
+                <div x-data="offlineStatus()"
                      x-init="init()">
-                     
+
                     <!-- Online status - klein groen bolletje -->
-                    <div x-show="isOnline && pendingSync === 0" 
+                    <div x-show="isOnline && pendingSync === 0"
                          x-transition
                          class="bg-green-500 rounded-full p-1 shadow-md">
                         <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                         </svg>
                     </div>
-                    
+
                     <!-- Offline status - rood bolletje -->
-                    <div x-show="!isOnline" 
+                    <div x-show="!isOnline"
                          x-transition
                          class="bg-red-500 text-white px-1 py-0.5 rounded-full shadow-md">
                         <div class="flex items-center">
@@ -223,9 +227,9 @@
                             <span class="text-xs">Off</span>
                         </div>
                     </div>
-                    
+
                     <!-- Pending sync - oranje met aantal -->
-                    <div x-show="pendingSync > 0" 
+                    <div x-show="pendingSync > 0"
                          x-transition
                          class="bg-orange-500 text-white px-1 py-0.5 rounded-full shadow-md">
                         <div class="flex items-center">
@@ -237,7 +241,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Hamburger -->
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -255,17 +259,19 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @if (Auth::user()->canManagePlannings())
+                <x-responsive-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
+                    {{ __('Planningen') }}
+                </x-responsive-nav-link>
+            @endif
             @if (Auth::user()->isAdmin())
                 <x-responsive-nav-link :href="route('admin.tasks.review')" :active="request()->routeIs('admin.tasks.review') || request()->routeIs('admin.tasks.show')">
                     {{ __('Te Beoordelen') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
-                    {{ __('Planningen') }}
-                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('backlog.index')" :active="request()->routeIs('backlog.*')">
                     {{ __('Taken') }}
                 </x-responsive-nav-link>
-                
+
                 <!-- Configuratie sectie -->
                 <div class="px-4 py-2 text-xs text-gray-400 font-semibold uppercase tracking-wider">
                     Configuratie
@@ -282,7 +288,7 @@
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     👥 {{ __('Gebruikers') }}
                 </x-responsive-nav-link>
-                
+
                 <!-- Statistieken sectie -->
                 <div class="px-4 py-2 text-xs text-gray-400 font-semibold uppercase tracking-wider">
                     Statistieken

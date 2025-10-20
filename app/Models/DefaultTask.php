@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class DefaultTask extends Model
 {
@@ -23,6 +24,7 @@ class DefaultTask extends Model
         'applies_to_all_locations',
         'applies_to_lift_locations',
         'applies_to_door_types',
+        'door_types',
         'end_day_action_required',
         'end_day_action_title',
         'end_day_action_description',
@@ -31,6 +33,7 @@ class DefaultTask extends Model
         'door_type_houten_deur',
         'door_type_glazen_deur',
         'door_type_andere_deur',
+        'created_by',
     ];
 
     protected $casts = [
@@ -125,10 +128,12 @@ class DefaultTask extends Model
             return Location::whereRaw('1 = 0'); // Return empty query
         }
 
-        $doorTypes = array_map('strtolower', array_map('trim', $this->door_types));
-        
-        return Location::whereRaw('LOWER(TRIM(type_deur)) IN (' . 
-            implode(',', array_fill(0, count($doorTypes), '?')) . ')', $doorTypes);
+        $doorTypes = array_map(fn($type) => strtolower(trim($type)), $this->door_types);
+
+        return Location::whereIn(
+            DB::raw('LOWER(TRIM(type_deur))'),
+            $doorTypes
+        );
     }
 
     /**

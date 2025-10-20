@@ -171,8 +171,9 @@
                                                 </span>
                                             </td>
                                             <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                     @switch($task->status->value)
+                                                        @case('concept') bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 @break
                                                         @case('open') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
                                                         @case('in_progress') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 @break
                                                         @case('completed') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
@@ -189,7 +190,7 @@
                                                 @if($task->planningTasks->isNotEmpty())
                                                     @foreach($task->planningTasks as $planningTask)
                                                         @if($planningTask->planning)
-                                                            <a href="{{ route('plannings.show', $planningTask->planning) }}" 
+                                                            <a href="{{ route('plannings.show', $planningTask->planning) }}"
                                                                class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800 transition-colors duration-200">
                                                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -213,11 +214,13 @@
                                             <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
                                                 <a href="{{ route('tasks.show', $task) }}" class="px-2 py-1 text-xs text-blue-600 transition-colors duration-200 rounded-md hover:bg-blue-100 dark:hover:bg-gray-800 dark:text-blue-400">Bekijken</a>
                                                 <a href="{{ route('tasks.edit', $task) }}" class="px-2 py-1 text-xs text-yellow-600 transition-colors duration-200 rounded-md hover:bg-yellow-100 dark:hover:bg-gray-800 dark:text-yellow-400">Bewerken</a>
+                                                @anyrole('admin', 'facilities_coordinator')
                                                 <form action="{{ route('tasks.destroy', $task) }}" method="POST" class="inline-block" onsubmit="return confirm('Weet je zeker dat je deze taak wilt verwijderen?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="px-2 py-1 text-xs text-red-600 transition-colors duration-200 rounded-md hover:bg-red-100 dark:hover:bg-gray-800 dark:text-red-400">Verwijderen</button>
                                                 </form>
+                                                @endanyrole
                                             </td>
                                         </tr>
                                         @empty
