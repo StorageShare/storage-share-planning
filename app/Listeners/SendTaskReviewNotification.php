@@ -32,5 +32,8 @@ class SendTaskReviewNotification
         foreach ($admins as $admin) {
             Mail::to($admin)->send(new TaskReadyForReviewMail($event->task));
         }
+
+        // Also notify facilitair of new tasks submitted for review
+        Mail::to('facilitair@storage-share.nl')->send(new TaskReadyForReviewMail($event->task));
     }
 }
