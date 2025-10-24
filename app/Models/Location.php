@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -123,9 +124,9 @@ class Location extends Model
         // Check if all tasks are in review or skipped status
         return $planningTasks->every(function ($planningTask) {
             return in_array($planningTask->status, [
-                \App\Enums\TaskStatus::REVIEW,
-                \App\Enums\TaskStatus::SKIPPED,
-                \App\Enums\TaskStatus::COMPLETED,
+                TaskStatus::REVIEW,
+                TaskStatus::SKIPPED,
+                TaskStatus::COMPLETED,
             ]);
         });
     }

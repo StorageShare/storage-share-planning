@@ -25,14 +25,8 @@ class DefaultTask extends Model
         'applies_to_lift_locations',
         'applies_to_door_types',
         'door_types',
-        'end_day_action_required',
         'end_day_action_title',
         'end_day_action_description',
-        'door_type_vergrendeling',
-        'door_type_stalen_deur',
-        'door_type_houten_deur',
-        'door_type_glazen_deur',
-        'door_type_andere_deur',
         'created_by',
     ];
 

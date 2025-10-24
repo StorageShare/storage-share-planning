@@ -21,7 +21,7 @@ class TravelTimeService
     {
         $originAddress = $this->getAddressFromLocation($origin);
         $destinationAddress = $this->getAddressFromLocation($destination);
-        
+
         if (empty($originAddress) || empty($destinationAddress)) {
             return [
                 'duration_minutes' => 0,
@@ -31,7 +31,7 @@ class TravelTimeService
         }
 
         $cacheKey = $this->getCacheKey($originAddress, $destinationAddress, $mode);
-        
+
         return Cache::remember($cacheKey, now()->addHours(24), function () use ($originAddress, $destinationAddress, $mode) {
             return $this->fetchTravelTimeFromApi($originAddress, $destinationAddress, $mode);
         });
@@ -98,7 +98,7 @@ class TravelTimeService
         if ($location instanceof Location) {
             return $location->full_address ?: $location->name;
         }
-        
+
         return (string) $location;
     }
 
@@ -110,7 +110,7 @@ class TravelTimeService
         if ($location instanceof Location) {
             return $location->name;
         }
-        
+
         return (string) $location;
     }
 
@@ -152,13 +152,13 @@ class TravelTimeService
 
             if ($response->successful()) {
                 $data = $response->json();
-                
-                if ($data['status'] === 'OK' && 
-                    isset($data['rows'][0]['elements'][0]) && 
+
+                if ($data['status'] === 'OK' &&
+                    isset($data['rows'][0]['elements'][0]) &&
                     $data['rows'][0]['elements'][0]['status'] === 'OK') {
-                    
+
                     $element = $data['rows'][0]['elements'][0];
-                    
+
                     return [
                         'duration_minutes' => ceil($element['duration']['value'] / 60),
                         'distance_km' => round($element['distance']['value'] / 1000, 1),
@@ -169,7 +169,7 @@ class TravelTimeService
             }
 
             $apiResponse = $response->json();
-            
+
             Log::warning('Google Maps API error', [
                 'origin' => $origin,
                 'destination' => $destination,
@@ -224,12 +224,12 @@ class TravelTimeService
 
             if ($response->successful()) {
                 $data = $response->json();
-                
+
                 if (isset($data['routes'][0])) {
                     $route = $data['routes'][0];
                     $durationSeconds = (int) str_replace('s', '', $route['duration'] ?? '0s');
                     $distanceMeters = $route['distanceMeters'] ?? 0;
-                    
+
                     return [
                         'duration_minutes' => ceil($durationSeconds / 60),
                         'distance_km' => round($distanceMeters / 1000, 1),
@@ -264,7 +264,7 @@ class TravelTimeService
     {
         // Simple estimation: 15 minutes for local travel, 30 minutes for longer distances
         $estimatedTime = str_contains(strtolower($origin . $destination), 'amsterdam') ? 15 : 25;
-        
+
         return [
             'duration_minutes' => $estimatedTime,
             'distance_km' => 0,
@@ -291,4 +291,4 @@ class TravelTimeService
 
         return $hours . ' uur ' . $remainingMinutes . ' min';
     }
-} 
+}

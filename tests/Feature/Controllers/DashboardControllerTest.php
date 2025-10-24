@@ -4,11 +4,13 @@ namespace Feature\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskStatus;
+use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -37,6 +39,9 @@ class DashboardControllerTest extends TestCase
 
     public function test_admin_sees_correct_planning_buckets_and_counts(): void
     {
+        $location = Location::factory()->create();
+        // Reset all data for the test
+        Task::query()->delete();
         $admin = User::factory()->create(['role' => Role::ADMIN->value]);
 
         // Create some plannings across the buckets
@@ -66,12 +71,12 @@ class DashboardControllerTest extends TestCase
         $pNext2 = $makePlanning($endOfNextWeek);
 
         // Backlog open tasks without planningTasks (3)
-        Task::factory()->open()->create();
-        Task::factory()->open()->create();
-        Task::factory()->open()->create();
+        Task::factory()->forLocation($location)->open()->create();
+        Task::factory()->forLocation($location)->open()->create();
+        Task::factory()->forLocation($location)->open()->create();
 
         // One open task that IS linked to a planning - should NOT be counted in backlog_open_tasks
-        $linkedTask = Task::factory()->open()->create();
+        $linkedTask = Task::factory()->forLocation($location)->open()->create();
         PlanningTask::create([
             'planning_id' => $pToday1->id,
             'task_id' => $linkedTask->id,
@@ -81,7 +86,7 @@ class DashboardControllerTest extends TestCase
         ]);
 
         // Review counts: one Task in REVIEW and two PlanningTasks in REVIEW (without task_id)
-        Task::factory()->create(['status' => TaskStatus::REVIEW->value]);
+        Task::factory()->forLocation($location)->review()->create();
         PlanningTask::create([
             'planning_id' => $pRest1->id,
             'task_id' => null,

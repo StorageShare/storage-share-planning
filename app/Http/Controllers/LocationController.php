@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
 use App\Models\Location;
 // Remove unused Use statements for StoreLocationRequest and UpdateLocationRequest
 // if they are no longer needed after removing store/update methods.
@@ -32,17 +34,22 @@ class LocationController extends Controller
             $sortDirection = 'asc';
         }
 
-        $locationsQuery = Location::withCount([
-            'tasks as open_tasks_high_count' => function ($query) {
-                $query->whereNotIn('status', ['completed', 'rejected'])->where('priority', 'high');
-            },
-            'tasks as open_tasks_normal_count' => function ($query) {
-                $query->whereNotIn('status', ['completed', 'rejected'])->where('priority', 'normal');
-            },
-            'tasks as open_tasks_low_count' => function ($query) {
-                $query->whereNotIn('status', ['completed', 'rejected'])->where('priority', 'low');
-            },
-        ]);
+        $locationsQuery = Location::query()
+            ->select('locations.*')
+            ->withCount([
+                'tasks as open_tasks_high_count' => function ($query) {
+                    $query->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
+                          ->where('priority', TaskPriority::HIGH->value);
+                },
+                'tasks as open_tasks_normal_count' => function ($query) {
+                    $query->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
+                          ->where('priority', TaskPriority::NORMAL->value);
+                },
+                'tasks as open_tasks_low_count' => function ($query) {
+                    $query->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
+                          ->where('priority', TaskPriority::LOW->value);
+                },
+            ]);
 
         if (! empty($searchTerm)) {
             $locationsQuery->whereRaw('LOWER(name) LIKE ?', [strtolower("%{$searchTerm}%")]);
@@ -68,7 +75,7 @@ class LocationController extends Controller
     {
         // Fetch open tasks for the location
         $open_tasks = $location->tasks()
-            ->whereNotIn('status', ['completed', 'rejected'])
+            ->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
             ->orderByRaw('ISNULL(deadline) ASC, deadline ASC') // Tasks with deadlines first, then by date
             ->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ASC")
             ->orderBy('created_at', 'desc')

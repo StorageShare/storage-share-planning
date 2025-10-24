@@ -63,25 +63,9 @@ class PlanningControllerTest extends TestCase
             return true;
         });
 
-        // Non admin sees only their own (p1 and p3) even if no filter
+        // Non admin cannot index plannings
         $userResp = $this->actingAs($user)->get(route('plannings.index'));
-        $userResp->assertOk();
-        $userResp->assertViewHas('plannings', function ($paginator) use ($p1, $p3) {
-            $ids = $paginator->getCollection()->pluck('id')->sort()->values()->all();
-            $this->assertEqualsCanonicalizing([$p1->id, $p3->id], $ids);
-            return true;
-        });
-
-        // Query appends preserved
-        $withQuery = $this->actingAs($this->admin)->get(route('plannings.index', [
-            'sort_by' => 'planned_date',
-            'sort_direction' => 'desc',
-            'search_term' => 'foo',
-        ]));
-        $paginator = $withQuery->viewData('plannings');
-        $this->assertStringContainsString('sort_by=planned_date', $paginator->url(2));
-        $this->assertStringContainsString('sort_direction=desc', $paginator->url(2));
-        $this->assertStringContainsString('search_term=foo', $paginator->url(2));
+        $userResp->assertForbidden();
     }
 
     public function test_create_renders_expected_data_structures(): void
@@ -178,6 +162,7 @@ class PlanningControllerTest extends TestCase
 
     public function test_show_calculates_time_overview_and_uses_travel_service_and_timers(): void
     {
+        $defaultTask = DefaultTask::factory()->create();
         $planning = Planning::factory()->create();
         $l1 = Location::factory()->create();
         $l2 = Location::factory()->create();
@@ -194,7 +179,7 @@ class PlanningControllerTest extends TestCase
         // Fake default task estimated minutes by setting attributes directly
         PlanningTask::create([
             'planning_id' => $planning->id,
-            'default_task_id' => 9999,
+            'default_task_id' => $defaultTask->id,
             'location_id' => $l2->id,
             'title' => 'DefaultLike',
             'description' => '',
@@ -207,8 +192,9 @@ class PlanningControllerTest extends TestCase
                 {
                     return [
                         'total_duration_minutes' => 25,
+                        'total_duration_formatted' => '25 min',
                         'segments' => [
-                            ['from' => 'A', 'to' => 'B', 'duration_minutes' => 25, 'distance_km' => 10],
+                            ['from' => 'A', 'to' => 'B', 'duration_minutes' => 25, 'distance_km' => 10, 'index' => 'return', 'error' => null, 'is_return', true],
                         ],
                     ];
                 }

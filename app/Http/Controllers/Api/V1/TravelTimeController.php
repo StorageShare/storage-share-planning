@@ -70,7 +70,8 @@ class TravelTimeController extends Controller
                 ->get()
                 ->sortBy(function ($location) use ($validated) {
                     return array_search($location->id, $validated['location_ids']);
-                });
+                })
+                ->values(); // reindex to ensure 0..n keys in correct order
 
             $result = $this->travelTimeService->calculateTravelTimesForSequence(
                 $locations->all(),
@@ -97,4 +98,4 @@ class TravelTimeController extends Controller
             ], 500);
         }
     }
-} 
+}

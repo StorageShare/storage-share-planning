@@ -37,40 +37,19 @@ class LocationControllerTest extends TestCase
         $bravo = Location::factory()->create(['name' => 'Bravo Depot']);
         $charlie = Location::factory()->create(['name' => 'Charlie Hub']);
 
+        // Delete all tasks to reset counts
+        Task::query()->delete();
+
         // Attach tasks with various priorities and statuses
         // Alpha: 1 high open, 1 normal open, 1 low completed (should NOT count)
-        Task::factory()->create([
-            'location_id' => $alpha->id,
-            'priority' => TaskPriority::HIGH->value,
-            'status' => TaskStatus::OPEN->value,
-        ]);
-        Task::factory()->create([
-            'location_id' => $alpha->id,
-            'priority' => TaskPriority::NORMAL->value,
-            'status' => TaskStatus::IN_PROGRESS->value,
-        ]);
-        Task::factory()->create([
-            'location_id' => $alpha->id,
-            'priority' => TaskPriority::LOW->value,
-            'status' => TaskStatus::COMPLETED->value,
-        ]);
+        Task::factory()->forLocation($alpha)->high()->open()->create();
+        Task::factory()->forLocation($alpha)->normal()->inProgress()->create();
+        Task::factory()->forLocation($alpha)->low()->completed()->create();
 
         // Bravo: 2 low open, 1 normal rejected (should NOT count)
-        Task::factory()->create([
-            'location_id' => $bravo->id,
-            'priority' => TaskPriority::LOW->value,
-            'status' => TaskStatus::OPEN->value,
-        ]);
-        Task::factory()->create([
-            'location_id' => $bravo->id,
-            'priority' => TaskPriority::LOW->value,
-            'status' => TaskStatus::IN_PROGRESS->value,
-        ]);
-        Task::factory()->create([
-            'location_id' => $bravo->id,
-            'priority' => TaskPriority::NORMAL->value,
-            'status' => TaskStatus::REJECTED->value,
-        ]);
+        Task::factory()->forLocation($bravo)->low()->open()->create();
+        Task::factory()->forLocation($bravo)->low()->normal()->create();
+        Task::factory()->forLocation($bravo)->low()->rejected()->create();
 
         // Charlie: no tasks
 

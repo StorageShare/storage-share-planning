@@ -131,7 +131,7 @@ class UserControllerTest extends TestCase
 
         $resp->assertRedirect(route('users.index'));
         $user->refresh();
-        $this->assertEquals(Role::CUSTOMER_SERVICE->value, $user->role);
+        $this->assertEquals(Role::CUSTOMER_SERVICE, $user->role);
     }
 
     public function test_non_admin_is_forbidden_from_accessing_user_routes(): void
@@ -140,17 +140,17 @@ class UserControllerTest extends TestCase
 
         $this->actingAs($user)->get(route('users.index'))->assertForbidden();
         $this->actingAs($user)->get(route('users.create'))->assertForbidden();
-        $this->actingAs($user)->post(route('users.store'), [])->assertForbidden();
+        $this->actingAs($user)->post(route('users.store'), ['_token' => $this->token])->assertForbidden();
 
         $target = User::factory()->create();
         $this->actingAs($user)->get(route('users.edit', $target))->assertForbidden();
-        $this->actingAs($user)->put(route('users.update', $target), [])->assertForbidden();
+        $this->actingAs($user)->put(route('users.update', $target), ['_token' => $this->token])->assertForbidden();
     }
 
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get(route('users.index'))->assertRedirect('/login');
         $this->get(route('users.create'))->assertRedirect('/login');
-        $this->post(route('users.store'))->assertRedirect('/login');
+        $this->post(route('users.store', ['_token' => $this->token]))->assertRedirect('/login');
     }
 }

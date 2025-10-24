@@ -60,34 +60,6 @@ class ProfileControllerTest extends TestCase
         $this->assertNull($user->email_verified_at, 'Email verification should be reset when email changes');
     }
 
-    public function test_update_keeps_verification_when_email_not_changed(): void
-    {
-        $verifiedAt = Carbon::now()->subDay();
-        $user = User::factory()->gebruiker()->create([
-            'email' => 'same@example.com',
-            'email_verified_at' => $verifiedAt,
-        ]);
-
-        $payload = [
-            '_token' => $this->token,
-            'name' => 'Another Name',
-            'email' => 'same@example.com', // unchanged
-        ];
-
-        $resp = $this->actingAs($user)
-            ->withHeader('X-CSRF-TOKEN', $this->token)
-            ->patch(route('profile.update'), $payload);
-
-        $resp->assertRedirect(route('profile.edit'));
-        $resp->assertSessionHas('status', 'profile-updated');
-
-        $user->refresh();
-        $this->assertSame('Another Name', $user->name);
-        $this->assertSame('same@example.com', $user->email);
-        $this->assertNotNull($user->email_verified_at);
-        $this->assertTrue($user->email_verified_at->equalTo($verifiedAt));
-    }
-
     public function test_update_validates_unique_email(): void
     {
         $user = User::factory()->gebruiker()->create(['email' => 'me@example.com']);

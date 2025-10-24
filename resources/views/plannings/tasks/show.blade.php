@@ -39,14 +39,14 @@
                                 <div class="py-3 flex justify-between text-sm font-medium">
                                     <dt class="text-gray-500 dark:text-gray-400">Status</dt>
                                     <dd class="text-gray-900 dark:text-gray-100">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @switch($planning_task->status)
                                                 @case('review') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 @break
                                                 @case('completed') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
                                                 @default bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
                                             @endswitch
                                         ">
-                                            {{ ucfirst($planning_task->status) }}
+                                            {{ $planning_task->status->label() }}
                                         </span>
                                     </dd>
                                 </div>
@@ -164,7 +164,7 @@
                                     </div>
                                     @endif
                                 @endif
-                                
+
                                 {{-- Special block for Reopened --}}
                                 @if($completion->review_outcome === 'reopened')
                                 <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg shadow-sm border-l-4 border-yellow-500">

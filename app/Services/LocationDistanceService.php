@@ -21,7 +21,10 @@ class LocationDistanceService
      * Haal afstand op tussen twee locaties
      * Kijkt eerst in database, berekent alleen als nodig
      */
-    public function getDistance(int $fromLocationId, int $toLocationId, bool $forceRecalculate = false): ?LocationDistance
+    /**
+     * @return object|null LocationDistance model or DTO-like object with distance fields
+     */
+    public function getDistance(int $fromLocationId, int $toLocationId, bool $forceRecalculate = false): object|null
     {
         // Check eerst of we al een recente afstand hebben
         if (!$forceRecalculate) {
@@ -64,7 +67,7 @@ class LocationDistanceService
             }
 
             $segment = $result['segments'][0];
-            
+
             // Sla resultaat op in database
             $distance = LocationDistance::storeDistance(
                 fromLocationId: $fromLocationId,
@@ -103,7 +106,7 @@ class LocationDistanceService
     public function getDistancesFromLocation(int $fromLocationId, bool $calculateMissing = true): Collection
     {
         $distances = LocationDistance::getDistancesFrom($fromLocationId);
-        
+
         if ($calculateMissing) {
             // Vind locaties waarvoor we nog geen afstand hebben
             $existingToLocationIds = $distances->pluck('to_location_id')->toArray();
@@ -157,7 +160,7 @@ class LocationDistanceService
                 }
 
                 $distance = $this->calculateAndStore($fromLocation->id, $toLocation->id);
-                
+
                 if ($distance) {
                     $calculated++;
                     $results[] = $distance;
@@ -223,7 +226,7 @@ class LocationDistanceService
     public function getDistancesForApi(int $fromLocationId): array
     {
         $distances = $this->getDistancesFromLocation($fromLocationId, false);
-        
+
         return $distances->map(function ($distance) {
             return [
                 'to_location_id' => $distance->to_location_id,
@@ -237,4 +240,4 @@ class LocationDistanceService
             ];
         })->toArray();
     }
-} 
+}

@@ -135,7 +135,7 @@ class TaskControllerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => Role::ADMIN->value]);
         $loc = Location::factory()->create();
-        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '']);
+        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $admin->id]);
 
         session(['prefill' => ['title' => 'Prefilled']]);
         $resp = $this->actingAs($admin)->get(route('locations.tasks.create', $loc));
@@ -152,8 +152,8 @@ class TaskControllerTest extends TestCase
 
         $creator = User::factory()->create(['role' => Role::CUSTOMER_SERVICE->value]);
         $loc = Location::factory()->create();
-        $b1 = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '']);
-        $b2 = Benodigdheid::create(['naam' => 'Handschoenen', 'beschrijving' => '']);
+        $b1 = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $creator->id]);
+        $b2 = Benodigdheid::create(['naam' => 'Handschoenen', 'beschrijving' => '', 'created_by' => $creator->id]);
 
         // Mock ImageService
         $imageService = $this->createMock(ImageService::class);
@@ -207,11 +207,13 @@ class TaskControllerTest extends TestCase
             'planning_task_id' => $pt->id,
             'comment' => 'First',
             'created_at' => now()->subHour(),
+            'user_id' => $user->id,
         ]);
         PlanningTaskCompletion::create([
             'planning_task_id' => $pt->id,
             'comment' => 'Second',
             'created_at' => now(),
+            'user_id' => $user->id,
         ]);
 
         $resp = $this->actingAs($user)->get(route('tasks.show', [$task, 'planning' => $planning->id]));
@@ -227,7 +229,7 @@ class TaskControllerTest extends TestCase
         $user = User::factory()->create();
         $loc = Location::factory()->create();
         $task = Task::factory()->create(['location_id' => $loc->id]);
-        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '']);
+        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $user->id]);
         $task->benodigdheden()->sync([$b->id]);
 
         $resp = $this->actingAs($user)->get(route('tasks.edit', $task));
@@ -242,7 +244,7 @@ class TaskControllerTest extends TestCase
         $user = User::factory()->create();
         $loc = Location::factory()->create();
         $task = Task::factory()->create(['location_id' => $loc->id, 'title' => 'Old', 'status' => TaskStatus::OPEN->value]);
-        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '']);
+        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $user->id]);
 
         $payload = [
             'title' => 'New',
@@ -281,7 +283,7 @@ class TaskControllerTest extends TestCase
 
     public function test_admin_approve_updates_statuses_and_redirects_and_triggers_recurring_service(): void
     {
-        $admin = User::factory()->create(['role' => Role::ADMIN->value]);
+        $admin = User::factory()->admin()->create();
         $loc = Location::factory()->create();
         $task = Task::factory()->create(['location_id' => $loc->id, 'status' => TaskStatus::REVIEW->value]);
         $planning = Planning::factory()->create();
@@ -297,6 +299,7 @@ class TaskControllerTest extends TestCase
         PlanningTaskCompletion::create([
             'planning_task_id' => $pt->id,
             'comment' => 'Done',
+            'user_id' => $admin->id,
         ]);
 
         // Mock RecurringTaskService to avoid side effects
@@ -320,7 +323,7 @@ class TaskControllerTest extends TestCase
 
     public function test_admin_reject_proxies_to_planning_task_controller_and_redirects(): void
     {
-        $admin = User::factory()->create(['role' => Role::ADMIN->value]);
+        $admin = User::factory()->admin()->create();
         $loc = Location::factory()->create();
         $task = Task::factory()->create(['location_id' => $loc->id, 'status' => TaskStatus::REVIEW->value]);
         $planning = Planning::factory()->create();
@@ -335,6 +338,7 @@ class TaskControllerTest extends TestCase
         PlanningTaskCompletion::create([
             'planning_task_id' => $pt->id,
             'comment' => 'Attempt',
+            'user_id' => $admin->id,
         ]);
 
         $resp = $this->actingAs($admin)

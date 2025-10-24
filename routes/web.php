@@ -18,6 +18,10 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyPlanningController;
 
+Route::get('/_xdebug', function () {
+    phpinfo(); // leave it for now
+});
+
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])->name('auth.google.redirect');

@@ -52,8 +52,6 @@ class PlanningTaskControllerTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('plannings.tasks.show', $pt));
 
-        dd($response);
-
         $response->assertOk();
         $response->assertViewIs('plannings.tasks.show');
         $response->assertViewHas('planning_task', function ($model) use ($pt) {

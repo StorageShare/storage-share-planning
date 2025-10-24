@@ -24,8 +24,11 @@ use Illuminate\View\View;
 class PlanningController extends Controller
 {
     public function __construct(
-        private TravelTimeService $travelTimeService
-    ) {}
+        private $travelTimeService = null
+    ) {
+        // Allow container-bound mocks (including anonymous classes) to be injected in tests
+        $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
+    }
 
     /**
      * Display a listing of the resource.

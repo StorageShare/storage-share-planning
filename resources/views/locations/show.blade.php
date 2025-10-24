@@ -42,7 +42,7 @@
                                                     <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">{{ Str::limit($task->description, 50) }}</td>
                                                     <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">
                                                         <span class="px-2 py-1 text-xs rounded-full {{ $task->status === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ($task->status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300') }}">
-                                                            {{ ucfirst(str_replace('_', ' ', $task->status)) }}
+                                                            {{ $task->status->label() }}
                                                         </span>
                                                     </td>
                                                     <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">{{ $task->deadline ? $task->deadline->format('d-m-Y') : 'N.v.t.' }}</td>
@@ -73,4 +73,4 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</x-app-layout>
