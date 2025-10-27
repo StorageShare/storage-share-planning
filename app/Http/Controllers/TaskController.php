@@ -25,14 +25,18 @@ class TaskController extends Controller
     {
         $query = $location->tasks();
 
+        // Exclude recurring tasks by default to keep the list focused on one-off/location-specific tasks
+        $query->where('is_recurring', false);
+
         // If the authenticated user is in customer service, restrict to concept tasks
         if (auth()->check() && auth()->user()->role === Role::CUSTOMER_SERVICE) {
             $query->where('status', 'concept');
         }
 
-        $searchTerm = $request->input('search_term', '');
-        $activeFilter = $request->input('filter');
-        $plannedFilter = $request->input('planned_filter');
+        // Read query parameters explicitly to preserve exactly what user provided in the URL
+        $searchTerm = $request->query('search_term');
+        $activeFilter = $request->query('filter');
+        $plannedFilter = $request->query('planned_filter');
 
         // Valid sortable columns for tasks
         $sortableColumns = ['title', 'priority', 'status', 'deadline', 'estimated_hours', 'created_at'];
@@ -124,7 +128,18 @@ class TaskController extends Controller
             };
         }
 
-        $tasks = $query->paginate(15)->withQueryString();
+        $tasks = $query->paginate(15);
+        // Ensure pagination URLs preserve the current view state (even when defaults are used)
+        $appendParams = [
+            'sort_by' => $sortBy,
+            'sort_direction' => $sortDirection,
+            'filter' => $activeFilter,
+            'planned_filter' => $plannedFilter,
+        ];
+        if ($searchTerm !== null && $searchTerm !== '') {
+            $appendParams['search_term'] = $searchTerm;
+        }
+        $tasks->appends($appendParams);
 
         // Eager load planning relationships
         $tasks->load(['planningTasks.planning']);

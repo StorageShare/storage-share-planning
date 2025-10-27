@@ -20,6 +20,8 @@ class PlanningTaskCompletion extends Model
         'reviewed_at',
         'review_outcome',
         'reviewed_by',
+        // Allow explicit timestamp setting in tests and seeders
+        'created_at',
     ];
 
     /**

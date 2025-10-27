@@ -35,6 +35,7 @@ class TaskBacklogController extends Controller
         $searchTerm = $request->input('search_term', '');
         $locationId = $request->input('location_id');
         $priorityFilter = $request->input('priority');
+        $includeRecurring = $request->boolean('include_recurring', false);
 
         // Filter logic
         if ($locationId) {
@@ -42,6 +43,10 @@ class TaskBacklogController extends Controller
         }
         if ($priorityFilter) {
             $query->where('priority', $priorityFilter);
+        }
+        // Exclude recurring tasks by default (can include with include_recurring=true)
+        if (! $includeRecurring) {
+            $query->where('is_recurring', false);
         }
 
         if (! empty($searchTerm)) {
@@ -110,7 +115,7 @@ class TaskBacklogController extends Controller
             if ($sortBy !== 'created_at') {
                 $query->orderBy('tasks.created_at', 'desc');
             }
-            // $query->orderBy('tasks.id', 'asc'); // Ultimate tie-breaker
+            $query->orderBy('tasks.id', 'desc'); // Ultimate tie-breaker for stability
         }
         // --- End of Corrected Sorting Logic ---
 
@@ -128,6 +133,7 @@ class TaskBacklogController extends Controller
             'location_id' => $locationId,
             'priority' => $priorityFilter,
             'show_completed' => $showCompleted,
+            'include_recurring' => $includeRecurring,
             // Add other simple string-based filters here if any in the future
         ];
 

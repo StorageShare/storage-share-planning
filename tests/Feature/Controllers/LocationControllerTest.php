@@ -48,7 +48,7 @@ class LocationControllerTest extends TestCase
 
         // Bravo: 2 low open, 1 normal rejected (should NOT count)
         Task::factory()->forLocation($bravo)->low()->open()->create();
-        Task::factory()->forLocation($bravo)->low()->normal()->create();
+        Task::factory()->forLocation($bravo)->low()->open()->create();
         Task::factory()->forLocation($bravo)->low()->rejected()->create();
 
         // Charlie: no tasks
@@ -132,6 +132,7 @@ class LocationControllerTest extends TestCase
     public function test_show_displays_open_tasks_with_expected_order_and_pagination(): void
     {
         $loc = Location::factory()->create();
+        Task::query()->delete();
 
         // Freeze time for deterministic created_at ordering
         Carbon::setTestNow('2025-10-15 12:00:00');

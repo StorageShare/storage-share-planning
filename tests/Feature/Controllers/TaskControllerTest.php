@@ -44,18 +44,20 @@ class TaskControllerTest extends TestCase
         $d2Normal = Task::factory()->create(['location_id' => $loc->id, 'deadline' => '2025-10-12', 'priority' => TaskPriority::NORMAL->value, 'title' => 'd2-normal']);
         $nullDeadlineHigh = Task::factory()->create(['location_id' => $loc->id, 'deadline' => null, 'priority' => TaskPriority::HIGH->value, 'title' => 'null-high']);
 
-        $resp = $this->actingAs($user)->get(route('locations.tasks.index', $loc, [
-            'search_term' => 'd1',
-            'sort_by' => 'deadline',
-            'sort_direction' => 'asc',
-        ]));
+        $resp = $this->actingAs($user)->get(
+            route('locations.tasks.index', $loc) . '?' . http_build_query([
+                'search_term' => 'd1',
+                'sort_by' => 'deadline',
+                'sort_direction' => 'asc',
+            ])
+        );
 
         $resp->assertOk();
         $resp->assertViewIs('tasks.index');
         $resp->assertViewHasAll(['location', 'tasks', 'sortBy', 'sortDirection', 'searchTerm', 'activeFilter', 'plannedFilter']);
 
         $ordered = $resp->viewData('tasks')->getCollection()->pluck('title')->all();
-        $this->assertSame(['d1-high', 'd1-low', 'd2-normal', 'null-high'], $ordered);
+        $this->assertSame(['d1-high', 'd1-low'], $ordered);
 
         $paginator = $resp->viewData('tasks');
         $this->assertStringContainsString('sort_by=deadline', $paginator->url(2));
