@@ -304,6 +304,27 @@ class MyPlanningController extends Controller
             }
         }
 
+        // After last location, add return travel step back to start address if applicable
+        if ($planning->locations->count() > 0) {
+            $lastLocation = $planning->locations->last();
+            $returnTo = $planning->start_address ?: 'kantoor';
+            $returnTravel = $this->travelTimeService->calculateTravelTime($lastLocation, $returnTo);
+            if (($returnTravel['duration_minutes'] ?? 0) > 0) {
+                $locationSteps[] = [
+                    'type' => 'travel',
+                    'title' => "Reis terug naar start",
+                    'travel_id' => 'travel_back',
+                    'destination_location_id' => null,
+                    'from' => $lastLocation->name,
+                    'to' => $returnTo,
+                    'destination_address' => $returnTo,
+                    'duration_minutes' => $returnTravel['duration_minutes'],
+                    'duration_text' => $this->travelTimeService->formatDuration($returnTravel['duration_minutes']),
+                    'distance_km' => $returnTravel['distance_km'] ?? null,
+                ];
+            }
+        }
+
         // Collect end-of-day actions from completed tasks
         $endDayActions = collect();
         foreach ($planning->planningTasks as $planningTask) {
@@ -428,6 +449,10 @@ class MyPlanningController extends Controller
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
             $locationType = 'travel';
+        } elseif ($locationId === 'travel_back') {
+            // Return travel timer back to start location
+            $actualLocationId = null;
+            $locationType = 'travel_back';
         } else {
             // Regular location
             $actualLocationId = $locationId;

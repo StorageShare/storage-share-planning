@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 // Import PlanningTask
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Planning extends Model
 {
@@ -25,6 +26,7 @@ class Planning extends Model
         'created_by',
         'start_address',
         'start_time',
+        'travel_time_distributed_at',
     ];
 
     /**
@@ -34,6 +36,7 @@ class Planning extends Model
      */
     protected $casts = [
         'planned_date' => 'datetime',
+        'travel_time_distributed_at' => 'datetime',
     ];
 
     /**
@@ -92,11 +95,11 @@ class Planning extends Model
     public function hasApprovedEndChecklist(): bool
     {
         $endChecklistItems = $this->endChecklistItems;
-        
+
         if ($endChecklistItems->isEmpty()) {
             return false; // No end checklist submitted yet
         }
-        
+
         return $endChecklistItems->every(function ($item) {
             return $item->isApproved();
         });
@@ -108,11 +111,11 @@ class Planning extends Model
     public function hasSubmittedEndChecklist(): bool
     {
         $endChecklistItems = $this->endChecklistItems;
-        
+
         if ($endChecklistItems->isEmpty()) {
             return false;
         }
-        
+
         return $endChecklistItems->every(function ($item) {
             return !empty($item->photo_path);
         });
@@ -124,7 +127,7 @@ class Planning extends Model
     public function checkAndUpdateStatus(): void
     {
         // Eager load the planningTasks relationship to prevent N+1 issues
-        $this->loadMissing('planningTasks', 'endChecklistItems');
+        $this->loadMissing('planningTasks', 'endChecklistItems', 'locations', 'locationTimers');
 
         if ($this->planningTasks->isEmpty()) {
             if ($this->status !== 'completed') {
@@ -137,7 +140,12 @@ class Planning extends Model
 
         // Check if every single task is marked as 'completed'
         $allTasksCompleted = $this->planningTasks->every(function ($task) {
-            return $task->status === \App\Enums\TaskStatus::COMPLETED->value;
+            $status = $task->status;
+            // Accept both enum and string values for status
+            if ($status instanceof \App\Enums\TaskStatus) {
+                return $status === \App\Enums\TaskStatus::COMPLETED;
+            }
+            return $status === (\App\Enums\TaskStatus::COMPLETED->value ?? 'completed') || $status === 'completed';
         });
 
         if ($allTasksCompleted) {
@@ -147,6 +155,8 @@ class Planning extends Model
                     $this->status = 'completed';
                     $this->save();
                 }
+                // Distribute travel time only once, after completion
+                $this->distributeTravelTimeToLocationsIfNeeded();
             } else {
                 // Tasks completed but end checklist not approved yet
                 if ($this->status !== 'pending_end_checklist') {
@@ -161,5 +171,67 @@ class Planning extends Model
                 $this->save();
             }
         }
+    }
+    /**
+     * Evenly distribute total travel time among all locations once, after completion.
+     */
+    public function distributeTravelTimeToLocationsIfNeeded(): void
+    {
+        // Only once
+        if ($this->travel_time_distributed_at) {
+            return;
+        }
+
+        // Need locations to distribute to
+        $locations = $this->locations; // ordered by sort_order
+        if (!$locations || $locations->count() === 0) {
+            $this->travel_time_distributed_at = now();
+            $this->save();
+            return;
+        }
+
+        // Sum all travel timers (inter-location and back to start)
+        $travelSeconds = $this->locationTimers
+            ->whereIn('location_type', ['travel', 'travel_back'])
+            ->sum('total_duration_seconds');
+
+        if ($travelSeconds <= 0) {
+            $this->travel_time_distributed_at = now();
+            $this->save();
+            return;
+        }
+
+        DB::transaction(function () use ($locations, $travelSeconds) {
+            $locationCount = $locations->count();
+            $baseShare = intdiv($travelSeconds, $locationCount);
+            $remainder = $travelSeconds % $locationCount;
+
+            // Build a map of existing location timers
+            $timersByLocationId = $this->locationTimers->where('location_type', 'location')->keyBy('location_id');
+
+            foreach ($locations as $index => $location) {
+                $add = $baseShare + ($index < $remainder ? 1 : 0);
+                if ($add <= 0) continue;
+
+                $timer = $timersByLocationId->get($location->id);
+                if ($timer) {
+                    $timer->increment('total_duration_seconds', $add);
+                } else {
+                    // Create a new location timer with the distributed travel seconds
+                    PlanningLocationTimer::create([
+                        'planning_id' => $this->id,
+                        'location_id' => $location->id,
+                        'location_type' => 'location',
+                        'started_at' => null,
+                        'ended_at' => null,
+                        'total_duration_seconds' => $add,
+                    ]);
+                }
+            }
+
+            // Mark as done to avoid re-distribution
+            $this->travel_time_distributed_at = now();
+            $this->save();
+        });
     }
 }

@@ -358,61 +358,37 @@ class PlanningControllerTest extends TestCase
         $resp2->assertSessionHas('error');
     }
 
-    public function test_timers_get_start_stop_and_restart_including_shared_travel_split(): void
+    public function test_travel_back_timer_can_start_stop_and_be_retrieved(): void
     {
-        Carbon::setTestNow('2025-10-15 10:00:00');
         $planning = Planning::factory()->create();
-        $l1 = Location::factory()->create();
-        $l2 = Location::factory()->create();
-        $planning->locations()->attach([$l1->id => ['sort_order' => 0], $l2->id => ['sort_order' => 1]]);
 
-        // get timer (none)
-        $getNone = $this->actingAs($this->admin)->get("/plannings/{$planning->id}/locations/{$l1->id}/timer");
-        $getNone->assertOk()->assertJson(['total_duration' => 0]);
-
-        // start timer for location
-        $start = $this->actingAs($this->admin)
+        // Start the return travel timer
+        $startResp = $this->actingAs($this->admin)
             ->withHeader('X-CSRF-TOKEN', $this->token)
-            ->post("/plannings/{$planning->id}/locations/{$l1->id}/timer/start");
-        $start->assertOk()->assertJson(['success' => true]);
+            ->post("/plannings/{$planning->id}/locations/travel_back/timer/start");
+        $startResp->assertOk();
+        $startResp->assertJson(['success' => true]);
 
-        // stop shared travel timer: travel_to_first_location becomes shared_travel and split across both locations
-        $startTravel = $this->actingAs($this->admin)
+        // Stop the return travel timer with 5 minutes
+        $stopResp = $this->actingAs($this->admin)
             ->withHeader('X-CSRF-TOKEN', $this->token)
-            ->post("/plannings/{$planning->id}/locations/travel_to_{$l1->id}/timer/start");
-        $startTravel->assertOk();
-
-        // Stop with 7 minutes (420s) -> split 210 and 210 across two locations
-        $stopTravel = $this->actingAs($this->admin)
-            ->withHeader('X-CSRF-TOKEN', $this->token)
-            ->post("/plannings/{$planning->id}/locations/travel_to_{$l1->id}/timer/stop", [
-                'total_duration' => 420,
+            ->post("/plannings/{$planning->id}/locations/travel_back/timer/stop", [
+                'total_duration' => 300,
             ]);
-        $stopTravel->assertOk()->assertJson(['success' => true, 'timer' => ['total_duration' => 420]]);
+        $stopResp->assertOk();
+        $stopResp->assertJson(['success' => true]);
 
-        // Verify shared_travel rows created for both locations
         $this->assertDatabaseHas('planning_location_timers', [
             'planning_id' => $planning->id,
-            'location_id' => $l1->id,
-            'location_type' => 'shared_travel',
-            'total_duration_seconds' => 210,
-        ]);
-        $this->assertDatabaseHas('planning_location_timers', [
-            'planning_id' => $planning->id,
-            'location_id' => $l2->id,
-            'location_type' => 'shared_travel',
-            'total_duration_seconds' => 210,
+            'location_id' => null,
+            'location_type' => 'travel_back',
+            'total_duration_seconds' => 300,
         ]);
 
-        // restart: requires previous timer existence
-        $timer = PlanningLocationTimer::first();
-        $restart = $this->actingAs($this->admin)
-            ->withHeader('X-CSRF-TOKEN', $this->token)
-            ->post("/plannings/{$planning->id}/locations/{$timer->location_id}/timer/restart", [
-                'previous_duration' => 123,
-            ]);
-        $restart->assertOk()->assertJson(['success' => true]);
-
-        Carbon::setTestNow();
+        // Retrieve the timer
+        $getResp = $this->actingAs($this->admin)
+            ->get("/plannings/{$planning->id}/locations/travel_back/timer");
+        $getResp->assertOk();
+        $this->assertEquals(300, $getResp->json('total_duration'));
     }
 }

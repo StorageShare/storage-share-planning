@@ -275,9 +275,9 @@
                                                                       'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100': task.status === 'rejected',
                                                                       'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100': task.status === 'skipped'
                                                                   }"
-                                                                x-text="task.status === 'completed' ? 'Voltooid' : 
-                                                                          task.status === 'review' ? 'In review' : 
-                                                                          task.status === 'rejected' ? 'Afgewezen' : 
+                                                                x-text="task.status === 'completed' ? 'Voltooid' :
+                                                                          task.status === 'review' ? 'In review' :
+                                                                          task.status === 'rejected' ? 'Afgewezen' :
                                                                           task.status === 'skipped' ? 'Overgeslagen' : task.status">
                                                             </span>
                                                         </div>
@@ -302,8 +302,8 @@
                                 <p class="text-gray-600 dark:text-gray-400 mb-6" x-text="location.details"></p>
 
                                 {{-- Status Indicator --}}
-                                <div class="mb-6 p-4 rounded-lg border" 
-                                     :class="location.is_approved ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700' : 
+                                <div class="mb-6 p-4 rounded-lg border"
+                                     :class="location.is_approved ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700' :
                                              location.has_submitted ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-700' :
                                              'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700'">
                                     <template x-if="location.is_approved">
@@ -439,9 +439,9 @@
                                                                 Upload bewijs foto:
                                                             </label>
                                                             <div class="flex items-center space-x-3">
-                                                                <input type="file" 
+                                                                <input type="file"
                                                                        :id="`photo_input_${item.id}`"
-                                                                       accept="image/*" 
+                                                                       accept="image/*"
                                                                        @change="handlePhotoUpload($event, item)"
                                                                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
                                                                 <template x-if="uploadingPhoto === item.id">
@@ -459,21 +459,21 @@
 
                                                     {{-- Admin Feedback --}}
                                                     <template x-if="item.admin_notes && (item.status === 'rejected' || item.status === 'approved')">
-                                                        <div class="mt-4 p-3 rounded-lg" 
+                                                        <div class="mt-4 p-3 rounded-lg"
                                                              :class="item.status === 'rejected' ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'">
                                                             <div class="flex items-start">
-                                                                <svg class="w-5 h-5 mt-0.5 mr-2" 
+                                                                <svg class="w-5 h-5 mt-0.5 mr-2"
                                                                      :class="item.status === 'rejected' ? 'text-red-600' : 'text-green-600'"
                                                                      fill="currentColor" viewBox="0 0 20 20">
                                                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                                                 </svg>
                                                                 <div>
-                                                                    <p class="text-sm font-medium" 
+                                                                    <p class="text-sm font-medium"
                                                                        :class="item.status === 'rejected' ? 'text-red-800 dark:text-red-200' : 'text-green-800 dark:text-green-200'">
                                                                         <span x-text="item.status === 'rejected' ? 'Feedback bij afwijzing:' : 'Beoordeeld door:'"></span>
                                                                         <span x-show="item.reviewer_name" x-text="` ${item.reviewer_name}`"></span>
                                                                     </p>
-                                                                    <p class="text-sm mt-1" 
+                                                                    <p class="text-sm mt-1"
                                                                        :class="item.status === 'rejected' ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'"
                                                                        x-text="item.admin_notes"></p>
                                                                 </div>
@@ -489,7 +489,7 @@
                                 {{-- Submit Button --}}
                                 <template x-if="!location.has_submitted && canSubmitEndChecklist()">
                                     <div class="mb-6">
-                                        <button @click="submitEndChecklist(location.planning_id)" 
+                                        <button @click="submitEndChecklist(location.planning_id)"
                                                 :disabled="submittingEndChecklist"
                                                 class="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
                                             <template x-if="submittingEndChecklist">
@@ -549,7 +549,7 @@
                                         </svg>
                                         <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200">Toegangsinformatie</h3>
                                     </div>
-                                    
+
                                     <div class="space-y-4">
                                         {{-- Rij 1: Intratone nummer(s) en hek nummer --}}
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1196,7 +1196,7 @@
                     axios.post(url)
                         .then(response => {
                             task.status = response.data.task.status;
-                            
+
                             // Update corresponding tasks in call steps
                             this.updateTaskInCallSteps(task.task_id, {
                                 status: response.data.task.status
@@ -1369,10 +1369,10 @@
                         // Update the item with the new photo URL
                         item.photo_path = response.data.photo_url.replace('/storage/', '');
                         item.photo_url = response.data.photo_url;
-                        
+
                         // Reset the file input
                         event.target.value = '';
-                        
+
                         // No need to refresh all data - we've already updated the item
                         // this.refreshEndChecklistData();
                     })
@@ -1390,7 +1390,7 @@
                         // Clear the photo data locally
                         item.photo_path = null;
                         item.photo_url = null;
-                        
+
                         // Call API endpoint to delete the photo from the server
                         axios.delete(`/end-checklist-items/${item.id}/photo`)
                             .then(response => {
@@ -1406,12 +1406,12 @@
                 canSubmitEndChecklist() {
                     const current = this.currentLocation;
                     if (!current || current.type !== 'end_checklist') return false;
-                    
+
                     // Check if all items have photos
                     if (current.checklist_items) {
                         return current.checklist_items.every(item => item.photo_path);
                     }
-                    
+
                     return false;
                 },
 
@@ -1431,7 +1431,7 @@
                                 current.has_submitted = true;
                                 current.is_approved = false; // Will be determined by admin
                             }
-                            
+
                             alert('End checklist succesvol ingediend voor beoordeling!');
                         })
                         .catch(error => {
@@ -1446,7 +1446,7 @@
                 refreshEndChecklistData() {
                     const current = this.currentLocation;
                     if (!current || current.type !== 'end_checklist') return;
-                    
+
                     // Fetch updated checklist data
                     axios.get(`/plannings/${current.planning_id}/end-checklist`)
                         .then(response => {
@@ -1514,7 +1514,7 @@
                 async goToNextLocation() {
                     if (this.canProceedToNext()) {
                         const currentLocation = this.currentLocation;
-                        
+
                         // Handle final step (end checklist completion)
                         if (this.currentLocationIndex === this.locationSteps.length - 1) {
                             if (currentLocation && currentLocation.type === 'end_checklist') {
@@ -1522,14 +1522,19 @@
                                     alert('Je moet eerst alle foto\'s uploaden en de checklist indienen.');
                                     return;
                                 }
-                                
+
                                 if (!currentLocation.is_approved) {
                                     // Planning is submitted but not approved - show completion message
                                     this.currentLocationIndex++;
                                     return;
                                 }
                             }
-                            
+
+                            // If the last step is a travel step (e.g., return trip), persist its timer before completing
+                            if (currentLocation && currentLocation.type === 'travel') {
+                                await this.stopLocationTimer(true);
+                            }
+
                             // Complete the planning
                             this.currentLocationIndex++;
                             return;
@@ -1789,8 +1794,8 @@
                 getStepDisplay() {
                     const totalSteps = this.locationSteps.length;
                     let currentStep = this.currentLocationIndex + 1;
-                    
-                    // If we're completed and it's the waiting for approval screen, show step totalSteps/totalSteps 
+
+                    // If we're completed and it's the waiting for approval screen, show step totalSteps/totalSteps
                     if (this.isCompleted()) {
                         const lastStep = this.locationSteps[this.locationSteps.length - 1];
                         if (lastStep && lastStep.type === 'end_checklist' && !lastStep.is_approved) {
@@ -1798,17 +1803,17 @@
                             currentStep = totalSteps;
                         }
                     }
-                    
+
                     // Never show more than totalSteps
                     currentStep = Math.min(currentStep, totalSteps);
-                    
+
                     return `${currentStep}/${totalSteps}`;
                 },
 
                 getProgressPercentage() {
                     const totalSteps = this.locationSteps.length;
                     let currentStep = this.currentLocationIndex + 1;
-                    
+
                     // If we're completed and it's the waiting for approval screen, show 100%
                     if (this.isCompleted()) {
                         const lastStep = this.locationSteps[this.locationSteps.length - 1];
@@ -1817,7 +1822,7 @@
                             return 100;
                         }
                     }
-                    
+
                     // Never show more than 100%
                     const percentage = Math.min((currentStep / totalSteps) * 100, 100);
                     return Math.round(percentage);

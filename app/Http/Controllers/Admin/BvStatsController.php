@@ -68,6 +68,17 @@ class BvStatsController extends Controller
         }
 
         foreach ($plannings as $planning) {
+            // Safety net: if planning is completed but travel time hasn't been distributed yet,
+            // perform the distribution now (idempotent) to avoid double counting and fix missed hooks.
+            if (($planning->status ?? null) === 'completed' && empty($planning->travel_time_distributed_at)) {
+                try {
+                    $planning->distributeTravelTimeToLocationsIfNeeded();
+                    $planning->refresh();
+                } catch (\Throwable $e) {
+                    // Continue even if distribution fails here; stats will fall back to using travel timers
+                }
+            }
+
             $planningLocations = $planning->locations;
             $planningTimers = $planning->locationTimers->keyBy(function ($timer) {
                 return $timer->location_id ?? 'travel_' . $timer->location_type;
@@ -103,7 +114,7 @@ class BvStatsController extends Controller
 
                 $timer = $planningTimers->get($location->id);
                 $workSeconds = $timer ? $timer->total_duration_seconds : 0;
-                
+
                 // Multiply by number of users to get actual worked hours
                 $actualWorkSeconds = $workSeconds * $userMultiplier;
 
@@ -122,37 +133,42 @@ class BvStatsController extends Controller
                 $bvStats[$location->bv]['locations'][$location->id]['visit_count']++;
             }
 
-            // Distribute travel time between locations based on BV, multiplied by users
-            $travelTimers = $planningTimers->filter(function ($timer) {
-                return $timer->location_type === 'travel';
-            });
+            // If travel has already been distributed into location timers, skip counting travel timers to avoid double counting
+            if (isset($planning->travel_time_distributed_at) && $planning->travel_time_distributed_at) {
+                // Do nothing: location timers already include travel time
+            } else {
+                // Distribute travel time between locations based on BV, multiplied by users
+                $travelTimers = $planningTimers->filter(function ($timer) {
+                    return in_array($timer->location_type, ['travel', 'travel_back']);
+                });
 
-            foreach ($travelTimers as $travelTimer) {
-                $travelSeconds = $travelTimer->total_duration_seconds;
-                
-                if ($travelSeconds > 0 && $planningBvs->count() > 0) {
-                    // Multiply by users and distribute equally among BVs in this planning
-                    $actualTravelSeconds = $travelSeconds * $userMultiplier;
-                    $travelPerBv = $actualTravelSeconds / $planningBvs->count();
-                    
-                    foreach ($planningBvs as $bv) {
-                        $bvStats[$bv]['total_travel_seconds'] += $travelPerBv;
+                foreach ($travelTimers as $travelTimer) {
+                    $travelSeconds = $travelTimer->total_duration_seconds;
+
+                    if ($travelSeconds > 0 && $planningBvs->count() > 0) {
+                        // Multiply by users and distribute equally among BVs in this planning
+                        $actualTravelSeconds = $travelSeconds * $userMultiplier;
+                        $travelPerBv = $actualTravelSeconds / $planningBvs->count();
+
+                        foreach ($planningBvs as $bv) {
+                            $bvStats[$bv]['total_travel_seconds'] += $travelPerBv;
+                        }
                     }
                 }
-            }
 
-            // Distribute start/end travel time (backlog type) among all locations in planning, multiplied by users
-            $backlogTimer = $planningTimers->get('travel_backlog') ?? $planningTimers->where('location_type', 'backlog')->first();
-            if ($backlogTimer && $backlogTimer->total_duration_seconds > 0) {
-                $startEndTravelSeconds = $backlogTimer->total_duration_seconds;
-                
-                if ($planningBvs->count() > 0) {
-                    // Multiply by users and distribute
-                    $actualStartEndTravelSeconds = $startEndTravelSeconds * $userMultiplier;
-                    $startEndTravelPerBv = $actualStartEndTravelSeconds / $planningBvs->count();
-                    
-                    foreach ($planningBvs as $bv) {
-                        $bvStats[$bv]['total_travel_seconds'] += $startEndTravelPerBv;
+                // Distribute start/end travel time among all locations in planning, multiplied by users (legacy backlog type)
+                $backlogTimer = $planningTimers->get('travel_backlog') ?? $planningTimers->where('location_type', 'backlog')->first();
+                if ($backlogTimer && $backlogTimer->total_duration_seconds > 0) {
+                    $startEndTravelSeconds = $backlogTimer->total_duration_seconds;
+
+                    if ($planningBvs->count() > 0) {
+                        // Multiply by users and distribute
+                        $actualStartEndTravelSeconds = $startEndTravelSeconds * $userMultiplier;
+                        $startEndTravelPerBv = $actualStartEndTravelSeconds / $planningBvs->count();
+
+                        foreach ($planningBvs as $bv) {
+                            $bvStats[$bv]['total_travel_seconds'] += $startEndTravelPerBv;
+                        }
                     }
                 }
             }
@@ -173,4 +189,4 @@ class BvStatsController extends Controller
             'toCarbon'
         ));
     }
-} 
+}

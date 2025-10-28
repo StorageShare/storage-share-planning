@@ -516,6 +516,10 @@ class PlanningController extends Controller
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
             $locationType = 'travel';
+        } elseif ($locationId === 'travel_back') {
+            // Return travel timer back to start location
+            $actualLocationId = null;
+            $locationType = 'travel_back';
         } else {
             // Regular location
             $actualLocationId = $locationId;
@@ -558,6 +562,10 @@ class PlanningController extends Controller
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
             $locationType = 'travel';
+        } elseif ($locationId === 'travel_back') {
+            // Return travel timer back to start location
+            $actualLocationId = null;
+            $locationType = 'travel_back';
         } else {
             // Regular location
             $actualLocationId = $locationId;
@@ -616,6 +624,10 @@ class PlanningController extends Controller
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
             $locationType = 'travel';
+        } elseif ($locationId === 'travel_back') {
+            // Return travel timer back to start location
+            $actualLocationId = null;
+            $locationType = 'travel_back';
         } else {
             // Regular location
             $actualLocationId = $locationId;
@@ -668,6 +680,10 @@ class PlanningController extends Controller
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
             $locationType = 'travel';
+        } elseif ($locationId === 'travel_back') {
+            // Return travel timer back to start location
+            $actualLocationId = null;
+            $locationType = 'travel_back';
         } else {
             // Regular location
             $actualLocationId = $locationId;
