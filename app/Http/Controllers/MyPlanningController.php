@@ -427,13 +427,7 @@ class MyPlanningController extends Controller
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
             $actualLocationId = str_replace('travel_to_', '', $locationId);
-            // If travelling to the first location of the planning, mark as shared_travel
-            $firstLocationId = optional($planning->locations()->orderBy('sort_order')->first())->id;
-            if ((string) $actualLocationId === (string) $firstLocationId) {
-                $locationType = 'shared_travel';
-            } else {
-                $locationType = 'travel';
-            }
+            $locationType = 'travel';
         } else {
             // Regular location
             $actualLocationId = $locationId;
