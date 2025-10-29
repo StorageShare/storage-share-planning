@@ -1,10 +1,9 @@
 <?php
 
-namespace Feature\Controllers;
+namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskPriority;
-use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
 use App\Models\User;

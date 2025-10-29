@@ -205,12 +205,14 @@ class Planning extends Model
             $locationCount = $locations->count();
             $baseShare = intdiv($travelSeconds, $locationCount);
             $remainder = $travelSeconds % $locationCount;
+            $lastIndicesStart = $locationCount - $remainder;
 
             // Build a map of existing location timers
             $timersByLocationId = $this->locationTimers->where('location_type', 'location')->keyBy('location_id');
 
             foreach ($locations as $index => $location) {
-                $add = $baseShare + ($index < $remainder ? 1 : 0);
+                $extra = ($remainder > 0 && $index >= $lastIndicesStart) ? 1 : 0;
+                $add = $baseShare + $extra;
                 if ($add <= 0) continue;
 
                 $timer = $timersByLocationId->get($location->id);

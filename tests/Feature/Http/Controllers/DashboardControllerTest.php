@@ -1,6 +1,6 @@
 <?php
 
-namespace Feature\Controllers;
+namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskStatus;
@@ -10,7 +10,6 @@ use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Feature\Controllers;
+namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Models\Benodigdheid;

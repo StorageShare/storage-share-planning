@@ -1,6 +1,6 @@
 <?php
 
-namespace Feature\Controllers\Api\V1;
+namespace Feature\Http\Controllers\Api\V1;
 
 use App\Models\Location;
 use App\Models\LocationDistance;
