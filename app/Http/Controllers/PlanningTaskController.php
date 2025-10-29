@@ -216,7 +216,7 @@ class PlanningTaskController extends Controller
         // Check if this location is now completed and notify if needed
         $this->checkLocationCompletionAndNotify($planning_task);
 
-        return redirect()->route('admin.tasks.review')->with('success', 'Geplande taak goedgekeurd.');
+        return redirect()->route('plannings.review')->with('success', 'Geplande taak goedgekeurd.');
     }
 
     public function reject(Request $request, PlanningTask $planning_task): RedirectResponse
@@ -271,7 +271,7 @@ class PlanningTaskController extends Controller
             }
         });
 
-        return redirect()->route('admin.tasks.review')->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
+        return redirect()->route('plannings.review')->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
     }
 
     /**
@@ -389,7 +389,7 @@ class PlanningTaskController extends Controller
                 $completion->photos()->create(['file_path' => $path]);
             }
         }
-        
+
         $newStatus = TaskStatus::REVIEW;
         $planning_task->update([
             'completed_at' => now(),
@@ -400,7 +400,7 @@ class PlanningTaskController extends Controller
         if ($planning_task->task) {
             $planning_task->task->update(['status' => $newStatus]);
         }
-        
+
         $planning->checkAndUpdateStatus();
 
         // Check if this location is now completed and notify if needed
@@ -457,7 +457,7 @@ class PlanningTaskController extends Controller
                 }
             }
         }
-        
+
         // Update task status to skipped
         $planning_task->update([
             'status' => TaskStatus::SKIPPED,
@@ -469,7 +469,7 @@ class PlanningTaskController extends Controller
 
         // Load completion with photos to get URLs
         $completion->load('photos');
-        
+
         // Get the skip photos URLs
         $skipPhotos = $completion->photos->pluck('url')->toArray();
 
@@ -519,7 +519,7 @@ class PlanningTaskController extends Controller
     private function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
     {
         $planning = $planningTask->planning;
-        
+
         // Determine the location for this task
         $location = null;
         if ($planningTask->location_id) {

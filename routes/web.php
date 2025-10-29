@@ -31,6 +31,10 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::get('tasks/review', [TaskReviewController::class, 'index'])->name('admin.tasks.review');
     Route::get('tasks/review/{type}/{id}', [TaskReviewController::class, 'show'])->name('admin.tasks.show');
     Route::post('tasks/review-skipped/{planning_task}', [TaskReviewController::class, 'reviewSkipped'])->name('admin.tasks.review-skipped');
+
+    // Plannings review overview (admin only)
+    Route::get('plannings/review', [PlanningController::class, 'review'])->name('plannings.review');
+
     Route::post('locations/sync', [LocationSyncController::class, 'syncNow'])->name('locations.sync');
     Route::resource('users', UserController::class);
     Route::resource('locations', LocationController::class);
@@ -65,6 +69,11 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
     Route::patch('plannings/{planning}', [PlanningController::class, 'update']);
     Route::delete('plannings/{planning}', [PlanningController::class, 'destroy'])->name('plannings.destroy');
     Route::post('plannings/{planning}/send-notifications', [PlanningController::class, 'sendNotifications'])->name('plannings.send-notifications');
+
+    // Update actual timers (admins + can_manage_plannings)
+    Route::patch('plannings/{planning}/timers/location/{location}', [PlanningController::class, 'updateLocationActualTime'])->name('plannings.timers.location.update');
+    Route::patch('plannings/{planning}/timers/travel-to/{location}', [PlanningController::class, 'updateTravelToTime'])->name('plannings.timers.travel_to.update');
+    Route::patch('plannings/{planning}/timers/travel-back', [PlanningController::class, 'updateTravelBackTime'])->name('plannings.timers.travel_back.update');
 
     // Only admins can view plannings via /plannings routes
     Route::resource('plannings', PlanningController::class)->only(['index', 'show']);

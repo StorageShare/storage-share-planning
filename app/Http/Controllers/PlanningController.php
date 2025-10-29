@@ -13,6 +13,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\TravelTimeService;
 use App\Mail\PlanningReadyNotificationMail;
+use App\Enums\TaskStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request; // For database transactions
 use Illuminate\Support\Facades\Auth; // Importeer de Enum
@@ -28,6 +29,142 @@ class PlanningController extends Controller
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
+    }
+
+    /**
+     * Overview of plannings that have tasks pending review.
+     */
+    public function review(Request $request): View
+    {
+        $plannings = Planning::with(['locations', 'users'])
+            ->withCount([
+                'planningTasks as review_tasks_count' => function ($q) {
+                    $q->where('status', TaskStatus::REVIEW->value);
+                },
+            ])
+            ->whereHas('planningTasks', function ($q) {
+                $q->where('status', TaskStatus::REVIEW->value);
+            })
+            ->orderByDesc('planned_date')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('plannings.review', compact('plannings'));
+    }
+
+    /**
+     * Update actual on-location time (HH:mm) for a given location in this planning.
+     */
+    public function updateLocationActualTime(Request $request, Planning $planning, Location $location)
+    {
+        $request->validate([
+            'time' => ['required','regex:/^\d{1,2}:\d{2}$/'],
+        ]);
+
+        $seconds = $this->parseHHMMToSeconds($request->string('time'));
+
+        // Set the total on-location time directly to the provided HH:mm (interpreted as total desired time on location)
+        $timer = \App\Models\PlanningLocationTimer::firstOrNew([
+            'planning_id' => $planning->id,
+            'location_id' => $location->id,
+            'location_type' => 'location',
+        ]);
+        $timer->total_duration_seconds = max(0, $seconds);
+        $timer->save();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'seconds' => $timer->total_duration_seconds,
+                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+            ]);
+        }
+
+        return back()->with('success', 'Tijd op locatie bijgewerkt.');
+    }
+
+    /**
+     * Update actual travel time to a destination location (HH:mm) and redistribute.
+     */
+    public function updateTravelToTime(Request $request, Planning $planning, Location $location)
+    {
+        $request->validate([
+            'time' => ['required','regex:/^\d{1,2}:\d{2}$/'],
+        ]);
+
+        $seconds = $this->parseHHMMToSeconds($request->string('time'));
+
+        $timer = \App\Models\PlanningLocationTimer::firstOrNew([
+            'planning_id' => $planning->id,
+            'location_id' => $location->id,
+            'location_type' => 'travel',
+        ]);
+        $timer->total_duration_seconds = max(0, $seconds);
+        $timer->save();
+
+        // Re-distribute travel time equally across locations
+        $planning->loadMissing(['locations', 'locationTimers']);
+        $planning->redistributeTravelTime();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'seconds' => $timer->total_duration_seconds,
+                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+            ]);
+        }
+
+        return back()->with('success', 'Reistijd bijgewerkt en opnieuw verdeeld.');
+    }
+
+    /**
+     * Update actual return travel time (HH:mm) and redistribute.
+     */
+    public function updateTravelBackTime(Request $request, Planning $planning)
+    {
+        $request->validate([
+            'time' => ['required','regex:/^\d{1,2}:\d{2}$/'],
+        ]);
+
+        $seconds = $this->parseHHMMToSeconds($request->string('time'));
+
+        $timer = \App\Models\PlanningLocationTimer::firstOrNew([
+            'planning_id' => $planning->id,
+            'location_id' => null,
+            'location_type' => 'travel_back',
+        ]);
+        $timer->total_duration_seconds = max(0, $seconds);
+        $timer->save();
+
+        // Re-distribute travel time equally across locations
+        $planning->loadMissing(['locations', 'locationTimers']);
+        $planning->redistributeTravelTime();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'seconds' => $timer->total_duration_seconds,
+                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+            ]);
+        }
+
+        return back()->with('success', 'Reistijd terug bijgewerkt en opnieuw verdeeld.');
+    }
+
+    private function parseHHMMToSeconds(string $hhmm): int
+    {
+        [$h, $m] = array_map('intval', explode(':', $hhmm));
+        $h = max(0, $h);
+        $m = max(0, min(59, $m));
+        return $h * 3600 + $m * 60;
+    }
+
+    private function formatSecondsHHMM(int $seconds): string
+    {
+        $seconds = max(0, $seconds);
+        $h = intdiv($seconds, 3600);
+        $m = intdiv($seconds % 3600, 60);
+        return sprintf('%02d:%02d', $h, $m);
     }
 
     /**
@@ -280,19 +417,32 @@ class PlanningController extends Controller
             return 0;
         });
 
-        // Create location timers lookup
-        $locationTimers = $planning->locationTimers->keyBy(function ($timer) {
-            return $timer->location_id ?? 'backlog';
-        });
+        // Build timers lookups
+        $onLocationTimers = $planning->locationTimers->where('location_type', 'location')->keyBy('location_id');
+        $travelToTimers = $planning->locationTimers->where('location_type', 'travel')->keyBy('location_id');
+        $travelBackTimer = $planning->locationTimers->firstWhere('location_type', 'travel_back');
 
-        // Calculate time overview
+        // Calculate time overview (planned)
         $timeOverview = [
             'task_minutes' => $totalTaskMinutes,
             'travel_minutes' => $travelTimes ? $travelTimes['total_duration_minutes'] : 0,
             'total_minutes' => $totalTaskMinutes + ($travelTimes ? $travelTimes['total_duration_minutes'] : 0),
         ];
 
-        return view('plannings.show', compact('planning', 'travelTimes', 'timeOverview', 'locationTimers'));
+        // Calculate actual totals from timers
+        $actualTravelSeconds = $planning->locationTimers
+            ->whereIn('location_type', ['travel','travel_back'])
+            ->sum('total_duration_seconds');
+        $actualOnLocationSeconds = $planning->locationTimers
+            ->where('location_type', 'location')
+            ->sum('total_duration_seconds');
+
+        $actualTotals = [
+            'travel_seconds' => (int)$actualTravelSeconds,
+            'on_location_seconds' => (int)$actualOnLocationSeconds,
+        ];
+
+        return view('plannings.show', compact('planning', 'travelTimes', 'timeOverview', 'onLocationTimers', 'travelToTimers', 'travelBackTimer', 'actualTotals'));
     }
 
     /**

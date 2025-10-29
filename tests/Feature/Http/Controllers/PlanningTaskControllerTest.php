@@ -203,7 +203,7 @@ class PlanningTaskControllerTest extends TestCase
                 'review_notes' => 'Looks good',
             ]);
 
-        $resp->assertRedirect(route('admin.tasks.review'));
+        $resp->assertRedirect(route('plannings.review'));
         $resp->assertSessionHas('success');
 
         $pt->refresh();
@@ -235,7 +235,7 @@ class PlanningTaskControllerTest extends TestCase
                 'review_notes' => 'Fix it',
             ]);
 
-        $resp->assertRedirect(route('admin.tasks.review'));
+        $resp->assertRedirect(route('plannings.review'));
         $resp->assertSessionHas('success');
 
         $pt->refresh();

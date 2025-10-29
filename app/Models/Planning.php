@@ -37,6 +37,7 @@ class Planning extends Model
     protected $casts = [
         'planned_date' => 'datetime',
         'travel_time_distributed_at' => 'datetime',
+        'travel_time_distributed_total_seconds' => 'integer',
     ];
 
     /**
@@ -186,6 +187,7 @@ class Planning extends Model
         $locations = $this->locations; // ordered by sort_order
         if (!$locations || $locations->count() === 0) {
             $this->travel_time_distributed_at = now();
+            $this->travel_time_distributed_total_seconds = 0;
             $this->save();
             return;
         }
@@ -197,6 +199,7 @@ class Planning extends Model
 
         if ($travelSeconds <= 0) {
             $this->travel_time_distributed_at = now();
+            $this->travel_time_distributed_total_seconds = 0;
             $this->save();
             return;
         }
@@ -233,6 +236,75 @@ class Planning extends Model
 
             // Mark as done to avoid re-distribution
             $this->travel_time_distributed_at = now();
+            $this->travel_time_distributed_total_seconds = $travelSeconds;
+            $this->save();
+        });
+    }
+
+    /**
+     * Replace any previously distributed travel time on location timers
+     * with a new even distribution based on current travel timers.
+     */
+    public function redistributeTravelTime(): void
+    {
+        $locations = $this->locations; // ordered by sort_order
+        if (!$locations || $locations->count() === 0) {
+            // Nothing to distribute
+            $this->travel_time_distributed_at = now();
+            $this->travel_time_distributed_total_seconds = 0;
+            $this->save();
+            return;
+        }
+
+        $newTravelSeconds = $this->locationTimers
+            ->whereIn('location_type', ['travel', 'travel_back'])
+            ->sum('total_duration_seconds');
+
+        DB::transaction(function () use ($locations, $newTravelSeconds) {
+            $locationCount = $locations->count();
+
+            // Compute new shares
+            $newBaseShare = $locationCount > 0 ? intdiv($newTravelSeconds, $locationCount) : 0;
+            $newRemainder = $locationCount > 0 ? ($newTravelSeconds % $locationCount) : 0;
+            $newLastIndicesStart = $locationCount - $newRemainder;
+
+            // Compute previous shares from stored total
+            $prevTotal = (int)($this->travel_time_distributed_total_seconds ?? 0);
+            $prevBaseShare = $locationCount > 0 ? intdiv($prevTotal, $locationCount) : 0;
+            $prevRemainder = $locationCount > 0 ? ($prevTotal % $locationCount) : 0;
+            $prevLastIndicesStart = $locationCount - $prevRemainder;
+
+            // Existing location timers map
+            $timersByLocationId = $this->locationTimers->where('location_type', 'location')->keyBy('location_id');
+
+            foreach ($locations as $index => $location) {
+                $prevExtra = ($prevRemainder > 0 && $index >= $prevLastIndicesStart) ? 1 : 0;
+                $prevShare = $prevBaseShare + $prevExtra;
+
+                $newExtra = ($newRemainder > 0 && $index >= $newLastIndicesStart) ? 1 : 0;
+                $newShare = $newBaseShare + $newExtra;
+
+                $timer = $timersByLocationId->get($location->id);
+
+                if ($timer) {
+                    $base = max(0, (int)$timer->total_duration_seconds - $prevShare);
+                    $timer->total_duration_seconds = $base + $newShare;
+                    $timer->save();
+                } else {
+                    // Create with base 0 + newShare
+                    PlanningLocationTimer::create([
+                        'planning_id' => $this->id,
+                        'location_id' => $location->id,
+                        'location_type' => 'location',
+                        'started_at' => null,
+                        'ended_at' => null,
+                        'total_duration_seconds' => $newShare,
+                    ]);
+                }
+            }
+
+            $this->travel_time_distributed_at = now();
+            $this->travel_time_distributed_total_seconds = $newTravelSeconds;
             $this->save();
         });
     }

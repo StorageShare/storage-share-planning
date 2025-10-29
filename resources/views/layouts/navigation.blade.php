@@ -36,7 +36,7 @@
                     @endif
 
                     @if (Auth::user()->isAdmin())
-                        <x-nav-link :href="route('admin.tasks.review')" :active="request()->routeIs('admin.tasks.review') || request()->routeIs('admin.tasks.show')">
+                        <x-nav-link :href="route('plannings.review')" :active="request()->routeIs('plannings.review') || request()->routeIs('admin.tasks.*')">
                             {{ __('Te Beoordelen') }}
                         </x-nav-link>
 
