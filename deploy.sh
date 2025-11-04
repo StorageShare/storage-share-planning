@@ -32,6 +32,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
+# Ensure public/storage symlink exists for serving uploaded files
+php artisan storage:link || true
+
 # Run database migrations
 echo "🗄️ Running database migrations..."
 php artisan migrate --force

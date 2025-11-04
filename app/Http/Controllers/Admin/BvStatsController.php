@@ -68,16 +68,7 @@ class BvStatsController extends Controller
         }
 
         foreach ($plannings as $planning) {
-            // Safety net: if planning is completed but travel time hasn't been distributed yet,
-            // perform the distribution now (idempotent) to avoid double counting and fix missed hooks.
-            if (($planning->status ?? null) === 'completed' && empty($planning->travel_time_distributed_at)) {
-                try {
-                    $planning->distributeTravelTimeToLocationsIfNeeded();
-                    $planning->refresh();
-                } catch (\Throwable $e) {
-                    // Continue even if distribution fails here; stats will fall back to using travel timers
-                }
-            }
+            // Travel time distribution among locations removed; no safety-net redistribution.
 
             $planningLocations = $planning->locations;
             $planningTimers = $planning->locationTimers->keyBy(function ($timer) {

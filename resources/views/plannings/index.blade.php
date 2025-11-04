@@ -33,7 +33,11 @@
                     <div class="mt-6 md:flex md:items-center md:justify-between">
                         <div class="inline-flex overflow-hidden bg-white border border-gray-100 divide-x divide-gray-100 rounded-lg dark:bg-gray-900 rtl:flex-row-reverse dark:border-gray-700 dark:divide-gray-700">
                             @php
-                                $filterBaseParams = array_filter(['search_term' => $searchTerm, 'filter' => $activeFilter]);
+                                $filterBaseParams = array_filter([
+                                    'search_term' => $searchTerm,
+                                    'filter' => $activeFilter,
+                                    'awaiting_approval' => ($awaitingApproval ?? false) ? '1' : null,
+                                ]);
                             @endphp
                             <a href="{{ route('plannings.index', $filterBaseParams) }}"
                                class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ !$activeFilter ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
@@ -46,6 +50,23 @@
                             <a href="{{ route('plannings.index', array_merge($filterBaseParams, ['filter' => 'completed'])) }}"
                                class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ $activeFilter === 'completed' ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                                 Voltooid
+                            </a>
+                        </div>
+
+                        @php
+                            $awaitParamsBase = array_filter(request()->except('page'));
+                            $awaitOnParams = array_merge($awaitParamsBase, ['awaiting_approval' => '1']);
+                            $awaitOffParams = $awaitParamsBase;
+                            unset($awaitOffParams['awaiting_approval']);
+                        @endphp
+                        <div class="inline-flex overflow-hidden bg-white border border-gray-100 divide-x divide-gray-100 rounded-lg dark:bg-gray-900 rtl:flex-row-reverse dark:border-gray-700 dark:divide-gray-700 mt-4 md:mt-0">
+                            <a href="{{ route('plannings.index', $awaitOnParams) }}"
+                               class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ ($awaitingApproval ?? false) ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                                Met taken ter beoordeling
+                            </a>
+                            <a href="{{ route('plannings.index', $awaitOffParams) }}"
+                               class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ !($awaitingApproval ?? false) ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                                Alle planningen
                             </a>
                         </div>
 
@@ -68,6 +89,9 @@
                             @if($activeFilter)
                                 <input type="hidden" name="filter" value="{{ $activeFilter }}">
                             @endif
+                            @if($awaitingApproval ?? false)
+                                <input type="hidden" name="awaiting_approval" value="1">
+                            @endif
                         </div>
                     </div>
                 </form>
@@ -80,7 +104,11 @@
                                     <thead class="bg-gray-50 dark:bg-gray-800">
                                         <tr>
                                             @php
-                                                $routeParams = array_filter(['search_term' => $searchTerm, 'filter' => $activeFilter]);
+                                                $routeParams = array_filter([
+                                                    'search_term' => $searchTerm,
+                                                    'filter' => $activeFilter,
+                                                    'awaiting_approval' => ($awaitingApproval ?? false) ? '1' : null,
+                                                ]);
                                             @endphp
                                             <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                                 <a href="{{ route('plannings.index', array_merge($routeParams, ['sort_by' => 'planned_date', 'sort_direction' => ($sortBy == 'planned_date' && $sortDirection == 'asc') ? 'desc' : 'asc'])) }}" class="flex items-center gap-x-3 focus:outline-none hover:text-gray-700">

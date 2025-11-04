@@ -698,17 +698,46 @@
                                                                 @php
                                                                     $statusValue = is_object($planningTask->status) ? $planningTask->status->value : $planningTask->status;
                                                                 @endphp
-                                                                @if ($statusValue === 'review' && Auth::user()->isAdmin())
-                                                                    <div class="flex items-center justify-end gap-x-2">
-                                                                        <form action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
-                                                                            @csrf
-                                                                            <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
-                                                                        </form>
-                                                                        <form action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST">
-                                                                            @csrf
-                                                                            <x-danger-button type="submit" class="!py-1 !px-2 !text-xs">Afkeuren</x-danger-button>
-                                                                        </form>
-                                                                    </div>
+                                                                @if ($statusValue === 'review')
+                                                                    @php
+                                                                        $latestCompletion = $planningTask->completions->first();
+                                                                        $photoUrls = $latestCompletion ? $latestCompletion->photos->pluck('url')->all() : [];
+                                                                    @endphp
+                                                                    @if (!empty($photoUrls))
+                                                                        <div class="mb-2">
+                                                                            <div class="flex items-center justify-end gap-2">
+                                                                                @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
+                                                                                    <button type="button"
+                                                                                            class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                            x-data="{}"
+                                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                                        <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
+                                                                                    </button>
+                                                                                @endforeach
+                                                                                @if (count($photoUrls) > 3)
+                                                                                    <button type="button"
+                                                                                            class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                            x-data="{}"
+                                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
+                                                                                        <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
+                                                                                        <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
+                                                                                    </button>
+                                                                                @endif
+                                                                            </div>
+                                                                        </div>
+                                                                    @endif
+                                                                    @if (Auth::user()->isAdmin())
+                                                                        <div class="flex items-center justify-end gap-x-2">
+                                                                            <form action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
+                                                                                @csrf
+                                                                                <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
+                                                                            </form>
+                                                                            <form action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST">
+                                                                                @csrf
+                                                                                <x-danger-button type="submit" class="!py-1 !px-2 !text-xs">Afkeuren</x-danger-button>
+                                                                            </form>
+                                                                        </div>
+                                                                    @endif
                                                                 @elseif (!$planningTask->completed_at)
                                                                     <x-primary-button
                                                                         x-data=""

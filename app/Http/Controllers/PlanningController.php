@@ -84,7 +84,7 @@ class PlanningController extends Controller
     }
 
     /**
-     * Update actual travel time to a destination location (HH:mm) and redistribute.
+     * Update actual travel time to a destination location (HH:mm).
      */
     public function updateTravelToTime(Request $request, Planning $planning, Location $location)
     {
@@ -102,9 +102,7 @@ class PlanningController extends Controller
         $timer->total_duration_seconds = max(0, $seconds);
         $timer->save();
 
-        // Re-distribute travel time equally across locations
-        $planning->loadMissing(['locations', 'locationTimers']);
-        $planning->redistributeTravelTime();
+        // Splitting travel time among locations has been removed; we only store per-trip travel timers.
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -114,11 +112,11 @@ class PlanningController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Reistijd bijgewerkt en opnieuw verdeeld.');
+        return back()->with('success', 'Reistijd bijgewerkt.');
     }
 
     /**
-     * Update actual return travel time (HH:mm) and redistribute.
+     * Update actual return travel time (HH:mm).
      */
     public function updateTravelBackTime(Request $request, Planning $planning)
     {
@@ -136,9 +134,7 @@ class PlanningController extends Controller
         $timer->total_duration_seconds = max(0, $seconds);
         $timer->save();
 
-        // Re-distribute travel time equally across locations
-        $planning->loadMissing(['locations', 'locationTimers']);
-        $planning->redistributeTravelTime();
+        // Splitting travel time among locations has been removed; no redistribution is performed.
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -148,7 +144,7 @@ class PlanningController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Reistijd terug bijgewerkt en opnieuw verdeeld.');
+        return back()->with('success', 'Reistijd terug bijgewerkt.');
     }
 
     private function parseHHMMToSeconds(string $hhmm): int
@@ -177,6 +173,7 @@ class PlanningController extends Controller
         $searchTerm = $request->input('search_term', '');
         $activeFilter = $request->input('filter'); // For status filtering
         $plannedDate = $request->input('planned_date'); // For date filtering
+        $awaitingApproval = $request->boolean('awaiting_approval'); // Show plannings with tasks waiting for approval
 
         $query = Planning::with(['locations', 'users'])->withCount('planningTasks');
 
@@ -208,6 +205,13 @@ class PlanningController extends Controller
             $query->whereDate('planned_date', $plannedDate);
         }
 
+        // Awaiting approval filter: plannings having at least one planning task in review status
+        if ($awaitingApproval) {
+            $query->whereHas('planningTasks', function ($q) {
+                $q->where('status', TaskStatus::REVIEW->value);
+            });
+        }
+
         // Sorting logic
         $validSortColumns = ['planned_date', 'status', 'created_at', 'planning_tasks_count'];
         if (! in_array($sortBy, $validSortColumns)) {
@@ -230,7 +234,8 @@ class PlanningController extends Controller
             'sortBy',
             'sortDirection',
             'searchTerm',
-            'activeFilter'
+            'activeFilter',
+            'awaitingApproval'
         ));
     }
 

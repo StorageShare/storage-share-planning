@@ -26,7 +26,8 @@ class PlanningTaskCompletionPhoto extends Model
      */
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->file_path);
+        // Always generate URLs from the public disk, since files are stored there
+        return Storage::disk('public')->url($this->file_path);
     }
 
     /**

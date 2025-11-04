@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Http\Request;
@@ -22,13 +23,26 @@ class TaskBacklogController extends Controller
 
         $showCompleted = $request->boolean('show_completed');
 
+        // Read status filter with legacy support for only_concept
+        $statusParam = $request->input('status');
+        if (!$statusParam && $request->boolean('only_concept')) {
+            $statusParam = TaskStatus::CONCEPT->value; // legacy mapping
+        }
+        $validStatuses = array_column(TaskStatus::cases(), 'value');
+        $statusFilter = in_array($statusParam, $validStatuses, true) ? $statusParam : null;
+
         $user = Auth::user();
-        if ($user && $user->role === Role::CUSTOMER_SERVICE) {
-            // Customer service users should only see concept tasks in the backlog
-            $query->where('status', 'concept');
+        if ($statusFilter) {
+            // Explicit status filter takes precedence for all roles
+            $query->where('status', $statusFilter);
         } else {
-            if (! $showCompleted) {
-                $query->whereIn('status', ['concept', 'open', 'in_progress']);
+            if ($user && $user->role === Role::CUSTOMER_SERVICE) {
+                // Customer service users should only see concept tasks in the backlog by default
+                $query->where('status', TaskStatus::CONCEPT->value);
+            } else {
+                if (! $showCompleted) {
+                    $query->whereIn('status', ['concept', 'open', 'in_progress']);
+                }
             }
         }
 
@@ -36,6 +50,7 @@ class TaskBacklogController extends Controller
         $locationId = $request->input('location_id');
         $priorityFilter = $request->input('priority');
         $includeRecurring = $request->boolean('include_recurring', false);
+        $onlyConcept = $request->boolean('only_concept', false);
 
         // Filter logic
         if ($locationId) {
@@ -132,8 +147,10 @@ class TaskBacklogController extends Controller
         $activeFilters = [
             'location_id' => $locationId,
             'priority' => $priorityFilter,
+            'status' => $statusFilter,
             'show_completed' => $showCompleted,
             'include_recurring' => $includeRecurring,
+            'only_concept' => $onlyConcept, // legacy presence indicator
             // Add other simple string-based filters here if any in the future
         ];
 

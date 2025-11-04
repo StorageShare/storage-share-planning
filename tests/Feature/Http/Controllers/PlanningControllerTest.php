@@ -391,4 +391,43 @@ class PlanningControllerTest extends TestCase
         $getResp->assertOk();
         $this->assertEquals(300, $getResp->json('total_duration'));
     }
+    public function test_awaiting_approval_filter_returns_only_plannings_with_review_tasks_and_pagination_preserves_param(): void
+    {
+        // Create three plannings
+        $p1 = Planning::factory()->create(['status' => 'open']);
+        $p2 = Planning::factory()->create(['status' => 'open']);
+        $p3 = Planning::factory()->create(['status' => 'open']);
+
+        // Attach planning tasks: p1 has a task in review; p2 has a task open; p3 has none
+        PlanningTask::create([
+            'planning_id' => $p1->id,
+            'title' => 'T1',
+            'description' => '',
+            'status' => \App\Enums\TaskStatus::REVIEW->value,
+        ]);
+        PlanningTask::create([
+            'planning_id' => $p2->id,
+            'title' => 'T2',
+            'description' => '',
+            'status' => \App\Enums\TaskStatus::OPEN->value,
+        ]);
+
+        // Request with awaiting_approval
+        $resp = $this->actingAs($this->admin)->get(route('plannings.index', [
+            'awaiting_approval' => 1,
+            'sort_by' => 'planned_date',
+            'sort_direction' => 'desc',
+        ]));
+
+        $resp->assertOk();
+        $resp->assertViewIs('plannings.index');
+        $resp->assertViewHas('plannings', function ($paginator) use ($p1) {
+            $ids = $paginator->getCollection()->pluck('id')->all();
+            $this->assertContains($p1->id, $ids);
+            $this->assertCount(1, $ids);
+            // pagination URL should preserve awaiting_approval
+            $this->assertStringContainsString('awaiting_approval=1', $paginator->url(2));
+            return true;
+        });
+    }
 }

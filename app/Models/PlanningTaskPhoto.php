@@ -32,7 +32,8 @@ class PlanningTaskPhoto extends Model
      */
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->path);
+        // Ensure we always generate URLs for the public disk
+        return Storage::disk('public')->url($this->path);
     }
 
     /**

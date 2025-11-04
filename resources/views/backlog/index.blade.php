@@ -7,7 +7,7 @@
         <div class="max-w-7xl mx-auto sm:px-4 lg:px-6">
 
             {{-- Case 1: Backlog is genuinely empty, and no search/filters are active. --}}
-            @if ($tasks->isEmpty() && empty($searchTerm) && empty($filters['location_id']) && empty($filters['priority']))
+            @if ($tasks->isEmpty() && empty($searchTerm) && empty($filters['location_id']) && empty($filters['priority']) && empty($filters['status']) && empty($filters['only_concept']))
                 <div class="py-6 px-4 text-center text-gray-500 dark:text-gray-400">
                     <p>De backlog is momenteel leeg.</p>
                     <div class="mt-4">
@@ -56,13 +56,7 @@
                             <div class="inline-flex overflow-hidden bg-white border divide-x rounded-lg dark:bg-gray-900 rtl:flex-row-reverse dark:border-gray-700 dark:divide-gray-700">
                                 @php
                                     // Base parameters for filter links, preserving search and sort
-                                    $baseParams = array_filter([
-                                        'search_term' => $searchTerm,
-                                        'sort_by' => $sortBy,
-                                        'sort_direction' => $sortDirection,
-                                        'location_id' => $filters['location_id'],
-                                        'priority' => $filters['priority'],
-                                    ]);
+                                    $baseParams = array_filter(request()->except('page'));
                                 @endphp
                                 <a href="{{ route('backlog.index', array_merge($baseParams, ['show_completed' => 'false'])) }}"
                                 class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ !$filters['show_completed'] ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
@@ -93,7 +87,16 @@
                                     @endforeach
                                 </select>
 
-                                @if(!empty($filters['location_id']) || !empty($filters['priority']))
+                                <select name="status" id="status_filter" class="py-2 px-3 block w-full border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-900 dark:text-gray-300 md:w-auto">
+                                    <option value="">Alle statussen</option>
+                                    @foreach (\App\Enums\TaskStatus::cases() as $statusCase)
+                                        <option value="{{ $statusCase->value }}" {{ ($filters['status'] ?? '') == $statusCase->value ? 'selected' : '' }}>
+                                            {{ $statusCase->label() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+
+                                @if(!empty($filters['location_id']) || !empty($filters['priority']) || !empty($filters['status']) || !empty($filters['only_concept']))
                                     <a href="{{ route('backlog.index', ['show_completed' => $filters['show_completed'] ? 'true' : 'false']) }}" class="px-4 py-2 inline-flex items-center text-xs font-medium text-gray-600 transition-colors duration-200 border border-gray-200 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800">
                                         Wis Filters
                                     </a>
@@ -292,6 +295,7 @@
         const searchInput = document.getElementById('backlogSearchInput');
         const locationFilter = document.getElementById('location_id_filter');
         const priorityFilter = document.getElementById('priority_filter');
+        const statusFilter = document.getElementById('status_filter');
 
         let debounceTimer;
 
@@ -316,6 +320,10 @@
 
         if (priorityFilter) {
             priorityFilter.addEventListener('change', submitForm);
+        }
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', submitForm);
         }
     });
 </script>

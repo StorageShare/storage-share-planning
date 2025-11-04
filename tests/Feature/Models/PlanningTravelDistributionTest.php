@@ -63,7 +63,7 @@ class PlanningTravelDistributionTest extends TestCase
             'total_duration_seconds' => 10,
         ]);
 
-        // Trigger distribution
+        // Trigger distribution (now a no-op)
         $planning->load('locations', 'locationTimers');
         $planning->distributeTravelTimeToLocationsIfNeeded();
         $planning->refresh();
@@ -71,19 +71,19 @@ class PlanningTravelDistributionTest extends TestCase
         $t2->refresh();
         $t3->refresh();
 
-        // 100 seconds total across 3 locations => 33, 33, 34 (remainder to last index)
-        $this->assertEquals(10 + 33, $t1->total_duration_seconds);
-        $this->assertEquals(10 + 33, $t2->total_duration_seconds);
-        $this->assertEquals(10 + 34, $t3->total_duration_seconds);
-        $this->assertNotNull($planning->travel_time_distributed_at);
+        // Travel time is no longer split across locations; location timers remain unchanged
+        $this->assertEquals(10, $t1->total_duration_seconds);
+        $this->assertEquals(10, $t2->total_duration_seconds);
+        $this->assertEquals(10, $t3->total_duration_seconds);
+        $this->assertNull($planning->travel_time_distributed_at);
 
-        // Second call should be idempotent (no changes)
+        // Second call should also do nothing
         $planning->distributeTravelTimeToLocationsIfNeeded();
         $t1->refresh();
         $t2->refresh();
         $t3->refresh();
-        $this->assertEquals(43, $t1->total_duration_seconds);
-        $this->assertEquals(43, $t2->total_duration_seconds);
-        $this->assertEquals(44, $t3->total_duration_seconds);
+        $this->assertEquals(10, $t1->total_duration_seconds);
+        $this->assertEquals(10, $t2->total_duration_seconds);
+        $this->assertEquals(10, $t3->total_duration_seconds);
     }
 }
