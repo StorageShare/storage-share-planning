@@ -121,83 +121,6 @@
                     @if($planning->locations->count() > 0)
                         <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                             <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Samenvatting</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                <div class="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">Werkelijke reistijd</div>
-                                    @php
-                                        $travelSec = (int)($actualTotals['travel_seconds'] ?? 0);
-                                        $travelHH = intdiv($travelSec, 3600);
-                                        $travelMM = intdiv($travelSec % 3600, 60);
-                                    @endphp
-                                    <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ sprintf('%02d:%02d', $travelHH, $travelMM) }}</div>
-                                </div>
-                                <div class="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">Tijd op locatie (werkelijk)</div>
-                                    @php
-                                        $onLocSec = (int)($actualTotals['on_location_seconds'] ?? 0);
-                                        $onLocHH = intdiv($onLocSec, 3600);
-                                        $onLocMM = intdiv($onLocSec % 3600, 60);
-                                    @endphp
-                                    <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ sprintf('%02d:%02d', $onLocHH, $onLocMM) }}</div>
-                                </div>
-                            </div>
-
-                            <!-- Tijd op locatie per locatie (samenvatting met inline bewerken) -->
-                            <div class="mt-4 space-y-2">
-                                @foreach($planning->locations as $location)
-                                    @php
-                                        $timer = $onLocationTimers->get($location->id);
-                                        $timerSeconds = (int)($timer->total_duration_seconds ?? 0);
-                                        $hhmm = sprintf('%02d:%02d', intdiv($timerSeconds, 3600), intdiv($timerSeconds % 3600, 60));
-                                    @endphp
-                                    <div class="text-xs text-gray-700 dark:text-gray-300" x-data="{ editingLoc_{{ $location->id }}: false }">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center min-w-0">
-                                                <svg class="w-3 h-3 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-                                                </svg>
-                                                <span class="truncate">Tijd op locatie — {{ $location->name }}</span>
-                                            </div>
-
-                                            <!-- Display mode -->
-                                            <div x-show="!editingLoc_{{ $location->id }}" class="flex items-center space-x-2 justify-end">
-                                                <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{{ $hhmm }}</span>
-                                                @if(Auth::user()->isAdmin() || Auth::user()->canManagePlannings())
-                                                    <button type="button"
-                                                            class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                            @click.prevent="editingLoc_{{ $location->id }} = true"
-                                                            aria-label="Bewerken" title="Bewerken">
-                                                        <svg class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
-                                                            <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h6a1 1 0 110 2H4v10h10v-6a1 1 0 112 0v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        </div>
-
-                                        @if(Auth::user()->isAdmin() || Auth::user()->canManagePlannings())
-                                            <!-- Edit mode -->
-                                            <form method="POST"
-                                                  action="{{ route('plannings.timers.location.update', [$planning, $location]) }}"
-                                                  class="mt-1 flex items-center space-x-2 justify-end"
-                                                  x-show="editingLoc_{{ $location->id }}"
-                                                  x-cloak
-                                                  @keydown.escape.prevent.stop="editingLoc_{{ $location->id }} = false">
-                                                @csrf
-                                                @method('PATCH')
-                                                <input type="text" name="time" value="{{ $hhmm }}"
-                                                       class="w-20 px-1 py-0.5 text-xs border rounded dark:bg-gray-800 font-mono"
-                                                       placeholder="HH:mm"
-                                                       x-init="$nextTick(() => { if (editingLoc_{{ $location->id }}) $el.focus(); })"
-                                                       aria-label="Tijd op locatie {{ $location->name }} in HH:mm">
-                                                <button type="submit" class="px-2 py-0.5 text-xs bg-blue-600 text-white rounded">Opslaan</button>
-                                                <button type="button" class="px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300" @click.prevent="editingLoc_{{ $location->id }} = false">Annuleren</button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            </div>
 
                             <div class="space-y-4">
                                 @if($planning->start_address)
@@ -253,68 +176,13 @@
                                         </div>
                                     @endif
 
-                                    {{-- Actual travel time to this location (editable) --}}
-                                    @if($locationIndex >= 0)
-                                        @php
-                                            $segTimer = $travelToTimers->get($location->id);
-                                            $segSec = (int)($segTimer->total_duration_seconds ?? 0);
-                                            $segHH = intdiv($segSec, 3600);
-                                            $segMM = intdiv($segSec % 3600, 60);
-                                        @endphp
-                                        <div class="ml-3 text-xs text-gray-700 dark:text-gray-300 mt-1" x-data="{ editingSeg: false }">
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex items-center min-w-0">
-                                                    <svg class="w-3 h-3 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    <span class="truncate">Werkelijke reistijd naar {{ $location->name }}:</span>
-                                                </div>
-
-                                                <!-- Display mode -->
-                                                <div x-show="!editingSeg" class="flex items-center space-x-2 justify-end">
-                                                    <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{{ sprintf('%02d:%02d', $segHH, $segMM) }}</span>
-                                                    @if(Auth::user()->isAdmin() || Auth::user()->canManagePlannings())
-                                                        <button type="button"
-                                                                class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                                @click.prevent="editingSeg = true"
-                                                                aria-label="Bewerken" title="Bewerken">
-                                                            <svg class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
-                                                                <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h6a1 1 0 110 2H4v10h10v-6a1 1 0 112 0v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
-                                                            </svg>
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </div>
-
-                                            @if(Auth::user()->isAdmin() || Auth::user()->canManagePlannings())
-                                                <!-- Edit mode -->
-                                                <form method="POST"
-                                                      action="{{ route('plannings.timers.travel_to.update', [$planning, $location]) }}"
-                                                      class="mt-1 flex items-center space-x-2 justify-end"
-                                                      x-show="editingSeg"
-                                                      x-cloak
-                                                      @keydown.escape.prevent.stop="editingSeg = false">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="text" name="time" value="{{ sprintf('%02d:%02d', $segHH, $segMM) }}"
-                                                           class="w-20 px-1 py-0.5 text-xs border rounded dark:bg-gray-800 font-mono"
-                                                           placeholder="HH:mm"
-                                                           x-init="$nextTick(() => { if (editingSeg) $el.focus(); })"
-                                                           aria-label="Reistijd naar {{ $location->name }} in HH:mm">
-                                                    <button type="submit" class="px-2 py-0.5 text-xs bg-blue-600 text-white rounded">Opslaan</button>
-                                                    <button type="button" class="px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300" @click.prevent="editingSeg = false">Annuleren</button>
-                                                </form>
-                                            @endif
-                                        </div>
-                                    @endif
-
                                     {{-- Location --}}
                                     <div class="flex items-start text-sm">
                                         <div class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
-                                            {{ $planning->start_address ? $locationIndex + 1 : $locationIndex + 1 }}
+                                            {{ $locationIndex + 1 }}
                                         </div>
                                         <div class="ml-3 flex-1">
+
                                             <div class="flex justify-between items-start">
                                                 <div class="font-medium text-gray-900 dark:text-gray-100">{{ $location->name }}</div>
                                                 @php
@@ -348,6 +216,37 @@
                                                     @endif
                                                 @endif
                                             </div>
+
+                                            {{-- Timers (editable) --}}
+                                            @php
+                                                $locTimer = $onLocationTimers->get($location->id);
+                                                $locSec = (int)($locTimer->total_duration_seconds ?? 0);
+                                                $locHH = intdiv($locSec, 3600);
+                                                $locMM = intdiv($locSec % 3600, 60);
+                                            @endphp
+                                            @include('plannings.partials.time_row', [
+                                                'label' => 'Werkelijke tijd op locatie:',
+                                                'display' => sprintf('%02d:%02d', $locHH, $locMM),
+                                                'action' => route('plannings.timers.location.update', [$planning, $location]),
+                                                'ariaLabel' => "Tijd op locatie {$location->name} in HH:mm",
+                                                'canEdit' => Auth::user()->isAdmin() || Auth::user()->canManagePlannings(),
+                                            ])
+
+                                            @if($travelTimes && isset($travelTimes['segments'][$locationIndex]) && ($locationIndex > 0 || $planning->start_address))
+                                                @php
+                                                    $segTimer = $travelToTimers->get($location->id);
+                                                    $segSec = (int)($segTimer->total_duration_seconds ?? 0);
+                                                    $segHH = intdiv($segSec, 3600);
+                                                    $segMM = intdiv($segSec % 3600, 60);
+                                                @endphp
+                                                @include('plannings.partials.time_row', [
+                                                    'label' => "Werkelijke reistijd naar {$location->name}:",
+                                                    'display' => sprintf('%02d:%02d', $segHH, $segMM),
+                                                    'action' => route('plannings.timers.travel_to.update', [$planning, $location]),
+                                                    'ariaLabel' => "Reistijd naar {$location->name} in HH:mm",
+                                                    'canEdit' => Auth::user()->isAdmin() || Auth::user()->canManagePlannings(),
+                                                ])
+                                            @endif
 
                                             {{-- Tasks for this location --}}
                                             @if($tasksForLocation->count() > 0)
@@ -385,11 +284,11 @@
                                             @else
                                                 <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Geen taken gepland</div>
                                             @endif
+
                                         </div>
                                     </div>
                                 @endforeach
 
-                                {{-- Return trip if exists --}}
                                 @if($travelTimes && count($travelTimes['segments']) > $planning->locations->count())
                                     @php
                                         $returnSegment = $travelTimes['segments'][count($travelTimes['segments']) - 1];
@@ -425,52 +324,13 @@
                                             $retHH = intdiv($retSec, 3600);
                                             $retMM = intdiv($retSec % 3600, 60);
                                         @endphp
-                                        <div class="ml-3 text-xs text-gray-700 dark:text-gray-300 mt-1" x-data="{ editingBack: false }">
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex items-center min-w-0">
-                                                    <svg class="w-3 h-3 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    <span class="truncate">Werkelijke reistijd terug:</span>
-                                                </div>
-
-                                                <!-- Display mode -->
-                                                <div x-show="!editingBack" class="flex items-center space-x-2 justify-end">
-                                                    <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{{ sprintf('%02d:%02d', $retHH, $retMM) }}</span>
-                                                    @if(Auth::user()->isAdmin() || Auth::user()->canManagePlannings())
-                                                        <button type="button"
-                                                                class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                                @click.prevent="editingBack = true"
-                                                                aria-label="Bewerken" title="Bewerken">
-                                                            <svg class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
-                                                                <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h6a1 1 0 110 2H4v10h10v-6a1 1 0 112 0v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
-                                                            </svg>
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </div>
-
-                                            @if(Auth::user()->isAdmin() || Auth::user()->canManagePlannings())
-                                                <!-- Edit mode -->
-                                                <form method="POST"
-                                                      action="{{ route('plannings.timers.travel_back.update', [$planning]) }}"
-                                                      class="mt-1 flex items-center space-x-2 justify-end"
-                                                      x-show="editingBack"
-                                                      x-cloak
-                                                      @keydown.escape.prevent.stop="editingBack = false">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="text" name="time" value="{{ sprintf('%02d:%02d', $retHH, $retMM) }}"
-                                                           class="w-20 px-1 py-0.5 text-xs border rounded dark:bg-gray-800 font-mono"
-                                                           placeholder="HH:mm"
-                                                           x-init="$nextTick(() => { if (editingBack) $el.focus(); })"
-                                                           aria-label="Reistijd terug in HH:mm">
-                                                    <button type="submit" class="px-2 py-0.5 text-xs bg-blue-600 text-white rounded">Opslaan</button>
-                                                    <button type="button" class="px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300" @click.prevent="editingBack = false">Annuleren</button>
-                                                </form>
-                                            @endif
-                                        </div>
+                                        @include('plannings.partials.time_row', [
+                                            'label' => 'Werkelijke reistijd terug:',
+                                            'display' => sprintf('%02d:%02d', $retHH, $retMM),
+                                            'action' => route('plannings.timers.travel_back.update', [$planning]),
+                                            'ariaLabel' => 'Reistijd terug in HH:mm',
+                                            'canEdit' => Auth::user()->isAdmin() || Auth::user()->canManagePlannings(),
+                                        ])
                                     @endif
                                 @endif
                             </div>
@@ -546,44 +406,6 @@
                     <div class="mb-8">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Taken voor Locatie: {{ $location->name }}</h3>
-                            @php
-                                $timer = $onLocationTimers->get($location->id);
-                                $timerSeconds = (int)($timer->total_duration_seconds ?? 0);
-                                $hours = floor($timerSeconds / 3600);
-                                $minutes = floor(($timerSeconds % 3600) / 60);
-                                $seconds = $timerSeconds % 60;
-                                $hhmm = sprintf('%02d:%02d', intdiv($timerSeconds, 3600), intdiv($timerSeconds % 3600, 60));
-                            @endphp
-                            @if($timerSeconds > 0)
-                                @if(Auth::user()->isAdmin())
-                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 shadow-sm">
-                                        <div class="flex items-center space-x-3">
-                                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                            <div>
-                                                <div class="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
-                                                    @if($hours > 0)
-                                                        {{ sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds) }}
-                                                    @else
-                                                        {{ sprintf('%02d:%02d', $minutes, $seconds) }}
-                                                    @endif
-                                                </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                    @if($timer && $timer->started_at && !$timer->ended_at)
-                                                        <span class="inline-flex items-center">
-                                                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-                                                            Bezig
-                                                        </span>
-                                                    @else
-                                                        Tijd op locatie
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            @endif
                         </div>
 
                         @php
@@ -703,6 +525,11 @@
                                                                         $latestCompletion = $planningTask->completions->first();
                                                                         $photoUrls = $latestCompletion ? $latestCompletion->photos->pluck('url')->all() : [];
                                                                     @endphp
+                                                                    @if($latestCompletion && $latestCompletion->comment)
+                                                                        <div class="mb-2 text-right">
+                                                                            <p class="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap">Notities: {{ $latestCompletion->comment }}</p>
+                                                                        </div>
+                                                                    @endif
                                                                     @if (!empty($photoUrls))
                                                                         <div class="mb-2">
                                                                             <div class="flex items-center justify-end gap-2">

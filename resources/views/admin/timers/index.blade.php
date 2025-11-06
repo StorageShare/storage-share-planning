@@ -8,7 +8,7 @@
     <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6 text-gray-900 dark:text-gray-100">
-                
+
                 {{-- Header met filters --}}
                 <div class="mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -16,7 +16,7 @@
                             <h3 class="text-lg font-semibold">Timer Gegevens</h3>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Overzicht van alle gewerkte tijden per planning</p>
                         </div>
-                        
+
                         {{-- Export knop --}}
                         <div class="flex space-x-2">
                             <form action="{{ route('admin.timers.export') }}" method="GET" class="inline">
@@ -39,16 +39,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Van datum</label>
-                            <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}" 
+                            <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
                                 class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm">
                         </div>
-                        
+
                         <div>
                             <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tot datum</label>
-                            <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}" 
+                            <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
                                 class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm">
                         </div>
-                        
+
                         <div>
                             <label for="user_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Gebruiker</label>
                             <select name="user_id" id="user_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm">
@@ -60,7 +60,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        
+
                         <div class="flex items-end">
                             <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,11 +82,11 @@
                                         <div>
                                             <h4 class="text-lg font-semibold">Planning #{{ $planning->id }}</h4>
                                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                                {{ $planning->planned_date->format('d-m-Y') }} - 
+                                                {{ $planning->planned_date->format('d-m-Y') }} -
                                                 {{ $planning->users->pluck('name')->join(', ') ?: 'Geen gebruikers toegewezen' }}
                                             </p>
                                         </div>
-                                        
+
                                         <div class="flex items-center space-x-4">
                                             @php
                                                 $totalSeconds = $planning->locationTimers->sum('total_duration_seconds');
@@ -94,29 +94,29 @@
                                                 $totalMinutes = floor(($totalSeconds % 3600) / 60);
                                                 $hasActiveTimers = $planning->locationTimers->where('started_at', '!=', null)->where('ended_at', null)->count() > 0;
                                             @endphp
-                                            
+
                                             @if($hasActiveTimers)
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                     <span class="w-2 h-2 bg-green-400 rounded-full mr-1 animate-pulse"></span>
                                                     Actief
                                                 </span>
                                             @endif
-                                            
+
                                             <div class="text-right">
                                                 <div class="text-lg font-mono font-bold">
                                                     {{ sprintf('%02d:%02d', $totalHours, $totalMinutes) }}
                                                 </div>
                                                 <div class="text-xs text-gray-500">Totale tijd</div>
                                             </div>
-                                            
-                                            <a href="{{ route('admin.timers.show', $planning) }}" 
+
+                                            <a href="{{ route('admin.timers.show', $planning) }}"
                                                 class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
                                                 Details
                                             </a>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {{-- Timer samenvatting --}}
                                 @if($planning->locationTimers->count() > 0)
                                     <div class="p-4">
@@ -129,13 +129,13 @@
                                                     } else {
                                                         $timerSeconds = $timer->total_duration_seconds ?? 0;
                                                     }
-                                                    
+
                                                     $hours = floor($timerSeconds / 3600);
                                                     $minutes = floor(($timerSeconds % 3600) / 60);
-                                                    $locationName = $timer->location ? $timer->location->name : 
-                                                        ($timer->location_type === 'backlog' ? 'Backlog' : 'Reistijd');
+                                                    $locationName = $timer->location ? $timer->location->name :
+                                                        ($timer->label());
                                                 @endphp
-                                                
+
                                                 <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                                                     <div class="flex items-center justify-between">
                                                         <div class="flex-1 min-w-0">
@@ -143,7 +143,7 @@
                                                                 {{ $locationName }}
                                                             </p>
                                                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                                {{ ucfirst($timer->location_type) }}
+                                                                {{ $timer->label() }}
                                                             </p>
                                                         </div>
                                                         <div class="text-right">
@@ -185,4 +185,4 @@
         </div>
     </div>
 </div>
-</x-app-layout> 
+</x-app-layout>

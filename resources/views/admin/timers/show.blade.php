@@ -48,10 +48,66 @@
             </div>
         </div>
 
+        {{-- Geplande werkverdeling met gelijk verdeelde reistijd --}}
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+            <div class="p-6 text-gray-900 dark:text-gray-100">
+                <div class="flex items-start justify-between mb-4">
+                    <h4 class="text-lg font-semibold">Timer Details (Reistijd gelijk verdeeld over locaties)</h4>
+                    @php
+                        $travelHours = isset($totalTravelToDistribute) ? floor($totalTravelToDistribute / 3600) : 0;
+                        $travelMinutes = isset($totalTravelToDistribute) ? floor(($totalTravelToDistribute % 3600) / 60) : 0;
+                        $travelSeconds = isset($totalTravelToDistribute) ? $totalTravelToDistribute % 60 : 0;
+                    @endphp
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Totale te verdelen reistijd: {{ sprintf('%02d:%02d:%02d', $travelHours, $travelMinutes, $travelSeconds) }}</span>
+                </div>
+
+                @if(isset($distributedByLocation) && $distributedByLocation->count() > 0)
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @foreach($distributedByLocation as $loc)
+                            @php
+                                $share = $loc['distributed_extra_seconds'] ?? 0;
+                                $shareH = floor($share / 3600);
+                                $shareM = floor(($share % 3600) / 60);
+                                $shareS = $share % 60;
+                            @endphp
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-semibold text-gray-900 dark:text-gray-100">{{ $loc['location_name'] }}</h5>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Inclusief gelijk deel reistijd</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400">{{ $loc['formatted_adjusted'] }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">Totaal</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                        <span class="font-medium text-gray-700 dark:text-gray-300">Op locatie:</span>
+                                        @php
+                                            $base = $loc['base_seconds'] ?? 0;
+                                            $bH = floor($base / 3600); $bM = floor(($base % 3600) / 60); $bS = $base % 60;
+                                        @endphp
+                                        <span class="text-gray-600 dark:text-gray-400">{{ sprintf('%02d:%02d:%02d', $bH, $bM, $bS) }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700 dark:text-gray-300">Reistijddeel:</span>
+                                        <span class="text-gray-600 dark:text-gray-400">{{ sprintf('%02d:%02d:%02d', $shareH, $shareM, $shareS) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Geen locaties om reistijd over te verdelen.</div>
+                @endif
+            </div>
+        </div>
+
         {{-- Timer details --}}
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6 text-gray-900 dark:text-gray-100">
-                <h4 class="text-lg font-semibold mb-4">Timer Details per Locatie</h4>
+                <h4 class="text-lg font-semibold mb-4">Timer details</h4>
 
                 @if($timersByLocation->count() > 0)
                     <div class="space-y-4">
@@ -60,7 +116,7 @@
                             <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
-                                        @if($timerData['timer']->location_type === 'shared_travel')
+                                        @if($timerData['timer']->location_type === 'travel_back')
                                             <div class="w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center text-xs font-medium mr-4">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
@@ -92,7 +148,7 @@
                                                 {{ $timerData['location_name'] }}
                                             </h5>
                                             <p class="text-sm text-gray-500 dark:text-gray-400">
-                                                {{ ucfirst($timer->location_type) }}
+                                                {{ $timer->label() }}
                                             </p>
                                         </div>
                                     </div>

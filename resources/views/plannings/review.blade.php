@@ -51,9 +51,6 @@
                                                     <a href="{{ route('plannings.show', $planning) }}" class="px-2 py-1 text-xs text-blue-600 transition-colors duration-200 rounded-md hover:bg-blue-100 dark:hover:bg-gray-800 dark:text-blue-400">
                                                         Bekijken
                                                     </a>
-                                                    <a href="{{ route('admin.tasks.review') }}" class="ml-2 px-2 py-1 text-xs text-indigo-600 transition-colors duration-200 rounded-md hover:bg-indigo-100 dark:hover:bg-gray-800 dark:text-indigo-400">
-                                                        Beoordelen
-                                                    </a>
                                                 </td>
                                             </tr>
                                         @empty

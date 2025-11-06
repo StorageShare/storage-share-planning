@@ -49,4 +49,18 @@ class PlanningLocationTimer extends Model
     {
         return $this->belongsTo(Location::class);
     }
-} 
+
+    public function label(): string
+    {
+        switch ($this->location_type) {
+            case 'travel':
+                return 'Reistijd';
+            case 'location':
+                return 'Op locatie';
+            case 'travel_back':
+                return 'Terugreistijd';
+            default:
+                return 'Onbekend';
+        }
+    }
+}
