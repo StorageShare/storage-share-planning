@@ -130,9 +130,9 @@ Route::middleware('auth')->group(function () {
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/timers', [\App\Http\Controllers\Admin\TimerController::class, 'index'])->name('timers.index');
+        Route::get('/timers/export', [\App\Http\Controllers\Admin\TimerController::class, 'export'])->name('timers.export');
         Route::get('/timers/{planning}', [\App\Http\Controllers\Admin\TimerController::class, 'show'])->name('timers.show');
         Route::get('/timers/{planning}/live-data', [\App\Http\Controllers\Admin\TimerController::class, 'getLiveData'])->name('timers.live-data');
-        Route::get('/timers/export', [\App\Http\Controllers\Admin\TimerController::class, 'export'])->name('timers.export');
         Route::get('/bv-stats', [\App\Http\Controllers\Admin\BvStatsController::class, 'index'])->name('bv-stats.index');
 
         // Syslog routes

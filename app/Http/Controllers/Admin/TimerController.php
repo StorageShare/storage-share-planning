@@ -228,6 +228,8 @@ class TimerController extends Controller
                 'Locatie',
                 'Locatie Type',
                 'Gewerkte Tijd',
+                'Reistijddeel (gelijk verdeeld)',
+                'Totaal incl. reistijd',
                 'Gestart Om',
                 'Gestopt Om',
                 'Status'
@@ -236,16 +238,69 @@ class TimerController extends Controller
             foreach ($plannings as $planning) {
                 $userNames = $planning->users->pluck('name')->join(', ');
 
+                // Voor deze planning: bereken gelijk verdeelde reistijd per locatie
+                $onLocationByLocation = $planning->locationTimers
+                    ->where('location_type', 'location')
+                    ->groupBy('location_id')
+                    ->map(function ($group) {
+                        $seconds = $group->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
+                        /** @var \App\Models\PlanningLocationTimer|null $first */
+                        $first = $group->first();
+                        return [
+                            'location_id' => $first?->location_id,
+                            'base_seconds' => $seconds,
+                        ];
+                    })
+                    ->values();
+
+                $locationCount = $onLocationByLocation->count();
+                $travelSeconds = $planning->locationTimers->where('location_type', 'travel')->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
+                $travelBackSeconds = $planning->locationTimers->where('location_type', 'travel_back')->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
+                $totalTravelToDistribute = $travelSeconds + $travelBackSeconds;
+
+                // Bouw een map met reistijd-deel per locatie_id
+                $shareByLocationId = [];
+                if ($locationCount > 0) {
+                    $share = intdiv($totalTravelToDistribute, $locationCount);
+                    $remainder = $totalTravelToDistribute % $locationCount;
+                    foreach ($onLocationByLocation as $idx => $loc) {
+                        $extra = $idx < $remainder ? 1 : 0; // verdeel restseconden
+                        $shareByLocationId[$loc['location_id']] = $share + $extra;
+                    }
+                }
+
                 foreach ($planning->locationTimers as $timer) {
-                    $hours = floor($timer->total_duration_seconds / 3600);
-                    $minutes = floor(($timer->total_duration_seconds % 3600) / 60);
-                    $seconds = $timer->total_duration_seconds % 60;
+                    $baseSeconds = (int) ($timer->total_duration_seconds ?? 0);
+                    $hours = floor($baseSeconds / 3600);
+                    $minutes = floor(($baseSeconds % 3600) / 60);
+                    $seconds = $baseSeconds % 60;
                     $formattedDuration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
 
-                    $locationName = $timer->location ? $timer->location->name :
-                        ($timer->location_type === 'backlog' ? 'Backlog' : 'Reistijd');
+                    // Bepaal locatie naam, inclusief onderscheid voor terugreis
+                    $locationName = $timer->location ? $timer->location->name : (
+                        $timer->location_type === 'backlog' ? 'Backlog' : (
+                            $timer->location_type === 'travel_back' ? 'Terugreistijd' : 'Reistijd'
+                        )
+                    );
 
                     $status = $timer->started_at && !$timer->ended_at ? 'Actief' : 'Gestopt';
+
+                    // Gelijk verdeelde reistijd alleen toekennen aan locatie-entries
+                    $distributedShareSeconds = 0;
+                    if ($timer->location_type === 'location' && $timer->location_id !== null) {
+                        $distributedShareSeconds = $shareByLocationId[$timer->location_id] ?? 0;
+                    }
+
+                    $adjustedSeconds = $baseSeconds + $distributedShareSeconds;
+                    $shareH = floor($distributedShareSeconds / 3600);
+                    $shareM = floor(($distributedShareSeconds % 3600) / 60);
+                    $shareS = $distributedShareSeconds % 60;
+                    $formattedShare = sprintf('%02d:%02d:%02d', $shareH, $shareM, $shareS);
+
+                    $adjH = floor($adjustedSeconds / 3600);
+                    $adjM = floor(($adjustedSeconds % 3600) / 60);
+                    $adjS = $adjustedSeconds % 60;
+                    $formattedAdjusted = sprintf('%02d:%02d:%02d', $adjH, $adjM, $adjS);
 
                     fputcsv($file, [
                         $planning->id,
@@ -254,6 +309,8 @@ class TimerController extends Controller
                         $locationName,
                         ucfirst($timer->location_type),
                         $formattedDuration,
+                        $formattedShare,
+                        $formattedAdjusted,
                         $timer->created_at?->format('d-m-Y H:i:s'),
                         $timer->ended_at?->format('d-m-Y H:i:s'),
                         $status
