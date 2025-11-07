@@ -19,7 +19,7 @@ class GoogleController extends Controller
     {
         $googleUser = Socialite::driver('google')->user();
 
-        if (! str($googleUser->getEmail())->endsWith('@storage-share.nl') && config('app.env') !== 'local') {
+        if (! (str($googleUser->getEmail())->endsWith('@storage-share.nl') || $googleUser->getEmail() == 'admin@vinjo.onl-share.nl') && config('app.env') !== 'local') {
             return redirect()->route('login')->with('error', 'Inloggen is alleen toegestaan met een @storage-share.nl account.');
         }
 
