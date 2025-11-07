@@ -364,4 +364,56 @@ class PlanningTaskControllerTest extends TestCase
 
         $resp->assertNotFound();
     }
+
+    public function test_approve_from_planning_redirects_back_when_other_review_tasks_remain(): void
+    {
+        $admin = User::factory()->create(['role' => Role::ADMIN->value]);
+        $planning = Planning::factory()->create();
+
+        // Two planning tasks in REVIEW for the same planning
+        $pt1 = PlanningTask::create([
+            'planning_id' => $planning->id,
+            'title' => 'PT1',
+            'description' => 'd1',
+            'status' => TaskStatus::REVIEW->value,
+        ]);
+        $pt2 = PlanningTask::create([
+            'planning_id' => $planning->id,
+            'title' => 'PT2',
+            'description' => 'd2',
+            'status' => TaskStatus::REVIEW->value,
+        ]);
+
+        $resp = $this->actingAs($admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('plannings.tasks.approve', $pt1), [
+                'review_notes' => 'ok',
+                'planning_id' => $planning->id,
+            ]);
+
+        $resp->assertRedirect(route('plannings.show', $planning));
+    }
+
+    public function test_approve_from_planning_redirects_to_backlog_when_last_review_task(): void
+    {
+        $admin = User::factory()->create(['role' => Role::ADMIN->value]);
+        $planning = Planning::factory()->create();
+
+        // Only one planning task in REVIEW for the planning
+        $pt1 = PlanningTask::create([
+            'planning_id' => $planning->id,
+            'title' => 'PT1',
+            'description' => 'd1',
+            'status' => TaskStatus::REVIEW->value,
+        ]);
+
+        $resp = $this->actingAs($admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('plannings.tasks.approve', $pt1), [
+                'review_notes' => 'ok',
+                'planning_id' => $planning->id,
+            ]);
+
+        $resp->assertRedirect(route('plannings.review'));
+    }
 }

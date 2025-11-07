@@ -216,6 +216,19 @@ class PlanningTaskController extends Controller
         // Check if this location is now completed and notify if needed
         $this->checkLocationCompletionAndNotify($planning_task);
 
+        // Conditional redirect: if coming from a planning overview, go back there unless no more reviewable tasks remain
+        if ($request->filled('planning_id')) {
+            $planning = $planning_task->planning;
+            $remaining = \App\Models\PlanningTask::where('planning_id', $planning->id)
+                ->where('status', TaskStatus::REVIEW->value)
+                ->where('id', '!=', $planning_task->id)
+                ->count();
+
+            if ($remaining > 0) {
+                return redirect()->route('plannings.show', $planning)->with('success', 'Geplande taak goedgekeurd.');
+            }
+        }
+
         return redirect()->route('plannings.review')->with('success', 'Geplande taak goedgekeurd.');
     }
 
@@ -270,6 +283,19 @@ class PlanningTaskController extends Controller
                 ]);
             }
         });
+
+        // Conditional redirect: if coming from a planning overview, go back there unless no more reviewable tasks remain
+        if ($request->filled('planning_id')) {
+            $planning = $planning_task->planning;
+            $remaining = \App\Models\PlanningTask::where('planning_id', $planning->id)
+                ->where('status', TaskStatus::REVIEW->value)
+                ->where('id', '!=', $planning_task->id)
+                ->count();
+
+            if ($remaining > 0) {
+                return redirect()->route('plannings.show', $planning)->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
+            }
+        }
 
         return redirect()->route('plannings.review')->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
     }

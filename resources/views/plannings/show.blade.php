@@ -557,10 +557,12 @@
                                                                         <div class="flex items-center justify-end gap-x-2">
                                                                             <form action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                 @csrf
+                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                 <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                             </form>
                                                                             <form action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST">
                                                                                 @csrf
+                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                 <x-danger-button type="submit" class="!py-1 !px-2 !text-xs">Afkeuren</x-danger-button>
                                                                             </form>
                                                                         </div>
