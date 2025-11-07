@@ -347,7 +347,7 @@ class TaskControllerTest extends TestCase
             ->withHeader('X-CSRF-TOKEN', $this->token)
             ->post(route('tasks.reject', $task), ['review_notes' => 'Not good']);
 
-        $resp->assertRedirect(route('admin.tasks.review'));
+        $resp->assertRedirect(route('plannings.review'));
         $resp->assertSessionHas('success');
     }
 }

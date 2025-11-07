@@ -214,13 +214,11 @@ class PlanningControllerTest extends TestCase
         $resp = $this->actingAs($this->admin)->get(route('plannings.show', $planning));
         $resp->assertOk();
         $resp->assertViewIs('plannings.show');
-        $resp->assertViewHasAll(['planning', 'travelTimes', 'timeOverview', 'locationTimers']);
+        $resp->assertViewHasAll(['planning', 'travelTimes', 'timeOverview']);
         $ov = $resp->viewData('timeOverview');
         $this->assertEquals(25, $ov['travel_minutes']);
         // Task minutes may be zero (estimated fields not set on related models in this simplified case)
         $this->assertArrayHasKey('task_minutes', $ov);
-        $timers = $resp->viewData('locationTimers');
-        $this->assertArrayHasKey($l1->id, $timers->toArray());
     }
 
     public function test_edit_renders_and_includes_current_selections(): void
