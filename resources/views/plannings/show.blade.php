@@ -516,7 +516,7 @@
                                                                     @endif
                                                                 </span>
                                                             </td>
-                                                            <td class="px-4 py-4 text-sm whitespace-nowrap text-right">
+                                                            <td class="px-4 py-4 text-sm text-right align-top">
                                                                 @php
                                                                     $statusValue = is_object($planningTask->status) ? $planningTask->status->value : $planningTask->status;
                                                                 @endphp
@@ -527,8 +527,27 @@
                                                                     @endphp
                                                                     @if($latestCompletion && $latestCompletion->comment)
                                                                         <div class="mb-2 text-right">
-                                                                            <p class="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap">Notities: {{ $latestCompletion->comment }}</p>
+                                                                            <div class="text-left text-sm text-gray-500 dark:text-gray-400 block max-w-xs md:max-w-sm lg:max-w-md break-anywhere">Notities: {{ \Illuminate\Support\Str::limit($latestCompletion->comment, 100) }}</div>
+                                                                            <button type="button"
+                                                                                x-data
+                                                                                x-on:click.prevent="$dispatch('open-modal', 'view-comment-{{ $planningTask->id }}')"
+                                                                                class="mt-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium">
+                                                                                Lees volledig
+                                                                            </button>
                                                                         </div>
+                                                                        <x-modal name="view-comment-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                            <div class="p-6">
+                                                                                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 text-left">Notities</h3>
+                                                                                <div class="mt-4 max-h-64 overflow-y-auto overscroll-contain text-left">
+                                                                                    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-anywhere">{{ $latestCompletion->comment }}</p>
+                                                                                </div>
+                                                                                <div class="mt-6 text-right">
+                                                                                    <x-secondary-button x-on:click="$dispatch('close')">
+                                                                                        Sluiten
+                                                                                    </x-secondary-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </x-modal>
                                                                     @endif
                                                                     @if (!empty($photoUrls))
                                                                         <div class="mb-2">
@@ -554,17 +573,48 @@
                                                                         </div>
                                                                     @endif
                                                                     @if (Auth::user()->isAdmin())
-                                                                        <div class="flex items-center justify-end gap-x-2">
+                                                                        <div class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
                                                                             <form action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                 @csrf
                                                                                 <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                 <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                             </form>
-                                                                            <form action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST">
-                                                                                @csrf
-                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
-                                                                                <x-danger-button type="submit" class="!py-1 !px-2 !text-xs">Afkeuren</x-danger-button>
-                                                                            </form>
+                                                                            <x-danger-button
+                                                                                x-data
+                                                                                x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
+                                                                                class="!py-1 !px-2 !text-xs"
+                                                                            >Afkeuren</x-danger-button>
+
+                                                                            <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                                <form action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6">
+                                                                                    @csrf
+                                                                                    <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+
+                                                                                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                                                        {{ __('Taak Afkeuren: ') . $planningTask->title }}
+                                                                                    </h2>
+
+                                                                                    <div class="mt-6">
+                                                                                        <x-input-label for="review_notes_{{ $planningTask->id }}" value="{{ __('Reden van afkeuring (verplicht)') }}" />
+                                                                                        <textarea
+                                                                                            id="review_notes_{{ $planningTask->id }}"
+                                                                                            name="review_notes"
+                                                                                            required
+                                                                                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                                                                        >{{ old('review_notes') }}</textarea>
+                                                                                        <x-input-error class="mt-2" :messages="$errors->get('review_notes')" />
+                                                                                    </div>
+
+                                                                                    <div class="mt-6 flex justify-end">
+                                                                                        <x-secondary-button x-on:click="$dispatch('close')">
+                                                                                            {{ __('Annuleren') }}
+                                                                                        </x-secondary-button>
+                                                                                        <x-danger-button class="ml-3">
+                                                                                            {{ __('Definitief afkeuren') }}
+                                                                                        </x-danger-button>
+                                                                                    </div>
+                                                                                </form>
+                                                                            </x-modal>
                                                                         </div>
                                                                     @endif
                                                                 @elseif (!$planningTask->completed_at)

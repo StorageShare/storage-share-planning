@@ -234,6 +234,11 @@ class PlanningTaskController extends Controller
 
     public function reject(Request $request, PlanningTask $planning_task): RedirectResponse
     {
+        // Require a reason for rejection
+        $request->validate([
+            'review_notes' => ['required', 'string', 'min:3'],
+        ]);
+
         DB::transaction(function () use ($request, $planning_task) {
             // Step 1: Update statuses of the original planning task and backlog task to 'rejected'
             $planning_task->update([
