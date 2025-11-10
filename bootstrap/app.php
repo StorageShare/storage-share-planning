@@ -18,10 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'can_manage_plannings' => \App\Http\Middleware\CanManagePlannings::class,
         ]);
 
-        // Voeg de ClearValidationErrors middleware toe aan web group
-        $middleware->web(append: [
-            \App\Http\Middleware\ClearValidationErrors::class,
-        ]);
     })
     ->withProviders([
         App\Providers\EventServiceProvider::class,

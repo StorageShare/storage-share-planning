@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\VehicleType;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Vehicle extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'license_number',
+        'type',
+    ];
+
+    protected $casts = [
+        'type' => VehicleType::class,
+    ];
+
+    /**
+     * Normalize license plate on assignment: uppercase and remove hyphens.
+     */
+    public function setLicenseNumberAttribute(?string $value): void
+    {
+        $this->attributes['license_number'] = self::normalizeLicenseNumber($value);
+    }
+
+    /**
+     * Helper used to normalize license numbers consistently.
+     */
+    public static function normalizeLicenseNumber(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        // Keep only letters and digits, remove hyphens/spaces/other punctuation, then uppercase
+        $clean = preg_replace('/[^A-Za-z0-9]/', '', (string) $value);
+        return strtoupper($clean ?? '');
+    }
+}

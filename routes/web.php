@@ -15,6 +15,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaskBacklogController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VehicleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyPlanningController;
 
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('locations', LocationController::class);
     Route::resource('default-tasks', DefaultTaskController::class);
     Route::resource('benodigdheden', BenodigdheidController::class);
+    Route::resource('vehicles', VehicleController::class);
 
     // CSV Import routes
     Route::get('csv-import', [CsvImportController::class, 'show'])->name('csv-import.index');
