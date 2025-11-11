@@ -106,11 +106,11 @@ class DefaultTask extends Model
     }
 
     /**
-     * Get the benodigdheden for the default task.
+     * Get the requirements for the default task.
      */
-    public function benodigdheden(): BelongsToMany
+    public function requirements(): BelongsToMany
     {
-        return $this->belongsToMany(Benodigdheid::class, 'default_task_benodigdheden');
+        return $this->belongsToMany(Requirement::class, 'default_task_requirements');
     }
 
     /**

@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use App\Models\Benodigdheid;
+use App\Models\Requirement;
 
 class MyPlanningController extends Controller
 {
@@ -34,11 +34,11 @@ class MyPlanningController extends Controller
                 ->whereHas('users', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                 })
-                ->with(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.benodigdheden', 'planningTasks.defaultTask.benodigdheden', 'planningTasks.completions.photos'])
+                ->with(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos'])
                 ->first();
         } else {
             // Load necessary relationships for the provided planning
-            $planning->load(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.benodigdheden', 'planningTasks.defaultTask.benodigdheden', 'planningTasks.completions.photos']);
+            $planning->load(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos']);
 
             // Check if user has access to this planning
             if (!$user->isAdmin() && !$planning->users->contains($user)) {
@@ -52,70 +52,74 @@ class MyPlanningController extends Controller
 
         $locationSteps = [];
 
-        // Collect all benodigdheden from tasks AND automatically required ones for locations
-        $allBenodigdheden = collect();
-        $locationSpecificBenodigdheden = collect(); // Track location-specific variants
+        // Collect all requirements from tasks AND automatically required ones for locations
+        $allRequirements = collect();
+        $locationSpecificRequirements = collect(); // Track location-specific variants
 
-        // Get benodigdheden from tasks (these don't get location replacement)
+        // Get requirements from tasks (these don't get location replacement)
         foreach ($planning->planningTasks as $planningTask) {
-            // Get benodigdheden from backlog tasks
-            if ($planningTask->task && $planningTask->task->benodigdheden) {
-                $allBenodigdheden = $allBenodigdheden->merge($planningTask->task->benodigdheden);
+            // Get requirements from backlog tasks
+            if ($planningTask->task && $planningTask->task->requirements) {
+                $allRequirements = $allRequirements->merge($planningTask->task->requirements);
             }
-            // Get benodigdheden from default tasks
-            if ($planningTask->defaultTask && $planningTask->defaultTask->benodigdheden) {
-                $allBenodigdheden = $allBenodigdheden->merge($planningTask->defaultTask->benodigdheden);
+            // Get requirements from default tasks
+            if ($planningTask->defaultTask && $planningTask->defaultTask->requirements) {
+                $allRequirements = $allRequirements->merge($planningTask->defaultTask->requirements);
             }
         }
 
-        // Get automatically required benodigdheden for selected locations
+        // Get automatically required requirements for selected locations
         if (!empty($planning->locations)) {
             foreach ($planning->locations as $location) {
-                $automaticBenodigdheden = Benodigdheid::whereHas('requiredForLocations', function ($query) use ($location) {
+                $automaticRequirements = Requirement::whereHas('requiredForLocations', function ($query) use ($location) {
                     $query->where('location_id', $location->id);
                 })->get();
 
-                foreach ($automaticBenodigdheden as $benodigdheid) {
-                    if (str_contains($benodigdheid->naam, '[locatie]')) {
+                foreach ($automaticRequirements as $requirement) {
+                    if (str_contains($requirement->name, '[locatie]')) {
                         // Create location-specific variant
-                        $locationSpecificBenodigdheden->push((object)[
-                            'id' => $benodigdheid->id . '_' . $location->id, // Unique ID for this variant
-                            'original_id' => $benodigdheid->id,
-                            'naam' => str_replace('[locatie]', $location->name, $benodigdheid->naam),
-                            'beschrijving' => $benodigdheid->beschrijving,
+                        $locationSpecificRequirements->push((object)[
+                            'id' => $requirement->id . '_' . $location->id, // Unique ID for this variant
+                            'original_id' => $requirement->id,
+                            'naam' => str_replace('[locatie]', $location->name, $requirement->name),
+                            'beschrijving' => $requirement->description,
                             'location_name' => $location->name,
                             'is_location_specific' => true,
                         ]);
                     } else {
-                        // Add as regular benodigdheid (no location replacement needed)
-                        $allBenodigdheden->push($benodigdheid);
+                        // Add as regular requirement (no location replacement needed)
+                        $allRequirements->push($requirement);
                     }
                 }
             }
         }
 
-        // Merge regular benodigdheden with location-specific variants
-        $allBenodigdhedenWithVariants = $allBenodigdheden->concat($locationSpecificBenodigdheden);
+        // Merge regular requirements with location-specific variants
+        $allRequirementsWithVariants = $allRequirements->concat($locationSpecificRequirements);
 
-        // Remove duplicates (only for regular benodigdheden, keep all location-specific variants)
-        $uniqueBenodigdheden = $allBenodigdhedenWithVariants->unique(function ($item) {
+        // Remove duplicates (only for regular requirements, keep all location-specific variants)
+        $uniqueRequirements = $allRequirementsWithVariants->unique(function ($item) {
             if (isset($item->is_location_specific) && $item->is_location_specific) {
                 return $item->id; // Use composite ID for location-specific items
             }
             return $item->id; // Use original ID for regular items
-        })->sortBy('naam');
+        })->sortBy(function ($item) {
+            return isset($item->is_location_specific) && $item->is_location_specific
+                ? ($item->naam ?? '')
+                : ($item->name ?? '');
+        });
 
-        // Add benodigdheden checklist as first step (only if there are benodigdheden)
-        if ($uniqueBenodigdheden->isNotEmpty()) {
+        // Add requirements checklist as first step (only if there are requirements)
+        if ($uniqueRequirements->isNotEmpty()) {
             $locationSteps[] = [
-                'type' => 'benodigdheden',
+                'type' => 'requirements',
                 'title' => 'Benodigdheden checklist',
                 'details' => 'Controleer of je alle benodigde materialen hebt voordat je begint',
-                'benodigdheden' => $uniqueBenodigdheden->map(function ($benodigdheid) {
+                'requirements' => $uniqueRequirements->map(function ($requirement) {
                     return [
-                        'id' => $benodigdheid->id,
-                        'naam' => $benodigdheid->naam,
-                        'beschrijving' => $benodigdheid->beschrijving,
+                        'id' => $requirement->id,
+                        'naam' => $requirement->naam ?? $requirement->name,
+                        'beschrijving' => $requirement->beschrijving ?? $requirement->description,
                     ];
                 })->values()->all(),
             ];
@@ -360,12 +364,12 @@ class MyPlanningController extends Controller
         }
 
         // Add end-of-day checklist as final step if there are items to return or actions to perform
-        if ($uniqueBenodigdheden->isNotEmpty() || $endDayActions->isNotEmpty()) {
+        if ($uniqueRequirements->isNotEmpty() || $endDayActions->isNotEmpty()) {
             // Create end checklist items if they don't exist yet for this planning
-            $this->ensureEndChecklistItemsExist($planning, $uniqueBenodigdheden, $endDayActions);
+            $this->ensureEndChecklistItemsExist($planning, $uniqueRequirements, $endDayActions);
 
             // Get the current checklist items with their status and photos
-            $checklistItems = $planning->endChecklistItems()->with(['benodigdheid', 'reviewer'])->get();
+            $checklistItems = $planning->endChecklistItems()->with(['requirement', 'reviewer'])->get();
 
             $locationSteps[] = [
                 'type' => 'end_checklist',
@@ -515,7 +519,7 @@ class MyPlanningController extends Controller
      * Ensure that end checklist items exist for the given planning.
      * This will create items if they don't exist yet or update them if the requirements have changed.
      */
-    private function ensureEndChecklistItemsExist(Planning $planning, $uniqueBenodigdheden, $endDayActions): void
+    private function ensureEndChecklistItemsExist(Planning $planning, $uniqueRequirements, $endDayActions): void
     {
         // Get existing checklist items
         $existingItems = $planning->endChecklistItems()->get();
@@ -523,17 +527,17 @@ class MyPlanningController extends Controller
         // Create a list of expected items
         $expectedItems = collect();
 
-        // Add material items (benodigdheden)
-        foreach ($uniqueBenodigdheden as $benodigdheid) {
+        // Add material items (requirements)
+        foreach ($uniqueRequirements as $requirement) {
             $expectedItems->push([
                 'type' => 'material',
-                'benodigdheid_id' => isset($benodigdheid->is_location_specific) && $benodigdheid->is_location_specific ?
-                    $benodigdheid->original_id : $benodigdheid->id,
-                'location_id' => isset($benodigdheid->location_id) ? $benodigdheid->location_id : null,
-                'title' => $benodigdheid->naam,
-                'description' => "Terugbrengen: {$benodigdheid->naam}",
-                'unique_key' => 'material_' . (isset($benodigdheid->is_location_specific) && $benodigdheid->is_location_specific ?
-                    $benodigdheid->id : $benodigdheid->id), // Use composite ID for location-specific items
+                'requirement_id' => isset($requirement->is_location_specific) && $requirement->is_location_specific ?
+                    $requirement->original_id : $requirement->id,
+                'location_id' => isset($requirement->location_id) ? $requirement->location_id : null,
+                'title' => ($requirement->naam ?? $requirement->name),
+                'description' => "Terugbrengen: " . ($requirement->naam ?? $requirement->name),
+                'unique_key' => 'material_' . (isset($requirement->is_location_specific) && $requirement->is_location_specific ?
+                    $requirement->id : $requirement->id), // Use composite ID for location-specific items
             ]);
         }
 
@@ -548,7 +552,7 @@ class MyPlanningController extends Controller
 
             $expectedItems->push([
                 'type' => 'end_action',
-                'benodigdheid_id' => null,
+                'requirement_id' => null,
                 'location_id' => $locationId,
                 'title' => $endAction['title'],
                 'description' => $endAction['description'],
@@ -564,7 +568,7 @@ class MyPlanningController extends Controller
                 }
 
                 if ($expectedItem['type'] === 'material') {
-                    return $item->benodigdheid_id == $expectedItem['benodigdheid_id'] &&
+                    return $item->requirement_id == $expectedItem['requirement_id'] &&
                            $item->title === $expectedItem['title'];
                 } else {
                     return $item->title === $expectedItem['title'] &&
@@ -577,7 +581,7 @@ class MyPlanningController extends Controller
                     'planning_id' => $planning->id,
                     'location_id' => $expectedItem['location_id'] ?? null,
                     'type' => $expectedItem['type'],
-                    'benodigdheid_id' => $expectedItem['benodigdheid_id'],
+                    'requirement_id' => $expectedItem['requirement_id'] ?? null,
                     'title' => $expectedItem['title'],
                     'description' => $expectedItem['description'],
                 ]);
@@ -588,7 +592,7 @@ class MyPlanningController extends Controller
         $expectedKeys = $expectedItems->pluck('unique_key');
         foreach ($existingItems as $existingItem) {
             $currentKey = $existingItem->type . '_' .
-                ($existingItem->type === 'material' ? $existingItem->benodigdheid_id :
+                ($existingItem->type === 'material' ? $existingItem->requirement_id :
                  ($existingItem->type === 'end_action' ? $existingItem->title : 'unknown'));
 
             if (!$expectedKeys->contains($currentKey) && $existingItem->status === 'pending' && !$existingItem->photo_path) {

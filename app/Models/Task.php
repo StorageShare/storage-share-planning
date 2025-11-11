@@ -95,11 +95,11 @@ class Task extends Model
     }
 
     /**
-     * Get the benodigdheden for the task.
+     * Get the requirements for the task.
      */
-    public function benodigdheden(): BelongsToMany
+    public function requirements(): BelongsToMany
     {
-        return $this->belongsToMany(Benodigdheid::class, 'task_benodigdheden');
+        return $this->belongsToMany(Requirement::class, 'task_requirements');
     }
 
     /**
@@ -128,7 +128,7 @@ class Task extends Model
         }
 
         $date = $fromDate ?? new \DateTime();
-        
+
         switch ($this->recurring_interval_type) {
             case 'days':
                 $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'D'));
@@ -161,7 +161,7 @@ class Task extends Model
 
         $typeLabels = [
             'days' => $value === 1 ? 'dag' : 'dagen',
-            'weeks' => $value === 1 ? 'week' : 'weken', 
+            'weeks' => $value === 1 ? 'week' : 'weken',
             'months' => $value === 1 ? 'maand' : 'maanden',
             'years' => $value === 1 ? 'jaar' : 'jaren',
         ];
@@ -187,9 +187,9 @@ class Task extends Model
         $newTask->deadline = $newDeadline;
         $newTask->save();
 
-        // Copy benodigdheden relationship
-        if ($this->benodigdheden()->exists()) {
-            $newTask->benodigdheden()->sync($this->benodigdheden->pluck('id'));
+        // Copy requirements relationship
+        if ($this->requirements()->exists()) {
+            $newTask->requirements()->sync($this->requirements->pluck('id'));
         }
 
         return $newTask;

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Benodigdheid extends Model
+class Requirement extends Model
 {
     use HasFactory;
 
@@ -16,7 +16,7 @@ class Benodigdheid extends Model
      *
      * @var string
      */
-    protected $table = 'benodigdheden';
+    protected $table = 'requirements';
 
     /**
      * The attributes that are mass assignable.
@@ -24,37 +24,37 @@ class Benodigdheid extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'naam',
-        'beschrijving',
+        'name',
+        'description',
         'created_by',
     ];
 
     /**
-     * Get the backlog tasks that use this benodigdheid.
+     * Get the backlog tasks that use this requirement.
      */
     public function tasks(): BelongsToMany
     {
-        return $this->belongsToMany(Task::class, 'task_benodigdheden');
+        return $this->belongsToMany(Task::class, 'task_requirements');
     }
 
     /**
-     * Get the default tasks that use this benodigdheid.
+     * Get the default tasks that use this requirement.
      */
     public function defaultTasks(): BelongsToMany
     {
-        return $this->belongsToMany(DefaultTask::class, 'default_task_benodigdheden');
+        return $this->belongsToMany(DefaultTask::class, 'default_task_requirements');
     }
 
     /**
-     * Get the locations where this benodigdheid is automatically required.
+     * Get the locations where this requirement is automatically required.
      */
     public function requiredForLocations(): BelongsToMany
     {
-        return $this->belongsToMany(Location::class, 'benodigdheid_location');
+        return $this->belongsToMany(Location::class, 'requirement_location');
     }
 
     /**
-     * Get the user who created the benodigdheid.
+     * Get the user who created the requirement.
      */
     public function creator(): BelongsTo
     {
@@ -62,7 +62,7 @@ class Benodigdheid extends Model
     }
 
     /**
-     * Scope to get benodigdheden that are required for a specific location.
+     * Scope to get requirements that are required for a specific location.
      */
     public function scopeRequiredForLocation($query, $locationId)
     {

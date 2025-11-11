@@ -10,12 +10,12 @@
             @csrf
             @method('PUT')
             @include('tasks._form', [
-                'task' => $task, 
-                'location' => $task->location, 
+                'task' => $task,
+                'location' => $task->location,
                 'submitButtonText' => 'Wijzigingen Opslaan',
-                'benodigdheden' => $benodigdheden ?? collect(),
-                'selectedBenodigdheden' => old('benodigdheden', $selectedBenodigdheden ?? [])
+                'requirements' => $benodigdheden ?? collect(),
+                'selectedRequirements' => old('requirements', $selectedRequirements ?? [])
             ])
         </form>
     </div>
-</x-app-layout> 
+</x-app-layout>

@@ -970,7 +970,7 @@
 
                     await this.startLocationTimer();
 
-                    // Initialize benodigdheden checklist state
+                    // Initialize requirements checklist state
                     this.initializeBenodigdhedenChecked();
                     this.initializeEndChecklistChecked();
 
@@ -1265,7 +1265,7 @@
 
                 getCheckedBenodigdhedenCount() {
                     const current = this.currentLocation;
-                    if (!current || current.type !== 'benodigdheden') return 0;
+                    if (!current || current.type !== 'requirements') return 0;
 
                     return current.benodigdheden.filter(benodigdheid =>
                         this.benodigdhedenChecked[benodigdheid.id]
@@ -1274,7 +1274,7 @@
 
                 getBenodigdhedenProgress() {
                     const current = this.currentLocation;
-                    if (!current || current.type !== 'benodigdheden' || !current.benodigdheden.length) return 0;
+                    if (!current || current.type !== 'requirements' || !current.benodigdheden.length) return 0;
 
                     const checked = this.getCheckedBenodigdhedenCount();
                     return Math.round((checked / current.benodigdheden.length) * 100);
@@ -1282,7 +1282,7 @@
 
                 areAllBenodigdhedenChecked() {
                     const current = this.currentLocation;
-                    if (!current || current.type !== 'benodigdheden') return true;
+                    if (!current || current.type !== 'requirements') return true;
 
                     return current.benodigdheden.every(benodigdheid =>
                         this.benodigdhedenChecked[benodigdheid.id]
@@ -1463,7 +1463,7 @@
                     const current = this.currentLocation;
                     if (!current) return false;
 
-                    if (current.type === 'benodigdheden') {
+                    if (current.type === 'requirements') {
                         return this.areAllBenodigdhedenChecked();
                     }
 

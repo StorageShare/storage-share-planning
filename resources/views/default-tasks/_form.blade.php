@@ -1,25 +1,25 @@
 <div class="space-y-6">
-    <x-form-input 
-        name="title" 
-        label="Titel" 
+    <x-form-input
+        name="title"
+        label="Titel"
         :value="$defaultTask->title ?? ''"
-        placeholder="Vul de titel van de standaardtaak in" 
-        required 
+        placeholder="Vul de titel van de standaardtaak in"
+        required
     />
 
-    <x-form-textarea 
-        name="description" 
-        label="Omschrijving" 
+    <x-form-textarea
+        name="description"
+        label="Omschrijving"
         :value="$defaultTask->description ?? ''"
         placeholder="Beschrijf de standaardtaak in detail"
         rows="4"
         required
     />
 
-    <x-form-input 
-        name="estimated_time_minutes" 
+    <x-form-input
+        name="estimated_time_minutes"
         type="number"
-        label="Geschatte tijd (minuten)" 
+        label="Geschatte tijd (minuten)"
         :value="$defaultTask->estimated_time_minutes ?? ''"
         placeholder="0"
         min="0"
@@ -28,7 +28,7 @@
 
     <div>
         <x-input-label class="block text-sm font-medium mb-2">Locaties</x-input-label>
-        
+
         {{-- Alle locaties optie --}}
         <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
             <div class="flex items-center">
@@ -149,16 +149,16 @@
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Specificeer acties die uitgevoerd moeten worden aan het eind van de dag voor deze taak.
         </p>
-        
+
         <div class="space-y-4">
-            <x-form-input 
+            <x-form-input
                 name="end_day_action_title"
                 label="Titel eindactie"
                 :value="$defaultTask->end_day_action_title ?? ''"
                 placeholder=""
             />
-            
-            <x-form-textarea 
+
+            <x-form-textarea
                 name="end_day_action_description"
                 label="Omschrijving eindactie"
                 :value="$defaultTask->end_day_action_description ?? ''"
@@ -169,7 +169,7 @@
     </div>
 
     {{-- Benodigdheden sectie --}}
-    @if(isset($benodigdheden) && $benodigdheden->count() > 0)
+    @if(isset($requirements) && $requirements->count() > 0)
     <div>
         <x-input-label class="block text-sm font-medium mb-2">Benodigdheden (optioneel)</x-input-label>
         <div class="mt-2 space-y-3">
@@ -182,15 +182,15 @@
             </div>
             <div class="max-h-72 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50/50 dark:bg-gray-800 dark:border-gray-700">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2" id="benodigdheden_checkbox_group_default">
-                    @foreach($benodigdheden as $benodigdheid)
+                    @foreach($requirements as $requirement)
                         <div class="flex items-center">
-                            <input id="benodigdheid_default_{{ $benodigdheid->id }}" name="benodigdheden[]" type="checkbox" value="{{ $benodigdheid->id }}"
-                                   class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500 benodigdheid-checkbox-default"
-                                   {{ in_array($benodigdheid->id, old('benodigdheden', $selectedBenodigdheden ?? [])) ? 'checked' : '' }}>
-                            <label for="benodigdheid_default_{{ $benodigdheid->id }}" class="ms-3 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $benodigdheid->naam }}
-                                @if($benodigdheid->beschrijving)
-                                    <span class="block text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($benodigdheid->beschrijving, 60) }}</span>
+                            <input id="requirement_default_{{ $requirement->id }}" name="benodigdheden[]" type="checkbox" value="{{ $requirement->id }}"
+                                   class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500 requirement-checkbox-default"
+                                   {{ in_array($requirement->id, old('requirements', $selectedRequirements ?? [])) ? 'checked' : '' }}>
+                            <label for="requirement_default_{{ $requirement->id }}" class="ms-3 text-sm text-gray-700 dark:text-gray-300">
+                                {{ $requirement->name }}
+                                @if($requirement->description)
+                                    <span class="block text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($requirement->description, 60) }}</span>
                                 @endif
                             </label>
                         </div>
@@ -198,10 +198,10 @@
                 </div>
             </div>
         </div>
-        @error('benodigdheden')
+        @error('requirements')
         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
         @enderror
-        @error('benodigdheden.*')
+        @error('requirements.*')
         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
         @enderror
     </div>
@@ -273,4 +273,4 @@
     <x-primary-button type="submit">
         {{ $submitButtonText ?? 'Opslaan' }}
     </x-primary-button>
-</div> 
+</div>

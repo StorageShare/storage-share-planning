@@ -1,22 +1,34 @@
 <div class="space-y-6">
+    @if ($errors->any())
+        <div class="mt-4 p-3 rounded border border-red-200 bg-red-50 text-red-700">
+            <div class="font-semibold">Er ging iets mis met het opslaan.</div>
+            <ul class="list-disc list-inside text-sm mt-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+
     <div>
-        <x-input-label for="naam" class="block text-sm font-medium mb-2">Naam</x-input-label>
-        <x-text-input type="text" name="naam" id="naam" value="{{ old('naam', $benodigdheid->naam ?? '') }}" required
+        <x-input-label for="name" class="block text-sm font-medium mb-2">Naam</x-input-label>
+        <x-text-input type="text" name="name" id="name" value="{{ old('name', $requirement->name ?? '') }}" required
                       class="py-3 px-4 block w-full rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none" />
     </div>
 
     <div>
-        <x-input-label for="beschrijving" class="block text-sm font-medium mb-2">Beschrijving (optioneel)</x-input-label>
-        <textarea name="beschrijving" id="beschrijving" rows="4"
-                  class="py-3 px-4 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('beschrijving', $benodigdheid->beschrijving ?? '') }}</textarea>
+        <x-input-label for="description" class="block text-sm font-medium mb-2">Beschrijving (optioneel)</x-input-label>
+        <textarea name="description" id="description" rows="4"
+                  class="py-3 px-4 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description', $requirement->description ?? '') }}</textarea>
     </div>
 
     {{-- Automatisch nodig voor locaties sectie --}}
     @if(isset($locations) && $locations->count() > 0)
     <div>
         <x-input-label class="block text-sm font-medium mb-2">Automatisch nodig voor locaties (optioneel)</x-input-label>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Selecteer de locaties waar deze benodigdheid automatisch aan de paklijst wordt toegevoegd wanneer de locatie wordt gekozen in een planning.</p>
-        
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Selecteer de locaties waar deze requirement automatisch aan de paklijst wordt toegevoegd wanneer de locatie wordt gekozen in een planning.</p>
+
         <div class="mt-2 space-y-3">
             <div class="flex items-center">
                 <input id="select_all_locations" name="select_all_locations" type="checkbox"
@@ -46,7 +58,7 @@
 </div>
 
 <div class="mt-8 flex items-center justify-end gap-x-2">
-    <a href="{{ route('benodigdheden.index') }}" class="py-2.5 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700">
+    <a href="{{ route('requirements.index') }}" class="py-2.5 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700">
         Annuleren
     </a>
     <x-primary-button type="submit">
@@ -73,7 +85,7 @@
             checkbox.addEventListener('change', function () {
                 const allChecked = Array.from(locationCheckboxes).every(cb => cb.checked);
                 const noneChecked = Array.from(locationCheckboxes).every(cb => !cb.checked);
-                
+
                 if (allChecked) {
                     selectAllCheckbox.checked = true;
                     selectAllCheckbox.indeterminate = false;
@@ -88,4 +100,4 @@
         });
     });
 </script>
-@endpush 
+@endpush

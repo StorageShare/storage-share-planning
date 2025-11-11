@@ -69,11 +69,11 @@ class Location extends Model
     }
 
     /**
-     * The benodigdheden that are automatically required for this location.
+     * The requirements that are automatically required for this location.
      */
-    public function requiredBenodigdheden(): BelongsToMany
+    public function requiredRequirements(): BelongsToMany
     {
-        return $this->belongsToMany(Benodigdheid::class, 'benodigdheid_location');
+        return $this->belongsToMany(Requirement::class, 'requirement_location');
     }
 
     /**

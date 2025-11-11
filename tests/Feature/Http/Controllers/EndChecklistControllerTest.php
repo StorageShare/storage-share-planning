@@ -3,7 +3,7 @@
 namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
-use App\Models\Benodigdheid;
+use App\Models\Requirement;
 use App\Models\EndChecklistItem;
 use App\Models\Planning;
 use App\Models\User;
@@ -40,8 +40,8 @@ class EndChecklistControllerTest extends TestCase
         ]);
 
         // Create two materials and two end actions
-        $m1 = Benodigdheid::create(['naam' => 'Bezem', 'created_by' => $user->id]);
-        $m2 = Benodigdheid::create(['naam' => 'Stofzuiger', 'created_by' => $user->id]);
+        $m1 = Requirement::create(['name' => 'Bezem', 'created_by' => $user->id]);
+        $m2 = Requirement::create(['name' => 'Stofzuiger', 'created_by' => $user->id]);
 
         $payload = [
             'materials' => [$m1->id, $m2->id],

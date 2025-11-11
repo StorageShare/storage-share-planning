@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDefaultTaskRequest;
 use App\Http\Requests\UpdateDefaultTaskRequest;
 use App\Models\DefaultTask;
 use App\Models\Location;
+use App\Models\Requirement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -58,10 +59,10 @@ class DefaultTaskController extends Controller
     public function create(): View
     {
         $locations = Location::orderBy('name')->get();
-        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
+        $requirements = Requirement::orderBy('name')->get();
         $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
 
-        return view('default-tasks.create', compact('locations', 'benodigdheden', 'availableDoorTypes'));
+        return view('default-tasks.create', compact('locations', 'requirements', 'availableDoorTypes'));
     }
 
     /**
@@ -100,8 +101,8 @@ class DefaultTaskController extends Controller
             $defaultTask->locations()->sync($validatedData['locations']);
         }
 
-        if (! empty($validatedData['benodigdheden'])) {
-            $defaultTask->benodigdheden()->sync($validatedData['benodigdheden']);
+        if (! empty($validatedData['requirements'])) {
+            $defaultTask->requirements()->sync($validatedData['requirements']);
         }
 
         return redirect()->route('default-tasks.index')->with('success', 'Standaardtaak succesvol aangemaakt.');
@@ -124,11 +125,11 @@ class DefaultTaskController extends Controller
     {
         $locations = Location::orderBy('name')->get();
         $selectedLocations = $defaultTask->locations()->pluck('locations.id')->toArray();
-        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
-        $selectedBenodigdheden = $defaultTask->benodigdheden->pluck('id')->toArray();
+        $requirements = Requirement::orderBy('name')->get();
+        $selectedRequirements = $defaultTask->requirements->pluck('id')->toArray();
         $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
 
-        return view('default-tasks.edit', compact('defaultTask', 'locations', 'selectedLocations', 'benodigdheden', 'selectedBenodigdheden', 'availableDoorTypes'));
+        return view('default-tasks.edit', compact('defaultTask', 'locations', 'selectedLocations', 'requirements', 'selectedRequirements', 'availableDoorTypes'));
     }
 
     /**
@@ -142,12 +143,12 @@ class DefaultTaskController extends Controller
         $validatedData['applies_to_all_locations'] = $request->has('applies_to_all_locations');
         $validatedData['applies_to_lift_locations'] = $request->has('applies_to_lift_locations');
         $validatedData['applies_to_door_types'] = $request->has('applies_to_door_types');
-        
+
         // Sanitize door types (hoofdletter ongevoelig)
         if (!empty($validatedData['door_types'])) {
             $validatedData['door_types'] = array_map('trim', array_map('strtolower', $validatedData['door_types']));
         }
-        
+
         $defaultTask->update($validatedData);
 
         // Handle location assignments based on different criteria
@@ -165,8 +166,8 @@ class DefaultTaskController extends Controller
             // Sync met specifiek geselecteerde locaties
             $defaultTask->locations()->sync($validatedData['locations'] ?? []);
         }
-        
-        $defaultTask->benodigdheden()->sync($validatedData['benodigdheden'] ?? []);
+
+        $defaultTask->requirements()->sync($validatedData['requirements'] ?? []);
 
         return redirect()->route('default-tasks.index')->with('success', 'Standaardtaak succesvol bijgewerkt.');
     }

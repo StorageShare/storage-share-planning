@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Benodigdheid;
+use App\Models\Requirement;
 use App\Models\EndChecklistItem;
 use App\Models\Planning;
 use App\Models\Task;
@@ -23,7 +23,7 @@ class EndChecklistController extends Controller
     {
         $request->validate([
             'materials' => 'required|array',
-            'materials.*' => 'exists:benodigdheden,id',
+            'materials.*' => 'exists:requirements,id',
             'end_actions' => 'required|array',
             'end_actions.*.title' => 'required|string|max:255',
             'end_actions.*.description' => 'nullable|string',
@@ -34,15 +34,15 @@ class EndChecklistController extends Controller
             $planning->endChecklistItems()->delete();
 
             // Create material checklist items
-            foreach ($request->materials as $benodigdheidId) {
-                $benodigdheid = Benodigdheid::find($benodigdheidId);
+            foreach ($request->materials as $requirementId) {
+                $requirement = Requirement::find($requirementId);
 
                 EndChecklistItem::create([
                     'planning_id' => $planning->id,
                     'type' => 'material',
-                    'benodigdheid_id' => $benodigdheidId,
-                    'title' => $benodigdheid->naam,
-                    'description' => "Terugbrengen: {$benodigdheid->naam}",
+                    'requirement_id' => $requirementId,
+                    'title' => $requirement->name,
+                    'description' => "Terugbrengen: {$requirement->name}",
                 ]);
             }
 
@@ -173,7 +173,7 @@ class EndChecklistController extends Controller
     public function index(Planning $planning): JsonResponse
     {
         $items = $planning->endChecklistItems()
-            ->with(['benodigdheid', 'reviewer', 'location', 'uploader'])
+            ->with(['requirement', 'reviewer', 'location', 'uploader'])
             ->orderBy('type')
             ->orderBy('title')
             ->get();
@@ -222,7 +222,7 @@ class EndChecklistController extends Controller
         })
         ->with([
             'endChecklistItems' => function ($query) {
-                $query->with(['benodigdheid', 'reviewer', 'location', 'uploader']);
+                $query->with(['requirement', 'reviewer', 'location', 'uploader']);
             },
             'locations',
             'users'
@@ -240,10 +240,10 @@ class EndChecklistController extends Controller
      */
     public function approveItem(EndChecklistItem $item)
     {
-        // Get all related items (same benodigdheid AND title, or same end_action title)
-        if ($item->type === 'material' && $item->benodigdheid_id) {
+        // Get all related items (same requirement AND title, or same end_action title)
+        if ($item->type === 'material' && $item->requirement_id) {
             $related_items = EndChecklistItem::where('type', 'material')
-                ->where('benodigdheid_id', $item->benodigdheid_id)
+                ->where('requirement_id', $item->requirement_id)
                 ->where('title', $item->title)
                 ->where('status', 'pending')
                 ->get();
@@ -291,10 +291,10 @@ class EndChecklistController extends Controller
             'create_new_task' => 'sometimes|boolean',
         ]);
 
-        // Get all related items (same benodigdheid AND title, or same end_action title)
-        if ($item->type === 'material' && $item->benodigdheid_id) {
+        // Get all related items (same requirement AND title, or same end_action title)
+        if ($item->type === 'material' && $item->requirement_id) {
             $related_items = EndChecklistItem::where('type', 'material')
-                ->where('benodigdheid_id', $item->benodigdheid_id)
+                ->where('requirement_id', $item->requirement_id)
                 ->where('title', $item->title)
                 ->where('status', 'pending')
                 ->get();

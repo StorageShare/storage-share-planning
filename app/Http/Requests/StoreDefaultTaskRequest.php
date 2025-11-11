@@ -33,8 +33,8 @@ class StoreDefaultTaskRequest extends FormRequest
             'door_types.*' => 'string|max:255',
             'locations' => 'nullable|array',
             'locations.*' => 'integer|exists:locations,id',
-            'benodigdheden' => 'nullable|array',
-            'benodigdheden.*' => 'integer|exists:benodigdheden,id',
+            'requirements' => 'nullable|array',
+            'requirements.*' => 'integer|exists:requirements,id',
             'end_day_action_title' => 'nullable|string|max:255',
             'end_day_action_description' => 'nullable|string',
         ];

@@ -29,24 +29,24 @@ class UpdateEndChecklistLocations extends Command
         $this->info('Updating end checklist items with location information...');
 
         $items = EndChecklistItem::with([
-            'benodigdheid', 
-            'planning.planningTasks.task', 
-            'planning.planningTasks.defaultTask', 
+            'requirement',
+            'planning.planningTasks.task',
+            'planning.planningTasks.defaultTask',
             'planning.planningTasks.specificLocation'
         ])->get();
 
         $updated = 0;
 
         foreach ($items as $item) {
-            if ($item->type === 'material' && $item->benodigdheid) {
+            if ($item->type === 'material' && $item->requirement) {
                 // Find location through planning tasks
                 $planningTask = $item->planning->planningTasks
                     ->filter(function($pt) use ($item) {
-                        return ($pt->task && $pt->task->benodigdheden->contains($item->benodigdheid_id)) ||
-                               ($pt->defaultTask && $pt->defaultTask->benodigdheden->contains($item->benodigdheid_id));
+                        return ($pt->task && $pt->task->requirements->contains($item->requirement_id)) ||
+                               ($pt->defaultTask && $pt->defaultTask->requirements->contains($item->requirement_id));
                     })
                     ->first();
-                
+
                 if ($planningTask) {
                     $locationId = $planningTask->specificLocation?->id ?? $planningTask->task?->location_id;
                     if ($locationId) {
@@ -63,7 +63,7 @@ class UpdateEndChecklistLocations extends Command
                                ($pt->defaultTask && $pt->defaultTask->end_day_action_title === $item->title);
                     })
                     ->first();
-                
+
                 if ($planningTask) {
                     $locationId = $planningTask->specificLocation?->id ?? $planningTask->task?->location_id;
                     if ($locationId) {

@@ -5,7 +5,7 @@ namespace Feature\Http\Controllers;
 use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Models\Benodigdheid;
+use App\Models\Requirement;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
@@ -137,13 +137,13 @@ class TaskControllerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => Role::ADMIN->value]);
         $loc = Location::factory()->create();
-        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $admin->id]);
+        $b = Requirement::create(['name' => 'Zaklamp', 'description' => '', 'created_by' => $admin->id]);
 
         session(['prefill' => ['title' => 'Prefilled']]);
         $resp = $this->actingAs($admin)->get(route('locations.tasks.create', $loc));
         $resp->assertOk();
         $resp->assertViewIs('tasks.create');
-        $resp->assertViewHasAll(['location', 'benodigdheden', 'prefill']);
+        $resp->assertViewHasAll(['location', 'requirements', 'prefill']);
         $this->assertContains('Prefilled', $resp->viewData('prefill'));
     }
 
@@ -154,8 +154,8 @@ class TaskControllerTest extends TestCase
 
         $creator = User::factory()->create(['role' => Role::CUSTOMER_SERVICE->value]);
         $loc = Location::factory()->create();
-        $b1 = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $creator->id]);
-        $b2 = Benodigdheid::create(['naam' => 'Handschoenen', 'beschrijving' => '', 'created_by' => $creator->id]);
+        $b1 = Requirement::create(['name' => 'Zaklamp', 'description' => '', 'created_by' => $creator->id]);
+        $b2 = Requirement::create(['name' => 'Handschoenen', 'description' => '', 'created_by' => $creator->id]);
 
         // Mock ImageService
         $imageService = $this->createMock(ImageService::class);
@@ -170,7 +170,7 @@ class TaskControllerTest extends TestCase
             'location_id' => $loc->id,
             'priority' => TaskPriority::HIGH->value,
             'photos' => [$file],
-            'benodigdheden' => [$b1->id, $b2->id],
+            'requirements' => [$b1->id, $b2->id],
             '_token' => $this->token,
         ];
 
@@ -185,7 +185,7 @@ class TaskControllerTest extends TestCase
         $this->assertNotNull($task);
         $this->assertEquals($creator->id, $task->created_by);
         $this->assertEquals(TaskStatus::CONCEPT, $task->status);
-        $this->assertEqualsCanonicalizing([$b1->id, $b2->id], $task->benodigdheden()->pluck('benodigdheden.id')->all());
+        $this->assertEqualsCanonicalizing([$b1->id, $b2->id], $task->requirements()->pluck('requirements.id')->all());
         $this->assertDatabaseHas('task_photos', ['task_id' => $task->id, 'file_path' => 'task-photos/1/fake.jpg']);
     }
 
@@ -231,14 +231,14 @@ class TaskControllerTest extends TestCase
         $user = User::factory()->create();
         $loc = Location::factory()->create();
         $task = Task::factory()->create(['location_id' => $loc->id]);
-        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $user->id]);
-        $task->benodigdheden()->sync([$b->id]);
+        $b = Requirement::create(['name' => 'Zaklamp', 'description' => '', 'created_by' => $user->id]);
+        $task->requirements()->sync([$b->id]);
 
         $resp = $this->actingAs($user)->get(route('tasks.edit', $task));
         $resp->assertOk();
         $resp->assertViewIs('tasks.edit');
-        $resp->assertViewHasAll(['task', 'benodigdheden', 'selectedBenodigdheden']);
-        $this->assertContains($b->id, $resp->viewData('selectedBenodigdheden'));
+        $resp->assertViewHasAll(['task', 'requirements', 'selectedRequirements']);
+        $this->assertContains($b->id, $resp->viewData('selectedRequirements'));
     }
 
     public function test_update_updates_fields_and_benodigdheden_and_redirects(): void
@@ -246,13 +246,13 @@ class TaskControllerTest extends TestCase
         $user = User::factory()->create();
         $loc = Location::factory()->create();
         $task = Task::factory()->create(['location_id' => $loc->id, 'title' => 'Old', 'status' => TaskStatus::OPEN->value]);
-        $b = Benodigdheid::create(['naam' => 'Zaklamp', 'beschrijving' => '', 'created_by' => $user->id]);
+        $b = Requirement::create(['name' => 'Zaklamp', 'description' => '', 'created_by' => $user->id]);
 
         $payload = [
             'title' => 'New',
             'description' => 'Desc',
             'status' => TaskStatus::IN_PROGRESS->value,
-            'benodigdheden' => [$b->id],
+            'requirements' => [$b->id],
             '_token' => $this->token,
         ];
 
@@ -265,7 +265,7 @@ class TaskControllerTest extends TestCase
         $task->refresh();
         $this->assertEquals('New', $task->title);
         $this->assertEquals(TaskStatus::IN_PROGRESS, $task->status);
-        $this->assertEquals([$b->id], $task->benodigdheden()->pluck('benodigdheden.id')->all());
+        $this->assertEquals([$b->id], $task->requirements()->pluck('requirements.id')->all());
     }
 
     public function test_destroy_deletes_and_redirects_to_location_tasks_index(): void

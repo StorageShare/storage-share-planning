@@ -4,7 +4,7 @@ namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskStatus;
-use App\Models\Benodigdheid;
+use App\Models\Requirement;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
@@ -71,7 +71,7 @@ class MyPlanningControllerTest extends TestCase
         });
 
         $response->assertViewHas('locationSteps', function ($steps) {
-            // Should contain at least the summary step when there are no benodigdheden/tasks
+            // Should contain at least the summary step when there are no requirements/tasks
             $this->assertIsArray($steps);
             $types = array_column($steps, 'type');
             $this->assertContains('summary', $types);
@@ -124,18 +124,18 @@ class MyPlanningControllerTest extends TestCase
         $planning->locations()->attach($l1->id, ['sort_order' => 1]);
         $planning->locations()->attach($l2->id, ['sort_order' => 2]);
 
-        // Create benodigdheden: one regular, one with [locatie]
+        // Create requirements: one regular, one with [locatie]
         $creator = User::factory()->create();
-        $regular = Benodigdheid::create(['naam' => 'Emmer', 'beschrijving' => 'Plastic', 'created_by' => $creator->id]);
-        $placeholder = Benodigdheid::create(['naam' => 'Sleutel [locatie]', 'beschrijving' => 'Sleutelbos', 'created_by' => $creator->id]);
+        $regular = Requirement::create(['name' => 'Emmer', 'description' => 'Plastic', 'created_by' => $creator->id]);
+        $placeholder = Requirement::create(['name' => 'Sleutel [locatie]', 'description' => 'Sleutelbos', 'created_by' => $creator->id]);
 
         // Mark both as automatically required for both locations
         $regular->requiredForLocations()->sync([$l1->id, $l2->id]);
         $placeholder->requiredForLocations()->sync([$l1->id, $l2->id]);
 
-        // Also add a task that uses the same regular benodigdheid to test de-duplication
+        // Also add a task that uses the same regular requirement to test de-duplication
         $task = Task::factory()->create();
-        $task->benodigdheden()->sync([$regular->id]);
+        $task->requirements()->sync([$regular->id]);
         PlanningTask::create([
             'planning_id' => $planning->id,
             'task_id' => $task->id,
@@ -156,10 +156,10 @@ class MyPlanningControllerTest extends TestCase
         $response->assertViewHas('locationSteps', function ($steps) use ($l1, $l2) {
             $this->assertIsArray($steps);
             $this->assertNotEmpty($steps);
-            // First step should be the benodigdheden checklist
+            // First step should be the requirements checklist
             $first = $steps[0];
-            $this->assertEquals('benodigdheden', $first['type']);
-            $names = array_column($first['benodigdheden'], 'naam');
+            $this->assertEquals('requirements', $first['type']);
+            $names = array_column($first['requirements'], 'naam');
             // Regular item appears once (deduped) even though it is required for two locations and used by a task
             $this->assertEquals(1, collect($names)->filter(fn($n) => $n === 'Emmer')->count());
             // Placeholder creates two location-specific variants with replaced names

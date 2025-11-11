@@ -44,7 +44,7 @@
                         <div class="relative inline-flex items-center">
                             <x-dropdown align="left" width="48">
                                 <x-slot name="trigger">
-                                    <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150 {{ request()->routeIs(['locations.*', 'default-tasks.*', 'benodigdheden.*', 'users.*', 'vehicles.*']) ? 'text-gray-900 dark:text-gray-100' : '' }}">
+                                    <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150 {{ request()->routeIs(['locations.*', 'default-tasks.*', 'requirements.*', 'users.*', 'vehicles.*']) ? 'text-gray-900 dark:text-gray-100' : '' }}">
                                         <div>{{ __('Configuratie') }}</div>
                                         <div class="ms-1">
                                             <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -61,7 +61,7 @@
                                     <x-dropdown-link :href="route('default-tasks.index')">
                                         📋 {{ __('Standaardtaken') }}
                                     </x-dropdown-link>
-                                    <x-dropdown-link :href="route('benodigdheden.index')">
+                                    <x-dropdown-link :href="route('requirements.index')">
                                         🔧 {{ __('Benodigdheden') }}
                                     </x-dropdown-link>
                                     <x-dropdown-link :href="route('users.index')">
@@ -279,7 +279,7 @@
                 <x-responsive-nav-link :href="route('default-tasks.index')" :active="request()->routeIs('default-tasks.*')">
                     📋 {{ __('Standaardtaken') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('benodigdheden.index')" :active="request()->routeIs('benodigdheden.*')">
+                <x-responsive-nav-link :href="route('requirements.index')" :active="request()->routeIs('requirements.*')">
                     🔧 {{ __('Benodigdheden') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">

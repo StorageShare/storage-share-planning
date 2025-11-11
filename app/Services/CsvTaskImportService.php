@@ -49,7 +49,7 @@ class CsvTaskImportService
 
                 // Find existing location
                 $location = $this->findLocation($row['Locatie']);
-                
+
                 if (!$location) {
                     $importResults['errors'][] = "Rij {$rowIndex}: Locatie '{$row['Locatie']}' niet gevonden in database";
                     $importResults['error_count']++;
@@ -60,7 +60,7 @@ class CsvTaskImportService
                 $csvLocation = $row['Locatie'];
                 $foundLocation = $location->name;
                 $foundAddress = $location->address;
-                
+
                 // If the names don't match exactly, it was likely a fallback match
                 if (strtolower(trim($csvLocation)) !== strtolower(trim($foundLocation))) {
                     $importResults['errors'][] = "Rij {$rowIndex}: Waarschuwing - Locatie '{$csvLocation}' werd gematcht met '{$foundLocation}' ({$foundAddress}) - controleer of dit correct is";
@@ -96,7 +96,7 @@ class CsvTaskImportService
                     $benodigdheden = [];
                     $estimatedMinutes = null;
                 }
-                
+
                 // Create task
                 $task = Task::create([
                     'location_id' => $location->id,
@@ -112,9 +112,9 @@ class CsvTaskImportService
                     'estimated_minutes' => $estimatedMinutes,
                 ]);
 
-                // Attach benodigdheden if any
+                // Attach requirements if any
                 if (!empty($benodigdheden)) {
-                    $task->benodigdheden()->attach($benodigdheden);
+                    $task->requirements()()->attach($benodigdheden);
                 }
 
                 $importResults['imported_tasks'][] = $task;
@@ -125,7 +125,7 @@ class CsvTaskImportService
                     'error' => $e->getMessage(),
                     'row' => $row
                 ]);
-                
+
                 $importResults['errors'][] = "Rij {$rowIndex}: {$e->getMessage()}";
                 $importResults['error_count']++;
             }
@@ -152,7 +152,7 @@ class CsvTaskImportService
         ];
 
         $activity = strtolower(trim($activity));
-        
+
         foreach ($toDoVariations as $variation) {
             if (str_contains($activity, $variation)) {
                 return true;
@@ -171,7 +171,7 @@ class CsvTaskImportService
     private function findLocation(string $locationName): ?Location
     {
         $locationName = trim($locationName);
-        
+
         if (empty($locationName)) {
             return null;
         }
@@ -181,7 +181,7 @@ class CsvTaskImportService
         if ($location) {
             return $location;
         }
-        
+
         // Step 2: Try case-insensitive exact match
         $location = Location::whereRaw('LOWER(name) = ?', [strtolower($locationName)])->first();
         if ($location) {
@@ -190,7 +190,7 @@ class CsvTaskImportService
 
         // Step 3: Normalize the input and try fuzzy matching
         $normalizedInput = $this->normalizeLocationString($locationName);
-        
+
         // Get all locations for comparison
         $allLocations = Location::all();
         $bestMatch = null;
@@ -200,15 +200,15 @@ class CsvTaskImportService
         foreach ($allLocations as $location) {
             $normalizedDbName = $this->normalizeLocationString($location->name);
             $normalizedDbAddress = $this->normalizeLocationString($location->address ?? '');
-            
+
             // Calculate similarity scores
             $nameScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName);
             $addressScore = $this->calculateSimilarity($normalizedInput, $normalizedDbAddress);
             $combinedScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName . ' ' . $normalizedDbAddress);
-            
+
             // Take the best score of the three comparisons
             $score = max($nameScore, $addressScore, $combinedScore);
-            
+
             $matchDetails[] = [
                 'location' => $location,
                 'score' => $score,
@@ -218,7 +218,7 @@ class CsvTaskImportService
                 'normalized_name' => $normalizedDbName,
                 'normalized_address' => $normalizedDbAddress
             ];
-            
+
             if ($score > $bestScore) {
                 $bestScore = $score;
                 $bestMatch = $location;
@@ -229,7 +229,7 @@ class CsvTaskImportService
         if (!empty($matchDetails)) {
             // Sort by score descending
             usort($matchDetails, fn($a, $b) => $b['score'] <=> $a['score']);
-            
+
             Log::info('Location matching results', [
                 'input' => $locationName,
                 'normalized_input' => $normalizedInput,
@@ -262,13 +262,13 @@ class CsvTaskImportService
     {
         // Convert to lowercase
         $normalized = strtolower(trim($locationString));
-        
+
         // Remove common punctuation that might differ between sources
         $normalized = preg_replace('/[,\.\-_\(\)\[\]]+/', ' ', $normalized);
-        
+
         // Replace multiple spaces with single space
         $normalized = preg_replace('/\s+/', ' ', $normalized);
-        
+
         // Remove common Dutch abbreviations and normalize them
         $replacements = [
             'str ' => 'straat ',
@@ -281,11 +281,11 @@ class CsvTaskImportService
             'singel' => 'singel',
             'markt' => 'markt'
         ];
-        
+
         foreach ($replacements as $search => $replace) {
             $normalized = str_replace($search, $replace, $normalized);
         }
-        
+
         return trim($normalized);
     }
 
@@ -301,24 +301,24 @@ class CsvTaskImportService
         if (empty($string1) || empty($string2)) {
             return 0.0;
         }
-        
+
         // If strings are identical after normalization, perfect match
         if ($string1 === $string2) {
             return 1.0;
         }
-        
+
         // Split into words for word-based comparison
         $words1 = array_filter(explode(' ', $string1), fn($w) => strlen($w) >= 2);
         $words2 = array_filter(explode(' ', $string2), fn($w) => strlen($w) >= 2);
-        
+
         if (empty($words1) || empty($words2)) {
             return 0.0;
         }
-        
+
         // Calculate word-based similarity
         $matchingWords = 0;
         $totalWords = max(count($words1), count($words2));
-        
+
         foreach ($words1 as $word1) {
             $bestWordMatch = 0;
             foreach ($words2 as $word2) {
@@ -326,18 +326,18 @@ class CsvTaskImportService
                 $wordSimilarity = 1 - (levenshtein($word1, $word2) / max(strlen($word1), strlen($word2)));
                 $bestWordMatch = max($bestWordMatch, $wordSimilarity);
             }
-            
+
             // Count as matching if similarity is above 80%
             if ($bestWordMatch >= 0.8) {
                 $matchingWords++;
             }
         }
-        
+
         $wordScore = $matchingWords / $totalWords;
-        
+
         // Also calculate string similarity as backup
         $stringSimilarity = 1 - (levenshtein($string1, $string2) / max(strlen($string1), strlen($string2)));
-        
+
         // Return the best score of the two methods
         return max($wordScore, $stringSimilarity);
     }
@@ -351,7 +351,7 @@ class CsvTaskImportService
     private function mapPriority(string $csvPriority): TaskPriority
     {
         $csvPriority = strtolower(trim($csvPriority));
-        
+
         return match ($csvPriority) {
             'hoog' => TaskPriority::HIGH,
             'laag' => TaskPriority::NORMAL, // "Laag" should become "medium" (normal)
@@ -368,7 +368,7 @@ class CsvTaskImportService
     private function parseDate(string $dateString): ?\Carbon\Carbon
     {
         $dateString = trim($dateString);
-        
+
         if (empty($dateString)) {
             return null;
         }
@@ -392,7 +392,7 @@ class CsvTaskImportService
 
             // Fallback to Carbon's flexible parsing
             return \Carbon\Carbon::parse($dateString);
-            
+
         } catch (\Exception $e) {
             Log::warning('Could not parse date: ' . $dateString, ['error' => $e->getMessage()]);
             return null;
@@ -451,34 +451,34 @@ class CsvTaskImportService
     private function generateTitleFromDescription(string $description): string
     {
         $description = trim($description);
-        
+
         if (empty($description)) {
             return 'Geïmporteerde taak';
         }
-        
+
         // If description is very short (max 30 characters), use it as title
         if (strlen($description) <= 30) {
             return $description;
         }
-        
+
         // For longer descriptions, generate a logical title
         $words = explode(' ', $description);
-        
+
         // Common action words to look for
         $actionWords = [
-            'controleren', 'controleronde', 'schoonmaken', 'vegen', 'stofzuigen', 
+            'controleren', 'controleronde', 'schoonmaken', 'vegen', 'stofzuigen',
             'schrobben', 'ontruimen', 'repareren', 'vervangen', 'ophangen',
             'plaatsen', 'installeren', 'afvoeren', 'opruimen', 'checken',
             'nakijken', 'uitzoeken', 'onderzoeken', 'verhelpen', 'oplossen'
         ];
-        
+
         // Try to find an action word
         foreach ($actionWords as $actionWord) {
             foreach ($words as $index => $word) {
                 if (stripos($word, $actionWord) !== false) {
                     // Found an action word, build title around it
                     $titleWords = [];
-                    
+
                     // Add words before action word (up to 3 words back)
                     $startIndex = max(0, $index - 3);
                     for ($i = $startIndex; $i < $index; $i++) {
@@ -486,10 +486,10 @@ class CsvTaskImportService
                             $titleWords[] = $words[$i];
                         }
                     }
-                    
+
                     // Add action word
                     $titleWords[] = $words[$index];
-                    
+
                     // Add words after action word (up to 5 words) to catch numbers
                     $endIndex = min(count($words), $index + 6);
                     for ($i = $index + 1; $i < $endIndex; $i++) {
@@ -497,30 +497,30 @@ class CsvTaskImportService
                             $titleWords[] = $words[$i];
                         }
                     }
-                    
+
                     $title = implode(' ', $titleWords);
-                    
+
                     // Clean up the title
                     $title = preg_replace('/[.!?]+$/', '', $title);
                     $title = preg_replace('/\s+→\s+.*$/', '', $title);
                     $title = preg_replace('/\s+Zou\s+.*$/', '', $title);
                     $title = preg_replace('/\s+Foto.*$/', '', $title);
-                    
+
                     // Check if title contains numbers - if so, allow longer titles
                     $containsNumbers = preg_match('/\d/', $title);
                     $maxLength = $containsNumbers ? 80 : 60;
-                    
+
                     // If title is within limits, return it
                     if (strlen($title) <= $maxLength) {
                         return $title;
                     }
-                    
+
                     // If too long but contains numbers, try to keep the numbers
                     if ($containsNumbers) {
                         // Look for specific patterns like "ruimte X.X"
                         if (preg_match('/(ruimte|unit|kamer|opslag|box)\s+(\d+\.?\d*)/i', $description, $matches)) {
                             $titleWords = [];
-                            
+
                             // Add words before action word (up to 3 words back)
                             $startIndex = max(0, $index - 3);
                             for ($i = $startIndex; $i < $index; $i++) {
@@ -528,23 +528,23 @@ class CsvTaskImportService
                                     $titleWords[] = $words[$i];
                                 }
                             }
-                            
+
                             // Add action word
                             $titleWords[] = $words[$index];
-                            
+
                             // Add the matched pattern
                             $titleWords[] = $matches[1] . ' ' . $matches[2];
-                            
+
                             $title = implode(' ', $titleWords);
                             $title = preg_replace('/[.!?]+$/', '', $title);
-                            
+
                             return $title;
                         }
-                        
+
                         // If no specific pattern, just include the first number found
                         if (preg_match('/(\d+\.?\d*)/', $description, $matches)) {
                             $titleWords = [];
-                            
+
                             // Add words before action word (up to 3 words back)
                             $startIndex = max(0, $index - 3);
                             for ($i = $startIndex; $i < $index; $i++) {
@@ -552,23 +552,23 @@ class CsvTaskImportService
                                     $titleWords[] = $words[$i];
                                 }
                             }
-                            
+
                             // Add action word
                             $titleWords[] = $words[$index];
-                            
+
                             // Add the number
                             $titleWords[] = $matches[1];
-                            
+
                             $title = implode(' ', $titleWords);
                             $title = preg_replace('/[.!?]+$/', '', $title);
-                            
+
                             return $title;
                         }
                     }
-                    
+
                     // If still too long, truncate but try to keep action word
                     $titleWords = [];
-                    
+
                     // Add words before action word (up to 3 words back)
                     $startIndex = max(0, $index - 3);
                     for ($i = $startIndex; $i < $index; $i++) {
@@ -576,31 +576,31 @@ class CsvTaskImportService
                             $titleWords[] = $words[$i];
                         }
                     }
-                    
+
                     // Add action word
                     $titleWords[] = $words[$index];
-                    
+
                     $title = implode(' ', $titleWords);
                     $title = preg_replace('/[.!?]+$/', '', $title);
-                    
+
                     return $title;
                 }
             }
         }
-        
+
         // If no action word found, take first 3-4 meaningful words
         $meaningfulWords = array_filter($words, function($word) {
             return strlen($word) >= 3 && !in_array(strtolower($word), ['van', 'de', 'het', 'een', 'met', 'voor', 'naar', 'bij', 'op', 'in', 'uit', 'aan', 'om', 'door', 'over', 'onder', 'boven', 'achter', 'voor', 'na', 'tot', 'sinds', 'tijdens', 'zonder', 'met', 'tegen', 'langs', 'rond', 'omheen']);
         });
-        
+
         $titleWords = array_slice($meaningfulWords, 0, 4);
         $title = implode(' ', $titleWords);
-        
+
         // If still too long, truncate
         if (strlen($title) > 60) {
             $title = substr($title, 0, 57) . '...';
         }
-        
+
         return $title ?: 'Geïmporteerde taak';
     }
 
@@ -638,7 +638,7 @@ class CsvTaskImportService
         ];
 
         $activity = strtolower(trim($activity));
-        
+
         foreach ($schoonmakenVariations as $variation) {
             if (str_contains($activity, $variation)) {
                 return true;
@@ -670,7 +670,7 @@ class CsvTaskImportService
         ];
 
         $activity = strtolower(trim($activity));
-        
+
         foreach ($controlerondeVariations as $variation) {
             if (str_contains($activity, $variation)) {
                 return true;
@@ -701,17 +701,17 @@ class CsvTaskImportService
     private function generateControlerondeDescription(string $description): string
     {
         $baseDescription = "Voer een controleronde uit en noteer alle bijzonderheden en voeg voor elke bijzonderheid foto's toe!";
-        
+
         // Check if the description contains "vanaf boven in de ruimtes kijken"
         if (str_contains(strtolower($description), 'vanaf boven in de ruimtes kijken')) {
             return "Voer een controleronde uit (vanaf boven in de ruimtes kijken) en noteer alle bijzonderheden en voeg voor elke bijzonderheid foto's toe!";
         }
-        
+
         return $baseDescription;
     }
 
     /**
-     * Get benodigdheden for Controleronde activity.
+     * Get requirements for Controleronde activity.
      *
      * @param string $description
      * @return array
@@ -719,16 +719,16 @@ class CsvTaskImportService
     private function getControlerondeBenodigdheden(string $description): array
     {
         $benodigdheden = [];
-        
+
         // Check if the description contains "vanaf boven in de ruimtes kijken"
         if (str_contains(strtolower($description), 'vanaf boven in de ruimtes kijken')) {
-            // Find the Selfiestick benodigheid
-            $selfiestick = \App\Models\Benodigdheid::where('naam', 'Selfiestick')->first();
+            // Find the Selfiestick requirement
+            $selfiestick = \App\Models\Requirement::where('naam', 'Selfiestick')->first();
             if ($selfiestick) {
                 $benodigdheden[] = $selfiestick->id;
             }
         }
-        
+
         return $benodigdheden;
     }
 }

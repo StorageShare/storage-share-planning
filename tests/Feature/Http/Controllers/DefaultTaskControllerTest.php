@@ -3,7 +3,7 @@
 namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
-use App\Models\Benodigdheid;
+use App\Models\Requirement;
 use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\User;
@@ -65,28 +65,28 @@ class DefaultTaskControllerTest extends TestCase
         Location::factory()->count(2)->create();
         // ensure available door types present
         Location::factory()->create(['type_deur' => 'Houten deur']);
-        Benodigdheid::create(['naam' => 'Emmer', 'beschrijving' => '', 'created_by' => $user->id]);
+        Requirement::create(['name' => 'Emmer', 'description' => '', 'created_by' => $user->id]);
 
         $response = $this->actingAs($this->admin)
             ->get(route('default-tasks.create'));
 
         $response->assertOk();
         $response->assertViewIs('default-tasks.create');
-        $response->assertViewHasAll(['locations', 'benodigdheden', 'availableDoorTypes']);
+        $response->assertViewHasAll(['locations', 'requirements', 'availableDoorTypes']);
     }
 
     public function test_store_with_applies_to_all_locations_syncs_all(): void
     {
         $user = User::factory()->create();
         $locs = Location::factory()->count(3)->create();
-        $b1 = Benodigdheid::create(['naam' => 'Mop', 'beschrijving' => '', 'created_by' => $user->id]);
-        $b2 = Benodigdheid::create(['naam' => 'Emmer', 'beschrijving' => '', 'created_by' => $user->id]);
+        $b1 = Requirement::create(['name' => 'Mop', 'description' => '', 'created_by' => $user->id]);
+        $b2 = Requirement::create(['name' => 'Emmer', 'description' => '', 'created_by' => $user->id]);
 
         $payload = [
             'title' => 'Daily Sweep',
             'description' => 'Sweep all floors',
             'applies_to_all_locations' => true,
-            'benodigdheden' => [$b1->id, $b2->id],
+            'requirements' => [$b1->id, $b2->id],
         ];
 
         $response = $this->actingAs($this->admin)
@@ -100,7 +100,7 @@ class DefaultTaskControllerTest extends TestCase
         $this->assertNotNull($task);
         $this->assertEquals($this->admin->id, $task->creator?->id);
         $this->assertEqualsCanonicalizing($locs->pluck('id')->all(), $task->locations()->pluck('locations.id')->all());
-        $this->assertEqualsCanonicalizing([$b1->id, $b2->id], $task->benodigdheden()->pluck('benodigdheden.id')->all());
+        $this->assertEqualsCanonicalizing([$b1->id, $b2->id], $task->requirements()->pluck('requirements.id')->all());
     }
 
     public function test_store_with_door_types_syncs_matching_locations_case_insensitive(): void
@@ -157,14 +157,14 @@ class DefaultTaskControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $loc = Location::factory()->create();
-        $b = Benodigdheid::create(['naam' => 'Mop', 'beschrijving' => '', 'created_by' => $user->id]);
+        $b = Requirement::create(['name' => 'Mop', 'beschrijving' => '', 'created_by' => $user->id]);
 
         $task = DefaultTask::create([
             'title' => 'Wipe Desks',
             'description' => 'Wipe all desks',
         ]);
         $task->locations()->sync([$loc->id]);
-        $task->benodigdheden()->sync([$b->id]);
+        $task->requirements()->sync([$b->id]);
 
         $show = $this->actingAs($this->admin)->get(route('default-tasks.show', $task));
         $show->assertOk();
@@ -176,11 +176,11 @@ class DefaultTaskControllerTest extends TestCase
         $edit = $this->actingAs($this->admin)->get(route('default-tasks.edit', $task));
         $edit->assertOk();
         $edit->assertViewIs('default-tasks.edit');
-        $edit->assertViewHasAll(['defaultTask', 'locations', 'selectedLocations', 'benodigdheden', 'selectedBenodigdheden', 'availableDoorTypes']);
+        $edit->assertViewHasAll(['defaultTask', 'locations', 'selectedLocations', 'requirements', 'selectedRequirements', 'availableDoorTypes']);
         $edit->assertViewHas('selectedLocations', function ($arr) use ($loc) {
             return in_array($loc->id, $arr, true);
         });
-        $edit->assertViewHas('selectedBenodigdheden', function ($arr) use ($b) {
+        $edit->assertViewHas('selectedRequirements', function ($arr) use ($b) {
             return in_array($b->id, $arr, true);
         });
     }
@@ -191,8 +191,8 @@ class DefaultTaskControllerTest extends TestCase
         $l1 = Location::factory()->create(['type_deur' => 'Houten deur']);
         $l2 = Location::factory()->create(['type_deur' => 'Glazen deur']);
         $l3 = Location::factory()->create(['type_deur' => 'Overhead deur']);
-        $b1 = Benodigdheid::create(['naam' => 'Mop', 'beschrijving' => '', 'created_by' => $user->id]);
-        $b2 = Benodigdheid::create(['naam' => 'Emmer', 'beschrijving' => '', 'created_by' => $user->id]);
+        $b1 = Requirement::create(['name' => 'Mop', 'description' => '', 'created_by' => $user->id]);
+        $b2 = Requirement::create(['name' => 'Emmer', 'description' => '', 'created_by' => $user->id]);
 
         $task = DefaultTask::create([
             'title' => 'Initial',
@@ -200,14 +200,14 @@ class DefaultTaskControllerTest extends TestCase
             'applies_to_all_locations' => false,
         ]);
         $task->locations()->sync([$l3->id]);
-        $task->benodigdheden()->sync([$b1->id]);
+        $task->requirements()->sync([$b1->id]);
 
         $payload = [
             'title' => 'Updated',
             'description' => 'Updated desc',
             'applies_to_door_types' => true,
             'door_types' => [' HOUTEN DEUR ', 'glazen deur'],
-            'benodigdheden' => [$b2->id],
+            'requirements' => [$b2->id],
         ];
 
         $response = $this->actingAs($this->admin)
@@ -221,8 +221,8 @@ class DefaultTaskControllerTest extends TestCase
         $this->assertEquals(['houten deur', 'glazen deur'], $task->door_types ?? []);
         // Should sync to l1 and l2 based on door types, not l3
         $this->assertEqualsCanonicalizing([$l1->id, $l2->id], $task->locations()->pluck('locations.id')->all());
-        // benodigdheden synced to only b2
-        $this->assertEqualsCanonicalizing([$b2->id], $task->benodigdheden()->pluck('benodigdheden.id')->all());
+        // requirements synced to only b2
+        $this->assertEqualsCanonicalizing([$b2->id], $task->requirements()->pluck('requirements.id')->all());
     }
 
     public function test_destroy_deletes_and_redirects(): void

@@ -13,12 +13,12 @@ class OfflinePlanningController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         // Controleer toegang
         if (!$user->isAdmin() && !$planning->users->contains($user)) {
             abort(403, 'Geen toegang tot deze planning.');
         }
-        
+
         // Laad alle benodigde data voor offline gebruik
         $planning->load([
             'locations',
@@ -27,68 +27,68 @@ class OfflinePlanningController extends Controller
                 $query->with([
                     'task.location',
                     'task.taskPhotos',
-                    'task.benodigdheden',
-                    'defaultTask.benodigdheden',
+                    'task.requirements',
+                    'defaultTask.requirements',
                     'specificLocation',
                     'completions' => function ($completionQuery) {
                         $completionQuery->with(['photos', 'user', 'reviewer'])->orderBy('created_at', 'desc');
                     },
                 ]);
             },
-            'endChecklistItems.benodigdheid',
+            'endChecklistItems.requirement',
             'locationTimers'
         ]);
 
-        // Bereken benodigdheden voor de planning
-        $benodigdheden = $this->calculateBenodigdheden($planning);
+        // Bereken requirements voor de planning
+        $requirements = $this->calculateRequirements($planning);
 
         // Genereer offline data
         $offlineData = [
             'last_sync' => now()->toISOString(),
             'sync_hash' => $this->generateSyncHash($planning),
             'expires_at' => now()->addHours(24)->toISOString(),
-            'benodigdheden' => $benodigdheden,
+            'requirements' => $requirements,
             'user_permissions' => [
                 'is_admin' => $user->isAdmin(),
                 'can_complete_tasks' => true,
                 'can_upload_photos' => true,
             ]
         ];
-        
+
         return response()->json([
             'planning' => $planning,
             'offline_data' => $offlineData
         ]);
     }
 
-    private function calculateBenodigdheden(Planning $planning): array
+    private function calculateRequirements(Planning $planning): array
     {
-        $benodigdheden = collect();
+        $requirements = collect();
 
-        // Verzamel benodigdheden van planning tasks
+        // Verzamel requirements van planning tasks
         foreach ($planning->planningTasks as $planningTask) {
-            if ($planningTask->task && $planningTask->task->benodigdheden) {
-                $benodigdheden = $benodigdheden->merge($planningTask->task->benodigdheden);
+            if ($planningTask->task && $planningTask->task->requirements) {
+                $requirements = $requirements->merge($planningTask->task->requirements);
             }
-            
-            if ($planningTask->defaultTask && $planningTask->defaultTask->benodigdheden) {
-                $benodigdheden = $benodigdheden->merge($planningTask->defaultTask->benodigdheden);
+
+            if ($planningTask->defaultTask && $planningTask->defaultTask->requirements) {
+                $requirements = $requirements->merge($planningTask->defaultTask->requirements);
             }
         }
 
-        // Unieke benodigdheden ophalen
-        $uniqueBenodigdheden = $benodigdheden->unique('id')->values();
+        // Unieke requirements ophalen
+        $uniqueRequirements = $requirements->unique('id')->values();
 
-        return $uniqueBenodigdheden->map(function ($benodigdheid) {
+        return $uniqueRequirements->map(function ($requirement) {
             return [
-                'id' => $benodigdheid->id,
-                'naam' => $benodigdheid->naam,
-                'beschrijving' => $benodigdheid->beschrijving,
-                'type' => $benodigdheid->type ?? 'materiaal',
+                'id' => $requirement->id,
+                'naam' => $requirement->name,
+                'beschrijving' => $requirement->description,
+                'type' => $requirement->type ?? 'materiaal',
             ];
         })->toArray();
     }
-    
+
     private function generateSyncHash(Planning $planning): string
     {
         $data = [
@@ -97,7 +97,7 @@ class OfflinePlanningController extends Controller
             'completions_count' => $planning->planningTasks->sum(fn($pt) => $pt->completions->count()),
             'locations_count' => $planning->locations->count(),
         ];
-        
+
         return hash('sha256', json_encode($data));
     }
 
@@ -105,16 +105,16 @@ class OfflinePlanningController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         if (!$user->isAdmin() && !$planning->users->contains($user)) {
             abort(403, 'Geen toegang tot deze planning.');
         }
 
         $currentHash = $this->generateSyncHash($planning);
-        
+
         return response()->json([
             'current_sync_hash' => $currentHash,
             'last_updated' => $planning->updated_at->toISOString(),
         ]);
     }
-} 
+}

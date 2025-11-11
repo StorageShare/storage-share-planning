@@ -9,6 +9,7 @@ use App\Events\LocationCompleted;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Location;
+use App\Models\Requirement;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -179,12 +180,12 @@ class TaskController extends Controller
      */
     public function create(Request $request, Location $location): View
     {
-        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
+        $requirements = Requirement::orderBy('name')->get();
 
         // Get prefilled data from session (if redirected from rejected checklist item)
         $prefill = session('prefill', []);
 
-        return view('tasks.create', compact('location', 'benodigdheden', 'prefill'));
+        return view('tasks.create', compact('location', 'requirements', 'prefill'));
     }
 
     /**
@@ -204,9 +205,9 @@ class TaskController extends Controller
 
         $new_task = $location->tasks()->create($validatedData); // Assign to variable to use in message if needed
 
-        // Sync benodigdheden
-        if (!empty($validatedData['benodigdheden'])) {
-            $new_task->benodigdheden()->sync($validatedData['benodigdheden']);
+        // Sync requirements
+        if (!empty($validatedData['requirements'])) {
+            $new_task->requirements()->sync($validatedData['requirements']);
         }
 
         // Handle photo uploads
@@ -274,11 +275,11 @@ class TaskController extends Controller
      */
     public function edit(Task $task): View
     {
-        $task->load(['location', 'benodigdheden']); // Nodig voor context in de view, bv. broodkruimels
-        $benodigdheden = \App\Models\Benodigdheid::orderBy('naam')->get();
-        $selectedBenodigdheden = $task->benodigdheden->pluck('id')->toArray();
+        $task->load(['location', 'requirements']); // Nodig voor context in de view, bv. broodkruimels
+        $requirements = Requirement::orderBy('name')->get();
+        $selectedRequirements = $task->requirements->pluck('id')->toArray();
 
-        return view('tasks.edit', compact('task', 'benodigdheden', 'selectedBenodigdheden'));
+        return view('tasks.edit', compact('task', 'requirements', 'selectedRequirements'));
     }
 
     /**
@@ -295,8 +296,8 @@ class TaskController extends Controller
 
         $task->update($validatedData);
 
-        // Sync benodigdheden
-        $task->benodigdheden()->sync($validatedData['benodigdheden'] ?? []);
+        // Sync requirements
+        $task->requirements()->sync($validatedData['requirements'] ?? []);
 
         // Handle photo uploads
         if ($request->hasFile('photos')) {

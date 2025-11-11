@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Admin\TaskReviewController;
 use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\BenodigdheidController;
+use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\CsvImportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DefaultTaskController;
@@ -40,7 +40,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('locations', LocationController::class);
     Route::resource('default-tasks', DefaultTaskController::class);
-    Route::resource('benodigdheden', BenodigdheidController::class);
+    Route::resource('requirements', RequirementController::class);
     Route::resource('vehicles', VehicleController::class);
 
     // CSV Import routes

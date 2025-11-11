@@ -10,11 +10,11 @@
             @csrf
             {{-- Nieuw Task model voor het formulier --}}
             @include('tasks._form', [
-                'task' => new App\Models\Task(), 
-                'location' => $location, 
+                'task' => new App\Models\Task(),
+                'location' => $location,
                 'submitButtonText' => 'Taak Aanmaken',
-                'benodigdheden' => $benodigdheden ?? collect(),
-                'selectedBenodigdheden' => old('benodigdheden', []),
+                'requirements' => $benodigdheden ?? collect(),
+                'selectedRequirements' => old('requirements', []),
                 'prefill' => $prefill ?? []
             ])
         </form>

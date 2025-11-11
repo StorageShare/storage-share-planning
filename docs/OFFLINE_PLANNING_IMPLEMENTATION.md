@@ -134,12 +134,12 @@ class OfflinePlanningController extends Controller
             'users',
             'planningTasks.task.location',
             'planningTasks.task.taskPhotos',
-            'planningTasks.task.benodigdheden',
-            'planningTasks.defaultTask.benodigdheden',
+            'planningTasks.task.requirements',
+            'planningTasks.defaultTask.requirements',
             'planningTasks.specificLocation',
             'planningTasks.completions.photos',
             'planningTasks.completions.user',
-            'endChecklistItems.benodigdheid'
+            'endChecklistItems.requirement'
         ]);
         
         return response()->json([

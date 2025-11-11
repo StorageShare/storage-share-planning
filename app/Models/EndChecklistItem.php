@@ -20,7 +20,7 @@ class EndChecklistItem extends Model
         'planning_id',
         'location_id',
         'type',
-        'benodigdheid_id',
+        'requirement_id',
         'title',
         'description',
         'photo_path',
@@ -51,11 +51,11 @@ class EndChecklistItem extends Model
     }
 
     /**
-     * Get the benodigdheid (material) associated with this item (if type is 'material').
+     * Get the requirement (material) associated with this item (if type is 'material').
      */
-    public function benodigdheid(): BelongsTo
+    public function requirement(): BelongsTo
     {
-        return $this->belongsTo(Benodigdheid::class);
+        return $this->belongsTo(Requirement::class, 'requirement_id');
     }
 
     /**

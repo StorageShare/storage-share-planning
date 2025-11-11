@@ -18,12 +18,12 @@
                         @csrf
 
                         @include('default-tasks._form', [
-                            'defaultTask' => new App\Models\DefaultTask(), 
+                            'defaultTask' => new App\Models\DefaultTask(),
                             'submitButtonText' => __('Standaardtaak Aanmaken'),
                             'locations' => $locations,
                             'selectedLocations' => old('locations', []),
-                            'benodigdheden' => $benodigdheden ?? collect(),
-                            'selectedBenodigdheden' => old('benodigdheden', []),
+                            'requirements' => $benodigdheden ?? collect(),
+                            'selectedRequirements' => old('requirements', []),
                             'availableDoorTypes' => $availableDoorTypes ?? []
                         ])
                     </form>
@@ -31,4 +31,4 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</x-app-layout>

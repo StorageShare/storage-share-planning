@@ -144,15 +144,15 @@
             </div>
             <div class="max-h-72 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50/50 dark:bg-gray-800 dark:border-gray-700">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2" id="benodigdheden_checkbox_group">
-                    @foreach($benodigdheden as $benodigdheid)
+                    @foreach($requirements as $requirement)
                         <div class="flex items-center">
-                            <input id="benodigdheid_{{ $benodigdheid->id }}" name="benodigdheden[]" type="checkbox" value="{{ $benodigdheid->id }}"
-                                   class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500 benodigdheid-checkbox"
-                                   {{ in_array($benodigdheid->id, old('benodigdheden', $selectedBenodigdheden ?? [])) ? 'checked' : '' }}>
-                            <label for="benodigdheid_{{ $benodigdheid->id }}" class="ms-3 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $benodigdheid->naam }}
-                                @if($benodigdheid->beschrijving)
-                                    <span class="block text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($benodigdheid->beschrijving, 60) }}</span>
+                            <input id="requirement_{{ $requirement->id }}" name="benodigdheden[]" type="checkbox" value="{{ $requirement->id }}"
+                                   class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500 requirement-checkbox"
+                                   {{ in_array($requirement->id, old('requirements', $selectedRequirements ?? [])) ? 'checked' : '' }}>
+                            <label for="requirement_{{ $requirement->id }}" class="ms-3 text-sm text-gray-700 dark:text-gray-300">
+                                {{ $requirement->name }}
+                                @if($requirement->description)
+                                    <span class="block text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($requirement->description, 60) }}</span>
                                 @endif
                             </label>
                         </div>
@@ -160,10 +160,10 @@
                 </div>
             </div>
         </div>
-        @error('benodigdheden')
+        @error('requirements')
         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
         @enderror
-        @error('benodigdheden.*')
+        @error('requirements.*')
         <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
         @enderror
     </div>
@@ -270,11 +270,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const selectAllBenodigdhedenCheckbox = document.getElementById('select_all_benodigdheden');
-    const benodigdheidCheckboxes = document.querySelectorAll('.benodigdheid-checkbox');
+    const requirementCheckboxes = document.querySelectorAll('.requirement-checkbox');
 
     if (selectAllBenodigdhedenCheckbox) {
         selectAllBenodigdhedenCheckbox.addEventListener('change', function () {
-            benodigdheidCheckboxes.forEach(checkbox => {
+            requirementCheckboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });

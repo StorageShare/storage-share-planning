@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamp('reviewed_at')->nullable();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
-            
+
             $table->index(['planning_id', 'type']);
             $table->index(['status', 'planning_id']);
         });

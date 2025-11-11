@@ -10,14 +10,14 @@
             @csrf
             @method('PUT')
             @include('default-tasks._form', [
-                'defaultTask' => $defaultTask, 
+                'defaultTask' => $defaultTask,
                 'submitButtonText' => 'Wijzigingen Opslaan',
                 'locations' => $locations,
                 'selectedLocations' => old('locations', $selectedLocations),
-                'benodigdheden' => $benodigdheden ?? collect(),
-                'selectedBenodigdheden' => old('benodigdheden', $selectedBenodigdheden ?? []),
+                'requirements' => $benodigdheden ?? collect(),
+                'selectedRequirements' => old('requirements', $selectedRequirements ?? []),
                 'availableDoorTypes' => $availableDoorTypes ?? []
             ])
         </form>
     </div>
-</x-app-layout> 
+</x-app-layout>

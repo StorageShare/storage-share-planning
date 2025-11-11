@@ -35,14 +35,14 @@ class TaskReviewController extends Controller
             ->with(['planning.locations', 'specificLocation', 'completions.user', 'task.location', 'defaultTask'])
             ->get();
 
-        // Get pending end checklist items (grouped only for same benodigdheid with same title)
+        // Get pending end checklist items (grouped only for same requirement with same title)
         $pending_checklist_items = EndChecklistItem::where('status', 'pending')
-            ->with(['planning.users', 'planning.locations', 'location', 'uploader', 'benodigdheid'])
+            ->with(['planning.users', 'planning.locations', 'location', 'uploader', 'requirement'])
             ->get()
             ->groupBy(function ($item) {
-                // Group by type, benodigdheid_id (for materials) or title (for end_actions), AND title
-                if ($item->type === 'material' && $item->benodigdheid_id) {
-                    return 'material_' . $item->benodigdheid_id . '_' . $item->title;
+                // Group by type, requirement_id (for materials) or title (for end_actions), AND title
+                if ($item->type === 'material' && $item->requirement_id) {
+                    return 'material_' . $item->requirement_id . '_' . $item->title;
                 } else {
                     return 'end_action_' . $item->title;
                 }
@@ -52,7 +52,7 @@ class TaskReviewController extends Controller
                 $firstItem = $group->first();
                 $firstItem->item_count = $group->count();
                 $firstItem->all_items = $group;
-                
+
                 return $firstItem;
             })
             ->values();
@@ -96,8 +96,8 @@ class TaskReviewController extends Controller
         }
 
         foreach ($skipped_planning_tasks as $planning_task) {
-            $location_name = $planning_task->specificLocation?->name ?? 
-                           $planning_task->task?->location?->name ?? 
+            $location_name = $planning_task->specificLocation?->name ??
+                           $planning_task->task?->location?->name ??
                            $planning_task->planning->locations->pluck('name')->implode(', ');
             $skipped_by_user = $planning_task->completions->where('review_outcome', 'skipped')->last()?->user;
 
@@ -114,8 +114,8 @@ class TaskReviewController extends Controller
 
         foreach ($pending_checklist_items as $checklist_item) {
             // For checklist items, show who uploaded the photo (completed the item)
-            $completed_by = $checklist_item->uploader ? 
-                $checklist_item->uploader->name : 
+            $completed_by = $checklist_item->uploader ?
+                $checklist_item->uploader->name :
                 'Onbekend';
 
             $combined_list->push((object) [
@@ -213,8 +213,8 @@ class TaskReviewController extends Controller
                 },
             ])->findOrFail($id);
 
-            $location_name = $task_item->specificLocation?->name ?? 
-                           $task_item->task?->location?->name ?? 
+            $location_name = $task_item->specificLocation?->name ??
+                           $task_item->task?->location?->name ??
                            $task_item->planning->locations->pluck('name')->implode(', ');
             $completion_history = $task_item->completions;
             $planning = $task_item->planning;
@@ -237,14 +237,14 @@ class TaskReviewController extends Controller
                 'planning.locations',
                 'location',
                 'uploader',
-                'benodigdheid'
+                'requirement'
             ])->findOrFail($id);
 
-            // Get all related items (same benodigdheid AND title, or same end_action title)
+            // Get all related items (same requirements AND title, or same end_action title)
             $related_items = collect([$checklist_item]);
-            if ($checklist_item->type === 'material' && $checklist_item->benodigdheid_id) {
+            if ($checklist_item->type === 'material' && $checklist_item->requirement_id) {
                 $related_items = EndChecklistItem::where('type', 'material')
-                    ->where('benodigdheid_id', $checklist_item->benodigdheid_id)
+                    ->where('requirement_id', $checklist_item->requirement_id)
                     ->where('title', $checklist_item->title)
                     ->where('status', 'pending')
                     ->with(['location', 'uploader', 'planning'])
@@ -258,10 +258,10 @@ class TaskReviewController extends Controller
             }
 
             // Use specific location if available, otherwise planning locations
-            $location_name = $checklist_item->location ? 
-                $checklist_item->location->name : 
+            $location_name = $checklist_item->location ?
+                $checklist_item->location->name :
                 $checklist_item->planning->locations->pluck('name')->implode(', ');
-            
+
             $planning = $checklist_item->planning;
             $completion_history = collect(); // No completion history for checklist items
 
@@ -313,8 +313,8 @@ class TaskReviewController extends Controller
             $newBacklogTask = new \App\Models\Task([
                 'title' => $planning_task->title . ' (Opnieuw)',
                 'description' => $this->appendSkipHistory($planning_task, $planning_task->description),
-                'location_id' => $planning_task->task?->location_id ?? 
-                               $planning_task->location_id ?? 
+                'location_id' => $planning_task->task?->location_id ??
+                               $planning_task->location_id ??
                                $planning_task->planning->locations()->first()?->id,
                 'status' => TaskStatus::OPEN,
                 'priority' => $planning_task->task?->priority ?? \App\Enums\TaskPriority::NORMAL,
@@ -369,7 +369,7 @@ class TaskReviewController extends Controller
 
         $history = "\n\n--- OPNIEUW IN DE PLANNING ---\n";
         $history .= "Oorspronkelijke planning: {$planning_task->planning->title}\n";
-        
+
         if ($skipCompletion) {
             $history .= "Overgeslagen op: " . $skipCompletion->created_at->format('d-m-Y H:i') . "\n";
             $history .= "Overgeslagen door: " . ($skipCompletion->user?->name ?? 'Onbekend') . "\n";
