@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\VehicleType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vehicle extends Model
 {
@@ -39,5 +40,13 @@ class Vehicle extends Model
         // Keep only letters and digits, remove hyphens/spaces/other punctuation, then uppercase
         $clean = preg_replace('/[^A-Za-z0-9]/', '', (string) $value);
         return strtoupper($clean ?? '');
+    }
+
+    /**
+     * Plannings assigned to this vehicle.
+     */
+    public function plannings(): HasMany
+    {
+        return $this->hasMany(Planning::class);
     }
 }

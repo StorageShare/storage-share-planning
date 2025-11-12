@@ -48,6 +48,25 @@ class StorePlanningRequest extends FormRequest
             'location_ids' => 'required|array|min:1',
             'location_ids.*' => ['integer', Rule::exists(Location::class, 'id')],
             'planned_date' => 'required|date',
+            'vehicle_id' => [
+                'required',
+                'integer',
+                Rule::exists(\App\Models\Vehicle::class, 'id'),
+                function ($attribute, $value, $fail) {
+                    // Vehicle must be available (not used in another planning on the same date)
+                    $date = $this->input('planned_date');
+                    if (!$date) {
+                        return; // other rule will report missing date
+                    }
+                    $exists = \App\Models\Planning::query()
+                        ->whereDate('planned_date', $date)
+                        ->where('vehicle_id', $value)
+                        ->exists();
+                    if ($exists) {
+                        $fail('Dit voertuig is al gekoppeld aan een planning op deze datum.');
+                    }
+                }
+            ],
             'notes' => 'nullable|string',
             'start_address_option' => 'required|string',
             'start_address_custom' => 'nullable|string|required_if:start_address_option,Anders|max:255',
@@ -110,6 +129,8 @@ class StorePlanningRequest extends FormRequest
             'location_ids.array' => 'Locaties moeten als een array worden aangeleverd.',
             'location_ids.*.integer' => 'Elke geselecteerde locatie moet een geldig ID hebben.',
             'location_ids.*.exists' => 'Een geselecteerde locatie is ongeldig.',
+            'vehicle_id.required' => 'Een voertuig is verplicht voor een planning.',
+            'vehicle_id.exists' => 'Het geselecteerde voertuig bestaat niet.',
             'selected_default_tasks.*.exists' => 'Een geselecteerde standaardtaak is ongeldig.',
             'selected_backlog_tasks.*.exists' => 'Een geselecteerde backlog taak is ongeldig.',
         ];

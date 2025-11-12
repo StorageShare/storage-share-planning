@@ -27,6 +27,7 @@ class Planning extends Model
         'start_address',
         'start_time',
         'travel_time_distributed_at',
+        'vehicle_id',
     ];
 
     /**
@@ -80,6 +81,14 @@ class Planning extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Assigned vehicle for this planning.
+     */
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class);
     }
 
     /**

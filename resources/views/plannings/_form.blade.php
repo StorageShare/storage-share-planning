@@ -18,6 +18,23 @@
         @enderror
     </div>
 
+    {{-- Vehicle selection --}}
+    <div>
+        <label for="vehicle_id" class="block text-sm font-medium mb-2 dark:text-gray-300">Voertuig</label>
+        <select name="vehicle_id" id="vehicle_id" class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('vehicle_id') border-red-500 @enderror" required>
+            <option value="" disabled {{ old('vehicle_id', isset($planning) ? $planning->vehicle_id : null) ? '' : 'selected' }}>Selecteer een voertuig</option>
+            @foreach(($availableVehicles ?? collect()) as $vehicle)
+                <option value="{{ $vehicle->id }}" {{ (string) old('vehicle_id', isset($planning) ? $planning->vehicle_id : '') === (string) $vehicle->id ? 'selected' : '' }}>
+                    {{ $vehicle->name }} @if($vehicle->license_number) ({{ $vehicle->license_number }}) @endif
+                </option>
+            @endforeach
+        </select>
+        <p class="text-xs text-gray-500 mt-1 dark:text-gray-400">Alleen voertuigen die nog niet aan een planning op de gekozen datum zijn gekoppeld, worden hier getoond.</p>
+        @error('vehicle_id')
+        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+        @enderror
+    </div>
+
     {{-- Two Column Layout for Locations --}}
     <div class="md:grid md:grid-cols-12 md:gap-x-8 mb-6">
         {{-- Left Column: Available Locations --}}
@@ -31,7 +48,14 @@
                 </div>
 
                 @php
-                $old_location_ids = collect(old('location_ids', $current_selected_location_ids ?? ($selected_location_id ? [$selected_location_id] : []) ))->map(fn($id) => (string)$id);
+                $old_location_ids = collect(
+                    old(
+                        'location_ids',
+                        isset($current_selected_location_ids)
+                            ? $current_selected_location_ids
+                            : (!empty($selected_location_id) ? [$selected_location_id] : [])
+                    )
+                )->map(fn($id) => (string)$id);
                 @endphp
                 <div class="space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto border border-gray-200 rounded-md p-3 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
                     @forelse($locations as $location_option)

@@ -11,6 +11,7 @@ use App\Models\Planning;
 use App\Models\PlanningLocationTimer;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Services\TravelTimeService;
 use App\Mail\PlanningReadyNotificationMail;
 use App\Enums\TaskStatus;
@@ -340,6 +341,15 @@ class PlanningController extends Controller
                 ]];
             });
 
+        // Vehicles available for selected/planned date (default: today)
+        $selectedDate = $request->input('planned_date') ?? now()->toDateString();
+        $availableVehicles = Vehicle::query()
+            ->whereDoesntHave('plannings', function ($q) use ($selectedDate) {
+                $q->whereDate('planned_date', $selectedDate);
+            })
+            ->orderBy('name')
+            ->get();
+
         return view('plannings.create', compact(
             'locations',
             'defaultTasksByLocation',
@@ -348,7 +358,8 @@ class PlanningController extends Controller
             'backlogTotalEstimatedTimeByLocation',
             'selected_location_id',
             'users',
-            'plannedBacklogTasks'
+            'plannedBacklogTasks',
+            'availableVehicles',
         ));
     }
 
@@ -366,6 +377,7 @@ class PlanningController extends Controller
                 'start_address' => $validated['start_address'],
                 'start_time' => $validated['start_time'],
                 'created_by' => \Illuminate\Support\Facades\Auth::id(),
+                'vehicle_id' => $validated['vehicle_id'],
             ]);
 
             // Sync locations with order
@@ -391,6 +403,7 @@ class PlanningController extends Controller
         $planning->load([
             'locations',
             'locationTimers',
+            'vehicle',
             'planningTasks' => function ($query) {
                 $query->with([
                     'task.location',
@@ -570,6 +583,20 @@ class PlanningController extends Controller
                 ]];
             });
 
+        // Vehicles available for the planning date; include currently assigned vehicle if set
+        $selectedDate = $planning->planned_date->toDateString();
+        $availableVehicles = Vehicle::query()
+            ->whereDoesntHave('plannings', function ($q) use ($selectedDate, $planning) {
+                $q->whereDate('planned_date', $selectedDate)
+                  ->where('plannings.id', '!=', $planning->id);
+            })
+            ->orderBy('name')
+            ->get();
+        if ($planning->vehicle && !$availableVehicles->contains('id', $planning->vehicle->id)) {
+            $availableVehicles->push($planning->vehicle);
+            $availableVehicles = $availableVehicles->sortBy('name')->values();
+        }
+
         return view('plannings.edit', compact(
             'planning',
             'locations',
@@ -581,7 +608,8 @@ class PlanningController extends Controller
             'current_selected_default_tasks',
             'current_selected_backlog_tasks',
             'users',
-            'plannedBacklogTasks'
+            'plannedBacklogTasks',
+            'availableVehicles',
         ));
     }
 
@@ -598,6 +626,7 @@ class PlanningController extends Controller
                 'notes' => $validated['notes'],
                 'start_address' => $validated['start_address'],
                 'start_time' => $validated['start_time'],
+                'vehicle_id' => $validated['vehicle_id'],
             ]);
 
             // Sync locations with order

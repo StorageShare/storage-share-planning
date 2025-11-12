@@ -34,11 +34,11 @@ class MyPlanningController extends Controller
                 ->whereHas('users', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                 })
-                ->with(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos'])
+                ->with(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos'])
                 ->first();
         } else {
             // Load necessary relationships for the provided planning
-            $planning->load(['locations', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos']);
+            $planning->load(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos']);
 
             // Check if user has access to this planning
             if (!$user->isAdmin() && !$planning->users->contains($user)) {

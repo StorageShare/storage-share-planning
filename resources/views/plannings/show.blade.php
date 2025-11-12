@@ -83,6 +83,19 @@
                             <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">{{ $planning->created_at->format('d-m-Y H:i') }}</p>
                         </div>
                         <div>
+                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Voertuig</h3>
+                            <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">
+                                @if($planning->vehicle)
+                                    {{ $planning->vehicle->name }}
+                                    @if(!empty($planning->vehicle->license_number))
+                                        ({{ $planning->vehicle->license_number }})
+                                    @endif
+                                @else
+                                    <span class="text-gray-500 dark:text-gray-400">Geen voertuig gekoppeld</span>
+                                @endif
+                            </p>
+                        </div>
+                        <div>
                             <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Aangemaakt door</h3>
                             <p class="mt-1 text-lg text-gray-900 dark:text-gray-100">{{ $planning->creator?->name ?? 'Onbekend' }}</p>
                         </div>

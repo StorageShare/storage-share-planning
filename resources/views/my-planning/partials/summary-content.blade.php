@@ -16,7 +16,27 @@
                 </div>
             </div>
         @endif
-        
+
+        {{-- Vehicle info --}}
+        <div class="flex items-center text-sm">
+            <div class="flex-shrink-0 w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h13V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6zm13 0h3l3 3v2a1 1 0 01-1 1h-2m-3-6v6M6 19h.01M10 19h.01" />
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <span class="font-medium text-gray-900 dark:text-gray-100">Voertuig:</span>
+                @if($planning->vehicle)
+                    <span class="text-gray-900 dark:text-gray-100">{{ $planning->vehicle->name }}</span>
+                    @if(!empty($planning->vehicle->license_number))
+                        <span class="text-gray-500 dark:text-gray-400">({{ $planning->vehicle->license_number }})</span>
+                    @endif
+                @else
+                    <span class="text-gray-500 dark:text-gray-400">Geen voertuig gekoppeld</span>
+                @endif
+            </div>
+        </div>
+
         @foreach($planning->locations as $locationIndex => $location)
             @php
                 // Get tasks for this location
@@ -28,19 +48,19 @@
                     }
                     return false;
                 });
-                
+
                 $totalMinutesForLocation = 0;
                 foreach ($tasksForLocation as $planningTask) {
                     $estimatedMinutes = 0;
                     if ($planningTask->task && isset($planningTask->task->estimated_time_minutes)) {
                         $estimatedMinutes = (int)$planningTask->task->estimated_time_minutes;
-                    } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) { 
+                    } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) {
                        $estimatedMinutes = (int)$planningTask->defaultTask->estimated_time_minutes;
                     }
                     $totalMinutesForLocation += $estimatedMinutes;
                 }
             @endphp
-            
+
             {{-- Travel time to this location --}}
             @if($travelTimes && isset($travelTimes['segments'][$locationIndex]) && ($locationIndex > 0 || $planning->start_address))
                 <div class="ml-3 flex items-center text-xs text-gray-500 dark:text-gray-400">
@@ -55,7 +75,7 @@
                     @endif
                 </div>
             @endif
-            
+
             {{-- Location --}}
             <div class="flex items-start text-sm">
                 <div class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
@@ -63,7 +83,7 @@
                 </div>
                 <div class="ml-3 flex-1">
                     <div class="font-medium text-gray-900 dark:text-gray-100">{{ $location->name }}</div>
-                    
+
                     {{-- Tasks for this location --}}
                     @if($tasksForLocation->count() > 0)
                         <div class="mt-2 ml-4 space-y-1">
@@ -72,7 +92,7 @@
                                     $estimatedMinutes = 0;
                                     if ($planningTask->task && isset($planningTask->task->estimated_time_minutes)) {
                                         $estimatedMinutes = (int)$planningTask->task->estimated_time_minutes;
-                                    } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) { 
+                                    } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) {
                                        $estimatedMinutes = (int)$planningTask->defaultTask->estimated_time_minutes;
                                     }
                                 @endphp
@@ -86,7 +106,7 @@
                                     @endif
                                 </div>
                             @endforeach
-                            
+
                             {{-- Total time for location --}}
                             @if($totalMinutesForLocation > 0)
                                 <div class="mt-1 pt-1 border-t border-gray-200 dark:border-gray-600">
@@ -103,7 +123,7 @@
                 </div>
             </div>
         @endforeach
-        
+
         {{-- Return trip if exists --}}
         @if($travelTimes && count($travelTimes['segments']) > $planning->locations->count())
             @php
@@ -122,7 +142,7 @@
                         <span class="ml-1 text-gray-400">({{ $returnSegment['distance_km'] }} km)</span>
                     @endif
                 </div>
-                
+
                 <div class="flex items-center text-sm">
                     <div class="flex-shrink-0 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +164,7 @@
 @if($timeOverview['total_minutes'] > 0)
     <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
         <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Tijdoverzicht</h4>
-        
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                 <div class="flex items-center">
@@ -159,7 +179,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,7 +193,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,4 +209,4 @@
             </div>
         </div>
     </div>
-@endif 
+@endif

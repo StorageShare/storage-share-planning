@@ -51,6 +51,25 @@ class UpdatePlanningRequest extends FormRequest
             'location_ids' => 'required|array|min:1',
             'location_ids.*' => ['integer', Rule::exists(Location::class, 'id')],
             'planned_date' => 'required|date',
+            'vehicle_id' => [
+                'required',
+                'integer',
+                Rule::exists(\App\Models\Vehicle::class, 'id'),
+                function ($attribute, $value, $fail) use ($planning_id) {
+                    $date = $this->input('planned_date');
+                    if (!$date) {
+                        return; // other rule will handle
+                    }
+                    $exists = \App\Models\Planning::query()
+                        ->whereDate('planned_date', $date)
+                        ->where('vehicle_id', $value)
+                        ->when($planning_id, fn($q) => $q->where('id', '!=', $planning_id))
+                        ->exists();
+                    if ($exists) {
+                        $fail('Dit voertuig is al gekoppeld aan een planning op deze datum.');
+                    }
+                }
+            ],
             'notes' => 'nullable|string',
             'start_address_option' => 'required|string',
             'start_address_custom' => 'nullable|string|required_if:start_address_option,Anders|max:255',
@@ -114,6 +133,8 @@ class UpdatePlanningRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'vehicle_id.required' => 'Een voertuig is verplicht voor een planning.',
+            'vehicle_id.exists' => 'Het geselecteerde voertuig bestaat niet.',
             'selected_default_tasks.*.exists' => 'Een geselecteerde standaardtaak is ongeldig.',
             'selected_backlog_tasks.*.exists' => 'Een geselecteerde backlog taak is ongeldig.',
         ];
