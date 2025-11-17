@@ -405,6 +405,7 @@
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     @endif
                 </div>
@@ -417,10 +418,6 @@
             @else
                 @foreach ($planning->locations as $location)
                     <div class="mb-8">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Taken voor Locatie: {{ $location->name }}</h3>
-                        </div>
-
                         @php
                             $tasksForLocation = $planning->planningTasks->filter(function ($pt) use ($location) {
                                 if ($pt->task_id && $pt->task) { // Backlog Task
@@ -449,28 +446,34 @@
                             $totalMinutesForLocation = 0; // Initialize total minutes for this location
                         @endphp
 
-                        @if ($tasksForLocation->isEmpty())
-                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                                <p class="text-center text-gray-500 dark:text-gray-400">Geen taken gepland voor deze locatie.</p>
-                            </div>
-                        @else
-                            <div class="flex flex-col">
-                                <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                    <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                                        <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
-                                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                                <thead class="bg-gray-50 dark:bg-gray-800">
-                                                    <tr>
-                                                        <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Taak</th>
-                                                        <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Prioriteit</th>
-                                                        <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Gesch. Tijd</th>
-                                                        <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Status</th>
-                                                        <th scope="col" class="relative py-3.5 px-4">
-                                                            <span class="sr-only">Acties</span>
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                            <div class="p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Taken voor Locatie: {{ $location->name }}</h3>
+                                </div>
+
+                                @if ($tasksForLocation->isEmpty())
+                                    <div class="border border-dashed border-gray-300 dark:border-gray-700 rounded-md p-6 text-center text-gray-500 dark:text-gray-400">
+                                        Geen taken gepland voor deze locatie.
+                                    </div>
+                                @else
+                                    <div class="flex flex-col">
+                                        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                            <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                                                <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
+                                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                                        <thead class="bg-gray-50 dark:bg-gray-800">
+                                                            <tr>
+                                                                <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Taak</th>
+                                                                <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Prioriteit</th>
+                                                                <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Gesch. Tijd</th>
+                                                                <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Status</th>
+                                                                <th scope="col" class="relative py-3.5 px-4">
+                                                                    <span class="sr-only">Acties</span>
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
                                                     @foreach ($tasksForLocation as $planningTask)
                                                         @php
                                                             $estimatedMinutes = 0;
@@ -712,29 +715,175 @@
                                                             </td>
                                                         </tr>
                                                     @endforeach
-                                                </tbody>
-                                                <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
+                                                        </tbody>
+                                                        <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
+                                                            <tr>
+                                                                <td colspan="2" class="px-4 py-3 text-sm font-semibold text-right text-gray-700 dark:text-gray-200">Totaal geschatte tijd voor {{ $location->name }}:</td>
+                                                                <td class="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                                                                    @php
+                                                                        $hours = floor($totalMinutesForLocation / 60);
+                                                                        $minutes = $totalMinutesForLocation % 60;
+                                                                    @endphp
+                                                                    {{ $hours > 0 ? $hours . ' uur ' : '' }}{{ $minutes > 0 ? $minutes . ' min' : ($hours == 0 ? '0 min' : '') }}
+                                                                    {{ $totalMinutesForLocation == 0 && $hours == 0 ? 'N/A' : '' }}
+                                                                </td>
+                                                                <td colspan="2" class="px-4 py-3 text-sm"></td> {{-- Empty cells for remaining columns --}}
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        </div>
+                @endforeach
+
+                {{-- Eind Checklist overzicht per planning (moved below tasks) --}}
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-8">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Eind Checklist</h3>
+                            @php
+                                $totalChecklist = $planning->endChecklistItems->count();
+                                $approvedChecklist = $planning->endChecklistItems->where('status', 'approved')->count();
+                                $pendingChecklist = $planning->endChecklistItems->where('status', 'pending')->count();
+                                $rejectedChecklist = $planning->endChecklistItems->where('status', 'rejected')->count();
+                            @endphp
+                            @if($totalChecklist > 0)
+                                <div class="text-sm text-gray-600 dark:text-gray-300">
+                                    <span class="inline-flex items-center mr-3">
+                                        <span class="w-2 h-2 rounded-full bg-green-500 mr-1"></span>{{ $approvedChecklist }} akkoord
+                                    </span>
+                                    <span class="inline-flex items-center mr-3">
+                                        <span class="w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>{{ $pendingChecklist }} in beoordeling
+                                    </span>
+                                    <span class="inline-flex items-center">
+                                        <span class="w-2 h-2 rounded-full bg-red-500 mr-1"></span>{{ $rejectedChecklist }} afgewezen
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+
+                        @if($planning->endChecklistItems->isEmpty())
+                            <div class="border border-dashed border-gray-300 dark:border-gray-700 rounded-md p-6 text-center text-gray-500 dark:text-gray-400">
+                                Geen eind checklist items gevonden voor deze planning.
+                            </div>
+                        @else
+                            @php
+                                $itemsByLocation = $planning->endChecklistItems->groupBy(fn($i) => optional($i->location)->name ?? 'Onbekende locatie');
+                            @endphp
+
+                            @foreach($itemsByLocation as $locName => $items)
+                                <div class="mb-6">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="text-lg font-medium text-gray-800 dark:text-gray-100">Locatie: {{ $locName }}</h4>
+                                    </div>
+                                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                        <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                                            <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
+                                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                                    <thead class="bg-gray-50 dark:bg-gray-700/50">
                                                     <tr>
-                                                        <td colspan="2" class="px-4 py-3 text-sm font-semibold text-right text-gray-700 dark:text-gray-200">Totaal geschatte tijd voor {{ $location->name }}:</td>
-                                                        <td class="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
-                                                            @php
-                                                                $hours = floor($totalMinutesForLocation / 60);
-                                                                $minutes = $totalMinutesForLocation % 60;
-                                                            @endphp
-                                                            {{ $hours > 0 ? $hours . ' uur ' : '' }}{{ $minutes > 0 ? $minutes . ' min' : ($hours == 0 ? '0 min' : '') }}
-                                                            {{ $totalMinutesForLocation == 0 && $hours == 0 ? 'N/A' : '' }}
-                                                        </td>
-                                                        <td colspan="2" class="px-4 py-3 text-sm"></td> {{-- Empty cells for remaining columns --}}
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Titel</th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Foto</th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Geüpload door</th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acties</th>
                                                     </tr>
-                                                </tfoot>
-                                            </table>
+                                                    </thead>
+                                                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                    @foreach($items as $item)
+                                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 align-top">
+                                                                <div class="font-medium">{{ $item->title }}</div>
+                                                                @if($item->type === 'material' && $item->requirement)
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400">Materiaal: {{ $item->requirement->name }}</div>
+                                                                @endif
+                                                            </td>
+                                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 align-top">
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                                                    @if($item->type === 'material') bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 @else bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200 @endif">
+                                                                    {{ $item->type === 'material' ? 'Materiaal' : 'Eindactie' }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 align-top">
+                                                                @if($item->photo_path)
+                                                                    @php
+                                                                        $photoUrl = route('media', ['path' => $item->photo_path]);
+                                                                    @endphp
+                                                                    <div x-data="{ urls: ['{{ $photoUrl }}'] }" class="flex items-start gap-3">
+                                                                        <button type="button"
+                                                                                class="focus:outline-none"
+                                                                                @click="$dispatch('open-image-modal', { imageUrls: urls, startIndex: 0 })"
+                                                                                title="Open foto">
+                                                                            <img src="{{ $photoUrl }}"
+                                                                                 alt="Checklist foto"
+                                                                                 class="rounded-lg shadow-sm hover:opacity-80 transition-opacity object-cover h-16 w-16 cursor-zoom-in bg-gray-50 dark:bg-gray-900">
+                                                                        </button>
+                                                                        <div class="leading-tight">
+                                                                            <a href="{{ $photoUrl }}" target="_blank" class="text-blue-600 hover:underline text-xs">Open in nieuw tabblad</a>
+                                                                        </div>
+                                                                    </div>
+                                                                @else
+                                                                    <span class="text-gray-400">Geen foto</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="px-4 py-3 text-sm align-top">
+                                                                @php
+                                                                    $status = $item->status ?? 'pending';
+                                                                    $badgeClasses = [
+                                                                        'approved' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                                                        'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                                                        'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                                                    ][$status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+                                                                @endphp
+                                                                <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeClasses }}">
+                                                                    {{ ucfirst($status) }}
+                                                                </span>
+                                                                @if($item->reviewer)
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Door: {{ $item->reviewer->name }}</div>
+                                                                @endif
+                                                            </td>
+                                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 align-top">
+                                                                @if($item->uploader)
+                                                                    {{ $item->uploader->name }}
+                                                                @else
+                                                                    <span class="text-gray-400">Onbekend</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 align-top">
+                                                                @if(auth()->user() && method_exists(auth()->user(), 'isAdmin') && auth()->user()->isAdmin())
+                                                                    <div class="flex items-center gap-2">
+                                                                        @if(($item->status ?? 'pending') === 'pending')
+                                                                            <form method="POST" action="{{ route('admin.end-checklist.approve', $item) }}" onsubmit="return confirm('Checklist item goedkeuren?');">
+                                                                                @csrf
+                                                                                <button type="submit" class="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">Keur goed</button>
+                                                                            </form>
+                                                                            <a href="{{ route('admin.end-checklist.reject', $item) }}" class="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">Afwijzen</a>
+                                                                        @else
+                                                                            <span class="text-xs text-gray-400">Geen acties</span>
+                                                                        @endif
+                                                                    </div>
+                                                                @else
+                                                                    <span class="text-xs text-gray-400">Geen acties</span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            @endforeach
                         @endif
                     </div>
-                @endforeach
+                </div>
             @endif
 
         </div>

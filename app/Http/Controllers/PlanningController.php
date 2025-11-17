@@ -43,8 +43,12 @@ class PlanningController extends Controller
                     $q->where('status', TaskStatus::REVIEW->value);
                 },
             ])
-            ->whereHas('planningTasks', function ($q) {
-                $q->where('status', TaskStatus::REVIEW->value);
+            // Include plannings that either have tasks pending review OR are awaiting end checklist approval
+            ->where(function ($query) {
+                $query->whereHas('planningTasks', function ($q) {
+                    $q->where('status', TaskStatus::REVIEW->value);
+                })
+                ->orWhere('status', 'pending_end_checklist');
             })
             ->orderByDesc('planned_date')
             ->paginate(15)
@@ -413,6 +417,10 @@ class PlanningController extends Controller
                         $completionQuery->with(['user', 'photos'])->orderBy('created_at', 'desc');
                     },
                 ]);
+            },
+            // Ensure end checklist items are available on the planning details screen without N+1
+            'endChecklistItems' => function ($query) {
+                $query->with(['requirement', 'reviewer', 'location', 'uploader']);
             },
         ]);
 

@@ -264,8 +264,13 @@ class EndChecklistController extends Controller
             ]);
         }
 
-        // Update planning status based on all checklist items
-        $item->planning->checkAndUpdateStatus();
+        // Update planning status for ALL affected plannings
+        $affectedPlanningIds = $related_items->pluck('planning_id')->unique()->values();
+        foreach ($affectedPlanningIds as $planningId) {
+            if ($planning = Planning::find($planningId)) {
+                $planning->checkAndUpdateStatus();
+            }
+        }
 
         $count = $related_items->count();
         $message = $count > 1 ? "Checklist item goedgekeurd (inclusief {$count} gerelateerde items)" : 'Checklist item goedgekeurd';
@@ -315,8 +320,13 @@ class EndChecklistController extends Controller
             ]);
         }
 
-        // Update planning status based on all checklist items
-        $item->planning->checkAndUpdateStatus();
+        // Update planning status for ALL affected plannings
+        $affectedPlanningIds = $related_items->pluck('planning_id')->unique()->values();
+        foreach ($affectedPlanningIds as $planningId) {
+            if ($planning = Planning::find($planningId)) {
+                $planning->checkAndUpdateStatus();
+            }
+        }
 
         $count = $related_items->count();
         $message = $count > 1 ? "Checklist item afgewezen (inclusief {$count} gerelateerde items)" : 'Checklist item afgewezen';

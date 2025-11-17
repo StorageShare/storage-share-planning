@@ -218,13 +218,20 @@
                         </div>
                     </div>
 
-                    {{-- End checklist review form --}}
+                    {{-- Review form (approve/reject) --}}
                     <form id="checklist-review-form" method="POST">
                         @csrf
                         <div class="p-6 border-t border-gray-200 dark:border-gray-700">
-                            <label for="admin_notes" class="block text-lg font-medium text-gray-900 dark:text-gray-100">Opmerkingen (verplicht bij afwijzing)</label>
+                            <label for="review_notes" class="block text-lg font-medium text-gray-900 dark:text-gray-100">Opmerkingen (verplicht bij afwijzing)</label>
                             <div class="mt-2">
-                                <textarea id="admin_notes" name="admin_notes" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200" placeholder="Voeg hier je opmerkingen toe...">{{ old('admin_notes') }}</textarea>
+                                <textarea id="review_notes" name="review_notes" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200" placeholder="Voeg hier je opmerkingen toe...">{{ old('review_notes') }}</textarea>
+                            </div>
+                            <div class="mt-4 flex items-start space-x-3">
+                                <input type="hidden" name="create_replacement" value="0">
+                                <input id="create_replacement" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
+                                <label for="create_replacement" class="text-sm text-gray-700 dark:text-gray-300">
+                                    Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
+                                </label>
                             </div>
                         </div>
 

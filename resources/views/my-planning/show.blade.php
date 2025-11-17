@@ -33,10 +33,10 @@
                     <div class="px-4 py-3">
                         <div class="flex items-center justify-between mb-3">
                             <div>
-                                <template x-if="currentLocation && currentLocation.type === 'benodigdheden'">
+                                <template x-if="currentLocation && currentLocation.type === 'requirements'">
                                     <div>
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="currentLocation.title"></div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400" x-text="`${getCheckedBenodigdhedenCount()} van ${currentLocation.benodigdheden?.length || 0} items afgevinkt`"></div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400" x-text="`${getCheckedBenodigdhedenCount()} van ${currentLocation.requirements?.length || 0} items afgevinkt`"></div>
                                     </div>
                                 </template>
                                 <template x-if="currentLocation && currentLocation.type === 'end_checklist'">
@@ -81,8 +81,8 @@
                 <template x-for="(location, index) in locationSteps" :key="index">
                     <div x-show="currentLocationIndex === index" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6 transition-all duration-300 animate-fade-in">
 
-                        {{-- Benodigdheden Step --}}
-                        <template x-if="location.type === 'benodigdheden'">
+                        {{-- Benodigdheden (Requirements) Step --}}
+                        <template x-if="location.type === 'requirements'">
                             <div>
                                 <div class="flex items-center mb-4">
                                     <svg class="w-8 h-8 text-indigo-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,9 +92,9 @@
                                 </div>
                                 <p class="text-gray-600 dark:text-gray-400 mb-6" x-text="location.details"></p>
 
-                                {{-- Benodigdheden Checklist --}}
+                                {{-- Benodigdheden (Requirements) Checklist --}}
                                 <div class="space-y-3">
-                                    <template x-for="(benodigdheid, benodigdheidIndex) in location.benodigdheden" :key="benodigdheid.id">
+                                    <template x-for="(benodigdheid, benodigdheidIndex) in location.requirements" :key="benodigdheid.id">
                                         <div class="flex items-start space-x-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                             <div class="flex-shrink-0 mt-0.5">
                                                 <input type="checkbox"
@@ -116,7 +116,7 @@
                                 <div class="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Voortgang</span>
-                                        <span class="text-sm text-indigo-600 dark:text-indigo-400" x-text="`${getCheckedBenodigdhedenCount()} van ${location.benodigdheden.length} afgevinkt`"></span>
+                                        <span class="text-sm text-indigo-600 dark:text-indigo-400" x-text="`${getCheckedBenodigdhedenCount()} van ${location.requirements.length} afgevinkt`"></span>
                                     </div>
                                     <div class="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2">
                                         <div class="bg-indigo-500 h-2 rounded-full transition-all duration-300"
@@ -1267,24 +1267,24 @@
                     const current = this.currentLocation;
                     if (!current || current.type !== 'requirements') return 0;
 
-                    return current.benodigdheden.filter(benodigdheid =>
+                    return current.requirements.filter(benodigdheid =>
                         this.benodigdhedenChecked[benodigdheid.id]
                     ).length;
                 },
 
                 getBenodigdhedenProgress() {
                     const current = this.currentLocation;
-                    if (!current || current.type !== 'requirements' || !current.benodigdheden.length) return 0;
+                    if (!current || current.type !== 'requirements' || !current.requirements.length) return 0;
 
                     const checked = this.getCheckedBenodigdhedenCount();
-                    return Math.round((checked / current.benodigdheden.length) * 100);
+                    return Math.round((checked / current.requirements.length) * 100);
                 },
 
                 areAllBenodigdhedenChecked() {
                     const current = this.currentLocation;
                     if (!current || current.type !== 'requirements') return true;
 
-                    return current.benodigdheden.every(benodigdheid =>
+                    return current.requirements.every(benodigdheid =>
                         this.benodigdhedenChecked[benodigdheid.id]
                     );
                 },

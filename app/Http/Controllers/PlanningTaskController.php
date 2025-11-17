@@ -237,9 +237,12 @@ class PlanningTaskController extends Controller
         // Require a reason for rejection
         $request->validate([
             'review_notes' => ['required', 'string', 'min:3'],
+            'create_replacement' => ['nullable'],
         ]);
 
-        DB::transaction(function () use ($request, $planning_task) {
+        $createReplacement = $request->boolean('create_replacement', false);
+
+        DB::transaction(function () use ($request, $planning_task, $createReplacement) {
             // Step 1: Update statuses of the original planning task and backlog task to 'rejected'
             $planning_task->update([
                 'status' => TaskStatus::REJECTED,
@@ -247,34 +250,78 @@ class PlanningTaskController extends Controller
             ]);
 
             // --- Main Rejection Logic ---
-            if (!is_null($planning_task->task_id) && $planning_task->task) {
-                // CASE 1: The rejected task is a properly linked BACKLOG task. Replicate it.
-                $original_task = $planning_task->task;
-                $original_task->update(['status' => TaskStatus::REJECTED]);
+            if ($createReplacement) {
+                $reason = (string) $request->input('review_notes');
+                $prependReason = function (?string $existing) use ($reason) {
+                    $base = $existing ? ($existing . "\n\n") : '';
+                    return $base . "Reden afwijzing: " . $reason;
+                };
 
-                // Create a new 'V2' backlog task by replicating the original
-                $new_task = $original_task->replicate();
-                $new_task->status = TaskStatus::OPEN;
-                $new_task->title = $original_task->title . ' (Herstel)';
-                $new_task->created_at = now();
-                $new_task->updated_at = now();
-                $new_task->description = $this->appendCompletionHistory($planning_task, $new_task->description);
-                $new_task->estimated_time_minutes = $original_task->estimated_time_minutes;
-                $new_task->deadline = $original_task->deadline;
-                $new_task->save();
+                if (!is_null($planning_task->task_id) && $planning_task->task) {
+                    // CASE 1: The rejected task is a properly linked BACKLOG task. Replicate it.
+                    $original_task = $planning_task->task;
+                    $original_task->update(['status' => TaskStatus::REJECTED]);
+
+                    // Create a new 'V2' backlog task by replicating the original
+                    $new_task = $original_task->replicate();
+                    $new_task->status = TaskStatus::OPEN;
+                    $new_task->title = $original_task->title . ' (Herstel)';
+                    $new_task->created_at = now();
+                    $new_task->updated_at = now();
+                    // Add reason and history to description
+                    $withReason = $prependReason($new_task->description);
+                    $new_task->description = $this->appendCompletionHistory($planning_task, $withReason);
+                    $new_task->estimated_time_minutes = $original_task->estimated_time_minutes;
+                    $new_task->deadline = $original_task->deadline;
+                    $new_task->save();
+
+                    // Copy photos from the latest completion into the new backlog task
+                    if ($latest_completion = $planning_task->completions()->latest()->first()) {
+                        foreach ($latest_completion->photos as $photo) {
+                            $new_task->taskPhotos()->create([
+                                'file_path' => $photo->file_path,
+                                'uploaded_at' => now(),
+                            ]);
+                        }
+                    }
+                    // Also carry over any photos attached to the original backlog task itself
+                    foreach ($original_task->taskPhotos as $taskPhoto) {
+                        $new_task->taskPhotos()->create([
+                            'file_path' => $taskPhoto->file_path,
+                            'uploaded_at' => now(),
+                        ]);
+                    }
+                } else {
+                    // CASE 2: DEFAULT task or broken link: create a NEW backlog task from PlanningTask data.
+                    $descriptionWithReason = $prependReason($planning_task->description);
+                    $descriptionFull = $this->appendCompletionHistory($planning_task, $descriptionWithReason);
+
+                    $new_backlog_task = new \App\Models\Task([
+                        'title' => $planning_task->title . ' (Herstel)',
+                        'description' => $descriptionFull,
+                        'location_id' => $planning_task->location_id ?? $planning_task->planning->locations()->first()->id,
+                        'status' => TaskStatus::OPEN,
+                        'priority' => \App\Enums\TaskPriority::NORMAL,
+                        'estimated_time_minutes' => $planning_task->estimated_time_minutes,
+                        'created_by' => Auth::id(),
+                    ]);
+                    $new_backlog_task->save();
+
+                    // Copy photos from the latest completion into the new backlog task
+                    if ($latest_completion = $planning_task->completions()->latest()->first()) {
+                        foreach ($latest_completion->photos as $photo) {
+                            $new_backlog_task->taskPhotos()->create([
+                                'file_path' => $photo->file_path,
+                                'uploaded_at' => now(),
+                            ]);
+                        }
+                    }
+                }
             } else {
-                // CASE 2: The task is a DEFAULT task, or a backlog task with a broken link (old data).
-                // Create a NEW backlog task from the PlanningTask's own data.
-                $new_backlog_task = new \App\Models\Task([
-                    'title' => $planning_task->title . ' (Herstel)',
-                    'description' => $this->appendCompletionHistory($planning_task, $planning_task->description),
-                    'location_id' => $planning_task->location_id ?? $planning_task->planning->locations()->first()->id,
-                    'status' => TaskStatus::OPEN,
-                    'priority' => \App\Enums\TaskPriority::NORMAL,
-                    'estimated_time_minutes' => $planning_task->estimated_time_minutes,
-                    'created_by' => Auth::id(),
-                ]);
-                $new_backlog_task->save();
+                // No replacement requested: mark original task (if any) as rejected as well
+                if (!is_null($planning_task->task_id) && $planning_task->task) {
+                    $planning_task->task->update(['status' => TaskStatus::REJECTED]);
+                }
             }
             // --- End Main Rejection Logic ---
 
@@ -298,11 +345,15 @@ class PlanningTaskController extends Controller
                 ->count();
 
             if ($remaining > 0) {
-                return redirect()->route('plannings.show', $planning)->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
+                return redirect()->route('plannings.show', $planning)->with('success', $request->boolean('create_replacement')
+                    ? 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.'
+                    : 'Taak afgekeurd. Er is geen nieuwe taak aangemaakt.');
             }
         }
 
-        return redirect()->route('plannings.review')->with('success', 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.');
+        return redirect()->route('plannings.review')->with('success', $request->boolean('create_replacement')
+            ? 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.'
+            : 'Taak afgekeurd. Er is geen nieuwe taak aangemaakt.');
     }
 
     /**

@@ -323,11 +323,13 @@
             locationFilterInput.addEventListener('input', function() {
                 const filterValue = this.value.toLowerCase().trim();
                 locationItems.forEach(item => {
-                    const locationNameElement = item.querySelector('label > span.block.text-sm.font-semibold');
+                    // The location name is inside the .flex-grow span, not inside a label
+                    const locationNameElement = item.querySelector('.flex-grow > span.block.text-sm.font-semibold');
                     if (locationNameElement) {
                         const locationName = locationNameElement.textContent.toLowerCase();
                         if (locationName.includes(filterValue)) {
-                            item.style.display = ''; // Or 'flex' if it was originally display:flex
+                            // Ensure items are shown as flex to preserve original layout
+                            item.style.display = 'flex';
                         } else {
                             item.style.display = 'none';
                         }
@@ -408,9 +410,15 @@
                         </span>`;
                 }
 
+                // If this task is planned elsewhere, ensure it's not kept in the live selected set
+                if (isPlannedElsewhere && selectedTaskIdsSet.has(taskIdStr)) {
+                    selectedTaskIdsSet.delete(taskIdStr);
+                    isChecked = false;
+                }
+
                 div.innerHTML = `
                     <div class="flex items-start gap-2">
-                        <input id="${taskIdName}" name="selected_${taskType}[]" type="checkbox" value="${task.id}" ${isChecked ? 'checked' : ''} ${isPlannedElsewhere ? 'disabled' : ''} class="shrink-0 mt-1 border-gray-300 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none task-checkbox dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500" data-estimated-time="${taskEstimatedTime}" data-location-id="${locationIdForTaskName}">
+                        <input id="${taskIdName}" name="selected_${taskType}[]" type="checkbox" value="${task.id}" ${isChecked ? 'checked' : ''} ${isPlannedElsewhere ? 'disabled' : ''} class="shrink-0 mt-1 border-gray-300 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none task-checkbox dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500" data-estimated-time="${taskEstimatedTime}" data-location-id="${locationIdForTaskName}" data-task-type="${taskType}" data-task-id="${task.id}">
                         <label for="${taskIdName}" class="ms-1 text-sm text-gray-800 cursor-pointer flex-grow dark:text-gray-200">
                             <div class="flex items-center">
                                 <span class="font-medium">${escapeHtml(task.title)}</span>
@@ -430,9 +438,24 @@
                     </div>
                 `;
 
-                // Add event listener to update location times when checkbox changes
+                // Add event listener to update state and times when checkbox changes
                 const checkbox = div.querySelector('input.task-checkbox');
                 checkbox.addEventListener('change', function() {
+                    const tType = this.dataset.taskType; // 'default_tasks' | 'backlog_tasks'
+                    const tId = String(this.value);
+                    if (tType === 'default_tasks') {
+                        if (this.checked) {
+                            liveSelectedDefaultTaskIds.add(tId);
+                        } else {
+                            liveSelectedDefaultTaskIds.delete(tId);
+                        }
+                    } else if (tType === 'backlog_tasks') {
+                        if (this.checked) {
+                            liveSelectedBacklogTaskIds.add(tId);
+                        } else {
+                            liveSelectedBacklogTaskIds.delete(tId);
+                        }
+                    }
                     updateSelectedTasksTotalTime(); // This will also update location times
                 });
 
@@ -773,6 +796,24 @@
 
         function removeLocationFromPlanning(locationId) {
             selectedLocationIds.delete(locationId);
+            // When a location is removed, also remove tasks tied to that location from the live Sets
+            try {
+                const defaultsForThisLoc = defaultTasksByLocation[locationId] || [];
+                defaultsForThisLoc.forEach(dTask => {
+                    if (dTask && typeof dTask.id !== 'undefined') {
+                        liveSelectedDefaultTaskIds.delete(String(dTask.id));
+                    }
+                });
+
+                const backlogForThisLoc = backlogTasksByLocation[locationId] || [];
+                backlogForThisLoc.forEach(bTask => {
+                    if (bTask && typeof bTask.id !== 'undefined') {
+                        liveSelectedBacklogTaskIds.delete(String(bTask.id));
+                    }
+                });
+            } catch (e) {
+                // Fail-safe: do nothing if structures are missing
+            }
             updateSelectedLocationsList();
             updateSortableLocationsList();
             populateTasks();
@@ -991,27 +1032,54 @@
         }
 
         function updateTasksForSelectedLocations() {
-            // --- PRESERVE CURRENT TASK SELECTIONS BEFORE REPOPULATING ---
-            const currentlyCheckedDefaultTasks = tasksByLocationContainer.querySelectorAll('input[name="selected_default_tasks[]"]:checked');
-            const currentlyCheckedBacklogTasks = tasksByLocationContainer.querySelectorAll('input[name="selected_backlog_tasks[]"]:checked');
-
-            // Update the live sets with current selections
-            liveSelectedDefaultTaskIds.clear();
-            currentlyCheckedDefaultTasks.forEach(checkbox => {
-                liveSelectedDefaultTaskIds.add(checkbox.value);
-            });
-
-            liveSelectedBacklogTaskIds.clear();
-            currentlyCheckedBacklogTasks.forEach(checkbox => {
-                liveSelectedBacklogTaskIds.add(checkbox.value);
-            });
-            // --- END PRESERVE SELECTIONS ---
-
             // Update sortable list
             updateSortableLocationsList();
 
             // Update tasks
             populateTasks();
+        }
+
+        // Ensure all selected tasks are submitted, even when not currently rendered
+        try {
+            const planningForm = tasksByLocationContainer ? tasksByLocationContainer.closest('form') : null;
+            if (planningForm) {
+                planningForm.addEventListener('submit', function() {
+                    // Remove existing injected hidden inputs to avoid duplicates on repeated attempts
+                    planningForm.querySelectorAll('.selected-task-hidden').forEach(el => el.remove());
+
+                    // Build sets of currently checked visible inputs to avoid duplicating values
+                    const visibleCheckedDefaults = new Set(Array.from(planningForm.querySelectorAll('input[name="selected_default_tasks[]"]:checked')).map(el => String(el.value)));
+                    const visibleCheckedBacklogs = new Set(Array.from(planningForm.querySelectorAll('input[name="selected_backlog_tasks[]"]:checked')).map(el => String(el.value)));
+
+                    // Inject missing default task selections
+                    Array.from(liveSelectedDefaultTaskIds).forEach(id => {
+                        const idStr = String(id);
+                        if (!visibleCheckedDefaults.has(idStr)) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'selected_default_tasks[]';
+                            input.value = idStr;
+                            input.className = 'selected-task-hidden';
+                            planningForm.appendChild(input);
+                        }
+                    });
+
+                    // Inject missing backlog task selections
+                    Array.from(liveSelectedBacklogTaskIds).forEach(id => {
+                        const idStr = String(id);
+                        if (!visibleCheckedBacklogs.has(idStr)) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'selected_backlog_tasks[]';
+                            input.value = idStr;
+                            input.className = 'selected-task-hidden';
+                            planningForm.appendChild(input);
+                        }
+                    });
+                });
+            }
+        } catch (e) {
+            // no-op
         }
 
         // Event listeners voor add/remove buttons
