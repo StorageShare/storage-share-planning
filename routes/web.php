@@ -107,6 +107,7 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     Route::post('plannings/{planning}/end-checklist/submit', [EndChecklistController::class, 'submit'])->name('plannings.end-checklist.submit');
     Route::post('end-checklist-items/{item}/upload-photo', [EndChecklistController::class, 'uploadPhoto'])->name('end-checklist-items.upload-photo');
     Route::delete('end-checklist-items/{item}/photo', [EndChecklistController::class, 'deletePhoto'])->name('end-checklist-items.delete-photo');
+    Route::delete('end-checklist-items/{item}/photos/{photo}', [EndChecklistController::class, 'deleteSpecificPhoto'])->name('end-checklist-items.photos.delete');
 
     Route::get('/plannings/{planning}/locations/{location}/timer', [PlanningController::class, 'getLocationTimer']);
     Route::post('/plannings/{planning}/locations/{location}/timer/start', [PlanningController::class, 'startLocationTimer']);

@@ -420,7 +420,7 @@ class PlanningController extends Controller
             },
             // Ensure end checklist items are available on the planning details screen without N+1
             'endChecklistItems' => function ($query) {
-                $query->with(['requirement', 'reviewer', 'location', 'uploader']);
+                $query->with(['requirement', 'reviewer', 'location', 'uploader', 'photos']);
             },
         ]);
 

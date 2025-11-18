@@ -5,10 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EndChecklistItem extends Model
 {
     use HasFactory;
+
+    /**
+     * Default attribute values.
+     * Ensure a new checklist item starts in the 'open' state.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => 'open',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -23,13 +34,14 @@ class EndChecklistItem extends Model
         'requirement_id',
         'title',
         'description',
-        'photo_path',
-        'uploaded_by',
-        'uploaded_at',
         'status',
         'admin_notes',
         'reviewed_at',
         'reviewed_by',
+        // Deprecated: kept for backward compatibility; use photos relation instead
+        'photo_path',
+        'uploaded_by',
+        'uploaded_at',
     ];
 
     /**
@@ -83,6 +95,14 @@ class EndChecklistItem extends Model
     }
 
     /**
+     * Photos uploaded for this checklist item (multiple).
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(EndChecklistItemPhoto::class, 'end_checklist_item_id');
+    }
+
+    /**
      * Scope om alleen material items te krijgen.
      */
     public function scopeMaterials($query)
@@ -128,5 +148,13 @@ class EndChecklistItem extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    /**
+     * Check of het item nog open staat (nog niet ingediend).
+     */
+    public function isOpen(): bool
+    {
+        return $this->status === 'open' || empty($this->status);
     }
 }

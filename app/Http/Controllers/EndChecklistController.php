@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Requirement;
 use App\Models\EndChecklistItem;
+use App\Models\EndChecklistItemPhoto;
 use App\Models\Planning;
 use App\Models\Task;
 use App\Models\DefaultTask;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Services\ImageService;
 
 class EndChecklistController extends Controller
 {
@@ -65,56 +67,103 @@ class EndChecklistController extends Controller
     }
 
     /**
-     * Upload photo for a checklist item.
+     * Upload one or more photos for a checklist item.
      */
-    public function uploadPhoto(Request $request, EndChecklistItem $item): JsonResponse
+    public function uploadPhoto(Request $request, EndChecklistItem $item, ImageService $imageService): JsonResponse
     {
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:10240', // 10MB max
+            // Mirror Task acceptance as much as possible; keep 10MB max per file
+            'photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:10240', // 10MB max
+            'photos' => 'sometimes|array',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
         ]);
 
         try {
-            // Delete old photo if exists
-            if ($item->photo_path && Storage::disk('public')->exists($item->photo_path)) {
-                Storage::disk('public')->delete($item->photo_path);
+            $files = [];
+            if ($request->hasFile('photos')) {
+                $files = $request->file('photos');
+            } elseif ($request->hasFile('photo')) {
+                $files = [$request->file('photo')];
             }
 
-            // Store the new photo
-            $photo = $request->file('photo');
-            $path = $photo->store('end-checklist-photos', 'public');
+            if (empty($files)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Geen foto\'s ontvangen'
+                ], 422);
+            }
 
-            // Update the item with the photo path and uploader info
-            $item->update([
-                'photo_path' => $path,
-                'uploaded_by' => Auth::id(),
-                'uploaded_at' => now(),
-            ]);
+            $saved = [];
+            foreach ($files as $photo) {
+                // Use ImageService for consistent compression and storage pattern like Tasks
+                $filename = uniqid('eci_'.$item->id.'_', true) . '.' . $photo->getClientOriginalExtension();
+                $directory = 'end-checklist-photos/'.$item->id;
+
+                try {
+                    $path = $imageService->saveCompressedImage(
+                        $photo,
+                        $directory,
+                        $filename,
+                        'public'
+                    );
+                } catch (\Exception $e) {
+                    // If compression fails for any reason, fallback to raw store to not block the flow
+                    $path = $photo->store($directory, 'public');
+                }
+
+                $saved[] = $item->photos()->create([
+                    'file_path' => $path,
+                    'uploaded_by' => Auth::id(),
+                    'uploaded_at' => now(),
+                ]);
+            }
+
+            // Also update legacy columns for backward compatibility (set to latest uploaded)
+            $latest = end($saved);
+            if ($latest) {
+                $item->forceFill([
+                    'photo_path' => $latest->file_path,
+                    'uploaded_by' => Auth::id(),
+                    'uploaded_at' => now(),
+                ])->save();
+            }
+
+            // Reload photos with accessors
+            $item->load('photos');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Foto succesvol geupload',
-                'photo_url' => asset('storage/' . $path)
+                'message' => 'Foto\'s succesvol geüpload',
+                'photos' => $item->photos->map->only(['id', 'file_path', 'uploaded_at'])
+                    ->map(function ($p) {
+                        $p['photo_url'] = route('media', ['path' => $p['file_path']]);
+                        return $p;
+                    })
+                    ->values()
+                    ->all(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij uploaden van foto: ' . $e->getMessage()
+                'message' => 'Fout bij uploaden van foto\'s: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Delete photo for a checklist item.
+     * Delete all photos for a checklist item (legacy behavior used by UI when replacing all).
      */
     public function deletePhoto(EndChecklistItem $item): JsonResponse
     {
         try {
-            // Delete photo file if exists
-            if ($item->photo_path && Storage::disk('public')->exists($item->photo_path)) {
-                Storage::disk('public')->delete($item->photo_path);
+            foreach ($item->photos as $photo) {
+                if ($photo->file_path && Storage::disk('public')->exists($photo->file_path)) {
+                    Storage::disk('public')->delete($photo->file_path);
+                }
+                $photo->delete();
             }
 
-            // Clear photo fields
+            // Clear legacy columns
             $item->update([
                 'photo_path' => null,
                 'uploaded_by' => null,
@@ -123,7 +172,45 @@ class EndChecklistController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Foto succesvol verwijderd'
+                'message' => 'Alle foto\'s succesvol verwijderd'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fout bij verwijderen van foto\'s: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a single photo for a checklist item.
+     */
+    public function deleteSpecificPhoto(EndChecklistItem $item, EndChecklistItemPhoto $photo): JsonResponse
+    {
+        try {
+            // Ensure the photo belongs to the item
+            if ($photo->end_checklist_item_id !== $item->id) {
+                return response()->json(['success' => false, 'message' => 'Foto hoort niet bij dit item'], 422);
+            }
+
+            if ($photo->file_path && Storage::disk('public')->exists($photo->file_path)) {
+                Storage::disk('public')->delete($photo->file_path);
+            }
+            $photo->delete();
+
+            // Update legacy column if it pointed to this photo
+            if ($item->photo_path === $photo->file_path) {
+                $latest = $item->photos()->latest('uploaded_at')->first();
+                $item->update([
+                    'photo_path' => $latest?->file_path,
+                    'uploaded_by' => $latest?->uploaded_by,
+                    'uploaded_at' => $latest?->uploaded_at,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto verwijderd'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -138,9 +225,9 @@ class EndChecklistController extends Controller
      */
     public function submit(Planning $planning): JsonResponse
     {
-        // Check if all checklist items have photos
+        // Check if all checklist items have at least one photo
         $itemsWithoutPhotos = $planning->endChecklistItems()
-            ->whereNull('photo_path')
+            ->doesntHave('photos')
             ->count();
 
         if ($itemsWithoutPhotos > 0) {
@@ -173,7 +260,7 @@ class EndChecklistController extends Controller
     public function index(Planning $planning): JsonResponse
     {
         $items = $planning->endChecklistItems()
-            ->with(['requirement', 'reviewer', 'location', 'uploader'])
+            ->with(['requirement', 'reviewer', 'location', 'uploader', 'photos'])
             ->orderBy('type')
             ->orderBy('title')
             ->get();
@@ -218,11 +305,11 @@ class EndChecklistController extends Controller
     {
         $plannings = Planning::whereHas('endChecklistItems', function ($query) {
             $query->where('status', 'pending')
-                  ->whereNotNull('photo_path');
+                  ->whereHas('photos');
         })
         ->with([
             'endChecklistItems' => function ($query) {
-                $query->with(['requirement', 'reviewer', 'location', 'uploader']);
+                $query->with(['requirement', 'reviewer', 'location', 'uploader', 'photos']);
             },
             'locations',
             'users'

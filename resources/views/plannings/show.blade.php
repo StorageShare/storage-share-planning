@@ -811,22 +811,35 @@
                                                                 </span>
                                                             </td>
                                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 align-top">
-                                                                @if($item->photo_path)
-                                                                    @php
-                                                                        $photoUrl = route('media', ['path' => $item->photo_path]);
-                                                                    @endphp
-                                                                    <div x-data="{ urls: ['{{ $photoUrl }}'] }" class="flex items-start gap-3">
-                                                                        <button type="button"
-                                                                                class="focus:outline-none"
-                                                                                @click="$dispatch('open-image-modal', { imageUrls: urls, startIndex: 0 })"
-                                                                                title="Open foto">
-                                                                            <img src="{{ $photoUrl }}"
-                                                                                 alt="Checklist foto"
-                                                                                 class="rounded-lg shadow-sm hover:opacity-80 transition-opacity object-cover h-16 w-16 cursor-zoom-in bg-gray-50 dark:bg-gray-900">
-                                                                        </button>
-                                                                        <div class="leading-tight">
-                                                                            <a href="{{ $photoUrl }}" target="_blank" class="text-blue-600 hover:underline text-xs">Open in nieuw tabblad</a>
-                                                                        </div>
+                                                                @php
+                                                                    // Collect all photo URLs from relation, fallback to legacy single photo_path
+                                                                    $photoUrls = $item->photos && $item->photos->count() > 0
+                                                                        ? $item->photos->pluck('url')->all()
+                                                                        : [];
+                                                                    if (empty($photoUrls) && $item->photo_path) {
+                                                                        $photoUrls = [route('media', ['path' => $item->photo_path])];
+                                                                    }
+                                                                @endphp
+
+                                                                @if (!empty($photoUrls))
+                                                                    <div class="flex items-center gap-2">
+                                                                        @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
+                                                                            <button type="button"
+                                                                                    class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                    x-data="{}"
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                                <img src="{{ $url }}" alt="Checklist foto" class="w-full h-full object-cover">
+                                                                            </button>
+                                                                        @endforeach
+                                                                        @if (count($photoUrls) > 3)
+                                                                            <button type="button"
+                                                                                    class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                    x-data="{}"
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
+                                                                                <img src="{{ $photoUrls[3] }}" alt="Meer checklist foto’s" class="w-full h-full object-cover opacity-70">
+                                                                                <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
+                                                                            </button>
+                                                                        @endif
                                                                     </div>
                                                                 @else
                                                                     <span class="text-gray-400">Geen foto</span>
@@ -861,9 +874,11 @@
                                                                         @if(($item->status ?? 'pending') === 'pending')
                                                                             <form method="POST" action="{{ route('admin.end-checklist.approve', $item) }}" onsubmit="return confirm('Checklist item goedkeuren?');">
                                                                                 @csrf
-                                                                                <button type="submit" class="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">Keur goed</button>
+                                                                                <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                             </form>
-                                                                            <a href="{{ route('admin.end-checklist.reject', $item) }}" class="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">Afwijzen</a>
+                                                                            <form method="GET" action="{{ route('admin.end-checklist.reject', $item) }}">
+                                                                                <x-danger-button type="submit" class="!py-1 !px-2 !text-xs">Afkeuren</x-danger-button>
+                                                                            </form>
                                                                         @else
                                                                             <span class="text-xs text-gray-400">Geen acties</span>
                                                                         @endif

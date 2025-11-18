@@ -595,8 +595,8 @@ class MyPlanningController extends Controller
                 ($existingItem->type === 'material' ? $existingItem->requirement_id :
                  ($existingItem->type === 'end_action' ? $existingItem->title : 'unknown'));
 
-            if (!$expectedKeys->contains($currentKey) && $existingItem->status === 'pending' && !$existingItem->photo_path) {
-                // Only delete items that haven't been started yet
+            if (!$expectedKeys->contains($currentKey) && $existingItem->isOpen() && !$existingItem->photo_path) {
+                // Only delete items that haven't been started yet (still 'open' and no photo)
                 $existingItem->delete();
             }
         }

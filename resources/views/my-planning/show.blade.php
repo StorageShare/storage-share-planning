@@ -382,7 +382,7 @@
                                                                     Afgewezen
                                                                 </span>
                                                             </template>
-                                                            <template x-if="item.status === 'pending' && item.photo_path">
+                                                            <template x-if="item.status === 'pending' && (item.photos?.length > 0 || item.photo_path)">
                                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
                                                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
@@ -390,7 +390,7 @@
                                                                     In behandeling
                                                                 </span>
                                                             </template>
-                                                            <template x-if="item.status === 'pending' && !item.photo_path">
+                                                            <template x-if="item.status === 'pending' && !(item.photos?.length > 0 || item.photo_path)">
                                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
                                                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
@@ -404,12 +404,12 @@
 
                                                 {{-- Photo Section --}}
                                                 <div class="p-4">
-                                                    {{-- Existing Photo --}}
-                                                    <template x-if="item.photo_url">
+                                                    {{-- Existing Photos --}}
+                                                    <template x-if="(item.photos && item.photos.length > 0) || item.photo_url">
                                                         <div class="mb-4">
                                                             <div class="flex items-center justify-between mb-2">
                                                                 <div class="flex flex-col">
-                                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Geüploade foto:</span>
+                                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Geüploade foto(s):</span>
                                                                     <template x-if="item.uploaded_by_name || item.uploaded_at">
                                                                         <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                                             <span x-show="item.uploaded_by_name" x-text="`Door: ${item.uploaded_by_name}`"></span>
@@ -422,38 +422,98 @@
                                                                 </div>
                                                                 <template x-if="item.status === 'pending'">
                                                                     <button @click="removePhoto(item)" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                                                        Vervangen
+                                                                        Alles verwijderen
                                                                     </button>
                                                                 </template>
                                                             </div>
-                                                            <button @click="openImageModal([item.photo_url], 0)" class="block">
-                                                                <img :src="item.photo_url" :alt="`Foto voor ${item.title}`" class="w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition">
-                                                            </button>
+
+                                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                                <!-- New multi-photos gallery -->
+                                                                <template x-if="item.photos && item.photos.length > 0">
+                                                                    <template x-for="(p, idx) in item.photos" :key="p.id ?? p.photo_url ?? idx">
+                                                                        <div class="relative group">
+                                                                            <button type="button" class="block focus:outline-none" @click="openImageModal(item.photos.map(pp => pp.photo_url ?? pp.url ?? pp), idx)">
+                                                                                <img :src="p.photo_url ?? p.url ?? p" class="w-full h-36 object-cover rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer group-hover:opacity-90 transition" :alt="`Foto ${idx+1} voor ${item.title}`">
+                                                                            </button>
+                                                                            <button x-show="item.status === 'pending'" @click.prevent="removeSinglePhoto(item, p)" class="absolute -top-2 -right-2 z-10 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 text-red-600 rounded-full p-1 shadow">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 12.062A3 3 0 0115.92 22H8.08a3 3 0 01-2.988-2.278L4.087 6.66l-.209.035a.75.75 0 11-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.972a52.662 52.662 0 013.368 0C15.287 1.805 16.5 3.141 16.5 4.705zM10.5 4.75a.25.25 0 00-.25.25v.136a49.488 49.488 0 013.5 0V5a.25.25 0 00-.25-.25h-3zM8.58 8.72a.75.75 0 10-1.5.06l.626 10.02a1.5 1.5 0 001.494 1.4h7.84a1.5 1.5 0 001.494-1.4l.626-10.02a.75.75 0 10-1.5-.06l-.62 9.93a.25.25 0 01-.249.23H8.7a.25.25 0 01-.25-.23l-.62-9.93z" clip-rule="evenodd"/></svg>
+                                                                            </button>
+                                                                        </div>
+                                                                    </template>
+                                                                </template>
+
+                                                                <!-- Legacy single photo fallback -->
+                                                                <template x-if="(!item.photos || item.photos.length === 0) && item.photo_url">
+                                                                    <button @click="openImageModal([item.photo_url], 0)" class="block">
+                                                                        <img :src="item.photo_url" :alt="`Foto voor ${item.title}`" class="w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition">
+                                                                    </button>
+                                                                </template>
+                                                            </div>
                                                         </div>
                                                     </template>
 
-                                                    {{-- Photo Upload --}}
+                                                    {{-- Photo Upload (Task-like: DnD + preview queue + upload) --}}
                                                     <template x-if="!item.photo_url || item.status === 'rejected'">
                                                         <div class="mb-4">
                                                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                                Upload bewijs foto:
+                                                                Upload bewijs foto's
                                                             </label>
-                                                            <div class="flex items-center space-x-3">
-                                                                <input type="file"
-                                                                       :id="`photo_input_${item.id}`"
-                                                                       accept="image/*"
-                                                                       @change="handlePhotoUpload($event, item)"
-                                                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
-                                                                <template x-if="uploadingPhoto === item.id">
-                                                                    <div class="flex items-center text-blue-600">
-                                                                        <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                                        </svg>
-                                                                        Uploaden...
+
+                                                            <!-- Drag & Drop Zone -->
+                                                            <div
+                                                                class="border-2 border-dashed rounded-lg p-4 sm:p-6 transition"
+                                                                :class="draggingItemId === item.id ? 'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-900/10' : 'border-gray-300 dark:border-gray-600'"
+                                                                @dragover.prevent="draggingItemId = item.id"
+                                                                @dragleave.prevent="draggingItemId = null"
+                                                                @drop.prevent="handleDrop($event, item)">
+                                                                <div class="text-center">
+                                                                    <svg class="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                                    </svg>
+                                                                    <div class="mt-3">
+                                                                        <label :for="`photo_input_${item.id}`" class="cursor-pointer text-sm font-medium text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                            Bestanden kiezen
+                                                                        </label>
+                                                                        <span class="mx-1 text-sm text-gray-500 dark:text-gray-400">of sleep ze hierheen</span>
                                                                     </div>
-                                                                </template>
+                                                                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Meerdere afbeeldingen toegestaan (JPG, PNG, GIF, WEBP cu2264 10MB per bestand)</div>
+                                                                    <input type="file"
+                                                                           class="sr-only"
+                                                                           :id="`photo_input_${item.id}`"
+                                                                           accept="image/*"
+                                                                           multiple
+                                                                           @change="queuePhotoFiles($event, item)">
+                                                                </div>
                                                             </div>
+
+                                                            <!-- Queued previews -->
+                                                            <template x-if="(item._queued && item._queued.length > 0)">
+                                                                <div class="mt-4">
+                                                                    <div class="flex items-center justify-between mb-2">
+                                                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="`${item._queued.length} bestand(en) geselecteerd`"></span>
+                                                                        <div class="flex items-center gap-2">
+                                                                            <button type="button" @click="startUploadQueued(item)" :disabled="uploadingPhoto === item.id" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                                                                                <svg x-show="uploadingPhoto !== item.id" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V8l-6-4H4zm8 12H8m8-4H8"/></svg>
+                                                                                <svg x-show="uploadingPhoto === item.id" class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                                                                <span x-text="uploadingPhoto === item.id ? 'Uploaden...' : 'Upload geselecteerde'"></span>
+                                                                            </button>
+                                                                            <button type="button" @click="clearQueuedFiles(item)" :disabled="uploadingPhoto === item.id" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 disabled:opacity-50">
+                                                                                Leegmaken
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                                        <template x-for="(q, qidx) in item._queued" :key="q.previewUrl">
+                                                                            <div class="relative group">
+                                                                                <button type="button" @click="removeQueuedFile(item, qidx)" class="absolute -top-2 -right-2 z-10 bg-white dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-800 text-red-600 rounded-full p-1 shadow">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 12.062A3 3 0 0115.92 22H8.08a3 3 0 01-2.988-2.278L4.087 6.66l-.209.035a.75.75 0 11-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.972a52.662 52.662 0 013.368 0C15.287 1.805 16.5 3.141 16.5 4.705zM10.5 4.75a.25.25 0 00-.25.25v.136a49.488 49.488 0 013.5 0V5a.25.25 0 00-.25-.25h-3zM8.58 8.72a.75.75 0 10-1.5.06l.626 10.02a1.5 1.5 0 001.494 1.4h7.84a1.5 1.5 0 001.494-1.4l.626-10.02a.75.75 0 10-1.5-.06l-.62 9.93a.25.25 0 01-.249.23H8.7a.25.25 0 01-.25-.23l-.62-9.93z" clip-rule="evenodd"/></svg>
+                                                                                </button>
+                                                                                <img :src="q.previewUrl" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600 z-0" :alt="`Geselecteerde foto ${qidx+1}`">
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                     </template>
 
@@ -789,9 +849,53 @@
 
                                                     <div>
                                                         <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Foto's</label>
-                                                        <input type="file" multiple @change="handleTaskFileUpload($event, task.task_id)" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+
+                                                        <!-- Drag & Drop Zone for Task Photos -->
+                                                        <div
+                                                            class="border-2 border-dashed rounded-lg p-4 sm:p-5 transition"
+                                                            :class="draggingTaskId === task.task_id ? 'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-900/10' : 'border-gray-300 dark:border-gray-600'"
+                                                            @dragover.prevent="draggingTaskId = task.task_id"
+                                                            @dragleave.prevent="draggingTaskId = null"
+                                                            @drop.prevent="onTaskDrop($event, task.task_id)"
+                                                        >
+                                                            <div class="text-center">
+                                                                <svg class="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                                </svg>
+                                                                <div class="mt-2">
+                                                                    <label :for="`task_photos_${task.task_id}`" class="cursor-pointer text-sm font-medium text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                        Bestanden kiezen
+                                                                    </label>
+                                                                    <span class="mx-1 text-sm text-gray-500 dark:text-gray-400">of sleep ze hierheen</span>
+                                                                </div>
+                                                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Meerdere afbeeldingen toegestaan (JPG, PNG, GIF, WEBP ≤ 10MB per bestand)</div>
+                                                                <input :id="`task_photos_${task.task_id}`" class="sr-only" type="file" accept="image/*" multiple @change="queueTaskPhotoFiles($event, task.task_id)">
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Queued previews for this task -->
+                                                        <div class="mt-3" x-show="getTaskCompletion(task.task_id).photos.length > 0">
+                                                            <div class="flex items-center justify-between mb-2">
+                                                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="`${getTaskCompletion(task.task_id).photos.length} bestand(en) geselecteerd`"></span>
+                                                                <div class="flex items-center gap-2">
+                                                                    <button type="button" @click="clearTaskQueuedFiles(task.task_id)" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                                                                        Leegmaken
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                                <template x-for="(file, idx) in getTaskCompletion(task.task_id).photos" :key="file.name + idx">
+                                                                    <div class="relative group">
+                                                                        <img :src="URL.createObjectURL(file)" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600" :alt="`Geselecteerde foto ${idx+1}`">
+                                                                        <button type="button" @click="removeTaskQueuedFile(task.task_id, idx)" class="absolute -top-2 -right-2 z-10 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 text-red-600 rounded-full p-1 shadow">
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 12.062A3 3 0 0115.92 22H8.08a3 3 0 01-2.988-2.278L4.087 6.66l-.209.035a.75.75 0 11-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.972a52.662 52.662 0 013.368 0C15.287 1.805 16.5 3.141 16.5 4.705zM10.5 4.75a.25.25 0 00-.25.25v.136a49.488 49.488 0 013.5 0V5a.25.25 0 00-.25-.25h-3zM8.58 8.72a.75.75 0 10-1.5.06l.626 10.02a1.5 1.5 0 001.494 1.4h7.84a1.5 1.5 0 001.494-1.4l.626-10.02a.75.75 0 10-1.5-.06l-.62 9.93a.25.25 0 01-.249.23H8.7a.25.25 0 01-.25-.23l-.62-9.93z" clip-rule="evenodd"/></svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+
                                                         <div class="mt-2 text-sm text-red-600" x-show="getTaskErrors(task.task_id).photos" x-text="getTaskErrors(task.task_id).photos"></div>
-                                                        <div :id="`task-photo-previews-${task.task_id}`" class="mt-2 flex flex-wrap gap-2"></div>
                                                     </div>
 
                                                     <div class="flex justify-between items-end">
@@ -944,6 +1048,7 @@
                 endChecklistChecked: {},
                 uploadingPhoto: null, // Track which photo is being uploaded
                 submittingEndChecklist: false, // Track checklist submission state
+                draggingTaskId: null, // For DnD state on task photo uploader
 
                 async init() {
                     this.locationSteps = JSON.parse(this.$root.dataset.locationSteps);
@@ -1019,26 +1124,49 @@
                     return this.taskErrors[taskId] || {};
                 },
 
-                handleTaskFileUpload(event, taskId) {
-                    this.taskCompletions[taskId].photos = Array.from(event.target.files);
-                    this.updateTaskPhotoPreviews(taskId);
+                // Task DnD uploader helpers
+                queueTaskPhotoFiles(event, taskId) {
+                    const files = Array.from(event.target?.files || event.files || []);
+                    if (!files.length) return;
+                    const completion = this.getTaskCompletion(taskId);
+                    if (!completion.photos) completion.photos = [];
+
+                    for (const file of files) {
+                        // Validate size ≤ 10MB
+                        if (file.size > 10 * 1024 * 1024) {
+                            alert('Bestand is te groot. Maximum 10MB per bestand.');
+                            continue;
+                        }
+                        // Validate type image/*
+                        if (!file.type || !file.type.startsWith('image/')) {
+                            alert('Alleen afbeeldingen zijn toegestaan.');
+                            continue;
+                        }
+                        completion.photos.push(file);
+                    }
+
+                    // Reset input so selecting same files again works
+                    if (event.target) {
+                        event.target.value = '';
+                    }
                 },
 
-                updateTaskPhotoPreviews(taskId) {
-                    const container = document.getElementById(`task-photo-previews-${taskId}`);
-                    if (!container) return;
+                onTaskDrop(e, taskId) {
+                    const dt = e.dataTransfer;
+                    if (!dt || !dt.files) return;
+                    this.queueTaskPhotoFiles({ target: { files: dt.files } }, taskId);
+                    this.draggingTaskId = null;
+                },
 
-                    container.innerHTML = '';
-                    this.taskCompletions[taskId].photos.forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            const img = document.createElement('img');
-                            img.src = e.target.result;
-                            img.className = 'w-16 h-16 object-cover rounded';
-                            container.appendChild(img);
-                        };
-                        reader.readAsDataURL(file);
-                    });
+                clearTaskQueuedFiles(taskId) {
+                    const completion = this.getTaskCompletion(taskId);
+                    completion.photos = [];
+                },
+
+                removeTaskQueuedFile(taskId, index) {
+                    const completion = this.getTaskCompletion(taskId);
+                    if (!Array.isArray(completion.photos)) return;
+                    completion.photos.splice(index, 1);
                 },
 
                 openImageModal(imageUrls, startIndex) {
@@ -1295,7 +1423,7 @@
 
                     // For new photo-based checklist, count items with uploaded photos
                     if (current.checklist_items) {
-                        return current.checklist_items.filter(item => item.photo_path).length;
+                        return current.checklist_items.filter(item => this.itemHasPhotos(item)).length;
                     }
 
                     return 0;
@@ -1332,75 +1460,195 @@
                             return true;
                         }
                         // Otherwise, all items must have photos for submission
-                        return current.checklist_items.every(item => item.photo_path);
+                        return current.checklist_items.every(item => this.itemHasPhotos(item));
                     }
 
                     return true;
                 },
 
+                // Helpers
+                itemHasPhotos(item) {
+                    return (item.photos && item.photos.length > 0) || !!item.photo_path || !!item.photo_url;
+                },
+
+                getPhotoUrlsForItem(item) {
+                    if (item.photos && item.photos.length > 0) {
+                        return item.photos.map(p => p.photo_url || p.url || p);
+                    }
+                    if (item.photo_url) return [item.photo_url];
+                    return [];
+                },
+
                 // New photo upload functions
                 handlePhotoUpload(event, item) {
-                    const file = event.target.files[0];
-                    if (!file) return;
+                    const files = Array.from(event.target.files || []);
+                    if (!files.length) return;
 
-                    // Validate file size (10MB max)
-                    if (file.size > 10 * 1024 * 1024) {
-                        alert('Bestand is te groot. Maximum 10MB toegestaan.');
-                        return;
-                    }
-
-                    // Validate file type
-                    if (!file.type.startsWith('image/')) {
-                        alert('Alleen afbeeldingen zijn toegestaan.');
-                        return;
+                    // Validate files
+                    for (const file of files) {
+                        if (file.size > 10 * 1024 * 1024) {
+                            alert('Bestand is te groot. Maximum 10MB toegestaan.');
+                            return;
+                        }
+                        if (!file.type.startsWith('image/')) {
+                            alert('Alleen afbeeldingen zijn toegestaan.');
+                            return;
+                        }
                     }
 
                     this.uploadingPhoto = item.id;
 
                     const formData = new FormData();
-                    formData.append('photo', file);
+                    files.forEach(f => formData.append('photos[]', f));
 
                     axios.post(`/end-checklist-items/${item.id}/upload-photo`, formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data'
                         }
                     })
-                    .then(response => {
-                        // Update the item with the new photo URL
-                        item.photo_path = response.data.photo_url.replace('/storage/', '');
-                        item.photo_url = response.data.photo_url;
+                        .then(response => {
+                            // Ensure item.photos exists
+                            if (!Array.isArray(item.photos)) item.photos = [];
 
-                        // Reset the file input
-                        event.target.value = '';
+                            // Merge new photos (response.photos contains id, file_path, photo_url)
+                            const newPhotos = (response.data && response.data.photos) ? response.data.photos : [];
 
-                        // No need to refresh all data - we've already updated the item
-                        // this.refreshEndChecklistData();
+                            // Avoid duplicates by id+file_path
+                            const existingKeys = new Set(item.photos.map(p => `${p.id || ''}|${p.file_path || ''}`));
+                            newPhotos.forEach(p => {
+                                const key = `${p.id || ''}|${p.file_path || ''}`;
+                                if (!existingKeys.has(key)) item.photos.push(p);
+                            });
+
+                            // Reset the file input
+                            event.target.value = '';
+                        })
+                        .catch(error => {
+                            console.error('Upload failed:', error);
+                            alert(error.response?.data?.message || 'Er is een fout opgetreden bij het uploaden van de foto\'s.');
+                        })
+                        .finally(() => {
+                            this.uploadingPhoto = null;
+                        });
+                },
+
+                // Task-like uploader helpers
+                draggingItemId: null,
+
+                ensureQueue(item) {
+                    if (!item._queued) item._queued = [];
+                },
+
+                queuePhotoFiles(event, item) {
+                    const files = Array.from(event.target.files || []);
+                    if (!files.length) return;
+                    this.ensureQueue(item);
+                    for (const file of files) {
+                        if (file.size > 10 * 1024 * 1024) {
+                            alert('Bestand is te groot. Maximum 10MB toegestaan.');
+                            continue;
+                        }
+                        if (!file.type.startsWith('image/')) {
+                            alert('Alleen afbeeldingen zijn toegestaan.');
+                            continue;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            item._queued.push({ file, previewUrl: e.target.result });
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                    // Reset input so same files can be chosen again later
+                    event.target.value = '';
+                },
+
+                handleDrop(e, item) {
+                    const dt = e.dataTransfer;
+                    if (!dt || !dt.files) return;
+                    const event = { target: { files: dt.files } };
+                    this.queuePhotoFiles(event, item);
+                    this.draggingItemId = null;
+                },
+
+                clearQueuedFiles(item) {
+                    if (!item._queued) return;
+                    item._queued = [];
+                },
+
+                removeQueuedFile(item, index) {
+                    this.ensureQueue(item);
+                    item._queued.splice(index, 1);
+                },
+
+                startUploadQueued(item) {
+                    this.ensureQueue(item);
+                    if (!item._queued.length) return;
+                    this.uploadingPhoto = item.id;
+
+                    const formData = new FormData();
+                    item._queued.forEach(q => formData.append('photos[]', q.file));
+
+                    axios.post(`/end-checklist-items/${item.id}/upload-photo`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
                     })
-                    .catch(error => {
-                        console.error('Upload failed:', error);
-                        alert(error.response?.data?.message || 'Er is een fout opgetreden bij het uploaden van de foto.');
-                    })
-                    .finally(() => {
-                        this.uploadingPhoto = null;
-                    });
+                        .then(response => {
+                            if (!Array.isArray(item.photos)) item.photos = [];
+                            const newPhotos = Array.isArray(response.data?.photos) ? response.data.photos : [];
+                            const existingKeys = new Set(item.photos.map(p => `${p.id || ''}|${p.file_path || ''}`));
+                            newPhotos.forEach(p => {
+                                const key = `${p.id || ''}|${p.file_path || ''}`;
+                                if (!existingKeys.has(key)) item.photos.push(p);
+                            });
+                            // Clear queue after success
+                            item._queued = [];
+                        })
+                        .catch(error => {
+                            console.error('Upload failed:', error);
+                            alert(error.response?.data?.message || 'Er is een fout opgetreden bij het uploaden van de foto\'s.');
+                        })
+                        .finally(() => {
+                            this.uploadingPhoto = null;
+                        });
                 },
 
                 removePhoto(item) {
-                    if (confirm('Weet je zeker dat je deze foto wilt vervangen?')) {
+                    if (confirm('Weet je zeker dat je alle foto\'s wilt verwijderen?')) {
                         // Clear the photo data locally
                         item.photo_path = null;
                         item.photo_url = null;
+                        item.photos = [];
 
-                        // Call API endpoint to delete the photo from the server
+                        // Call API endpoint to delete all photos from the server
                         axios.delete(`/end-checklist-items/${item.id}/photo`)
-                            .then(response => {
-                                console.log('Photo removed from server');
+                            .then(() => {
+                                // successfully deleted
                             })
                             .catch(error => {
-                                console.error('Failed to remove photo from server:', error);
-                                // Photo is already cleared from UI, so we don't need to revert
+                                console.error('Failed to remove photos from server:', error);
                             });
                     }
+                },
+
+                removeSinglePhoto(item, photo) {
+                    if (!photo || !photo.id) {
+                        // If no id available (legacy), fallback to full delete
+                        return this.removePhoto(item);
+                    }
+                    if (!confirm('Weet je zeker dat je deze foto wilt verwijderen?')) return;
+
+                    // Update UI optimistically
+                    item.photos = (item.photos || []).filter(p => p.id !== photo.id);
+
+                    axios.delete(`/end-checklist-items/${item.id}/photos/${photo.id}`)
+                        .then(() => {
+                            // ok
+                        })
+                        .catch(error => {
+                            console.error('Failed to remove photo:', error);
+                            alert('Verwijderen van de foto is mislukt.');
+                            // Revert by reloading data
+                            this.refreshEndChecklistData();
+                        });
                 },
 
                 canSubmitEndChecklist() {
@@ -1409,7 +1657,7 @@
 
                     // Check if all items have photos
                     if (current.checklist_items) {
-                        return current.checklist_items.every(item => item.photo_path);
+                        return current.checklist_items.every(item => this.itemHasPhotos(item));
                     }
 
                     return false;
