@@ -322,10 +322,20 @@
                     <form id="review-form" method="POST">
                         @csrf
                         <div class="p-6 border-t border-gray-200 dark:border-gray-700">
-                            <label for="review_notes" class="block text-lg font-medium text-gray-900 dark:text-gray-100">Opmerking toevoegen (optioneel)</label>
+                            <label for="review_notes" class="block text-lg font-medium text-gray-900 dark:text-gray-100">Opmerkingen (verplicht bij afwijzing)</label>
                             <div class="mt-2">
                                 <textarea id="review_notes" name="review_notes" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200" placeholder="Voeg hier je opmerkingen voor de medewerker toe..."></textarea>
                             </div>
+                            <div class="mt-4 flex items-start space-x-3">
+                                <input type="hidden" name="create_replacement" value="0">
+                                <input id="create_replacement_regular" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
+                                <label for="create_replacement_regular" class="text-sm text-gray-700 dark:text-gray-300">
+                                    Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
+                                </label>
+                            </div>
+                            @if ($planning)
+                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+                            @endif
                         </div>
 
                         <div class="p-6 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">

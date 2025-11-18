@@ -242,7 +242,10 @@ class PlanningTaskController extends Controller
 
         $createReplacement = $request->boolean('create_replacement', false);
 
-        DB::transaction(function () use ($request, $planning_task, $createReplacement) {
+        // Track a newly created backlog task ID (if any) so we can redirect to it explicitly
+        $newTaskId = null;
+
+        DB::transaction(function () use ($request, $planning_task, $createReplacement, &$newTaskId) {
             // Step 1: Update statuses of the original planning task and backlog task to 'rejected'
             $planning_task->update([
                 'status' => TaskStatus::REJECTED,
@@ -274,6 +277,9 @@ class PlanningTaskController extends Controller
                     $new_task->estimated_time_minutes = $original_task->estimated_time_minutes;
                     $new_task->deadline = $original_task->deadline;
                     $new_task->save();
+
+                    // Remember for redirect after transaction
+                    $newTaskId = $new_task->id;
 
                     // Copy photos from the latest completion into the new backlog task
                     if ($latest_completion = $planning_task->completions()->latest()->first()) {
@@ -307,6 +313,9 @@ class PlanningTaskController extends Controller
                     ]);
                     $new_backlog_task->save();
 
+                    // Remember for redirect after transaction
+                    $newTaskId = $new_backlog_task->id;
+
                     // Copy photos from the latest completion into the new backlog task
                     if ($latest_completion = $planning_task->completions()->latest()->first()) {
                         foreach ($latest_completion->photos as $photo) {
@@ -336,7 +345,17 @@ class PlanningTaskController extends Controller
             }
         });
 
-        // Conditional redirect: if coming from a planning overview, go back there unless no more reviewable tasks remain
+        // If a new task was created, prefer sending the user directly to that task so it's visible immediately
+        if ($createReplacement && isset($newTaskId)) {
+            $newTask = \App\Models\Task::find($newTaskId);
+            if ($newTask) {
+                return redirect()
+                    ->route('tasks.show', $newTask)
+                    ->with('success', 'Taak afgekeurd. Nieuwe taak is aangemaakt in de backlog met de reden en foto\'s.');
+            }
+        }
+
+        // Conditional redirect fallback: if coming from a planning overview, go back there unless no more reviewable tasks remain
         if ($request->filled('planning_id')) {
             $planning = $planning_task->planning;
             $remaining = \App\Models\PlanningTask::where('planning_id', $planning->id)
@@ -573,8 +592,8 @@ class PlanningTaskController extends Controller
             abort(404);
         }
 
-        // Allow reopening if the task is in 'review' or 'skipped' state
-        if (!in_array($planning_task->status, [TaskStatus::REVIEW, TaskStatus::SKIPPED])) {
+        // Allow reopening if the task is in 'review', 'skipped' or 'rejected' state
+        if (!in_array($planning_task->status, [TaskStatus::REVIEW, TaskStatus::SKIPPED, TaskStatus::REJECTED])) {
             return response()->json(['message' => 'Taak kan niet heropend worden.'], 403);
         }
 

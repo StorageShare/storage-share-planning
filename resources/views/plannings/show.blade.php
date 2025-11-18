@@ -621,6 +621,14 @@
                                                                                         <x-input-error class="mt-2" :messages="$errors->get('review_notes')" />
                                                                                     </div>
 
+                                                                                    <div class="mt-4 flex items-start space-x-3">
+                                                                                        <input type="hidden" name="create_replacement" value="0">
+                                                                                        <input id="create_replacement_modal_{{ $planningTask->id }}" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
+                                                                                        <label for="create_replacement_modal_{{ $planningTask->id }}" class="text-sm text-gray-700 dark:text-gray-300">
+                                                                                            Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
+                                                                                        </label>
+                                                                                    </div>
+
                                                                                     <div class="mt-6 flex justify-end">
                                                                                         <x-secondary-button x-on:click="$dispatch('close')">
                                                                                             {{ __('Annuleren') }}
