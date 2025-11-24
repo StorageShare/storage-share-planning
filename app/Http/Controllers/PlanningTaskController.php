@@ -216,20 +216,26 @@ class PlanningTaskController extends Controller
         // Check if this location is now completed and notify if needed
         $this->checkLocationCompletionAndNotify($planning_task);
 
-        // Conditional redirect: if coming from a planning overview, go back there unless no more reviewable tasks remain
-        if ($request->filled('planning_id')) {
-            $planning = $planning_task->planning;
-            $remaining = \App\Models\PlanningTask::where('planning_id', $planning->id)
-                ->where('status', TaskStatus::REVIEW->value)
-                ->where('id', '!=', $planning_task->id)
-                ->count();
+        $message = 'Geplande taak goedgekeurd.';
 
-            if ($remaining > 0) {
-                return redirect()->route('plannings.show', $planning)->with('success', 'Geplande taak goedgekeurd.');
-            }
+        // Async path: return JSON when requested
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => $message,
+                'planning_task_id' => $planning_task->id,
+                'planning_id' => $planning_task->planning_id,
+                'new_status' => TaskStatus::COMPLETED->value,
+            ]);
         }
 
-        return redirect()->route('plannings.review')->with('success', 'Geplande taak goedgekeurd.');
+        // Conditional redirect: if coming from a planning overview, go back there
+        if ($request->filled('planning_id')) {
+            $planning = $planning_task->planning;
+            return redirect()->route('plannings.show', $planning)->with('success', $message);
+        }
+
+        return redirect()->route('plannings.review')->with('success', $message);
     }
 
     public function reject(Request $request, PlanningTask $planning_task): RedirectResponse
@@ -345,34 +351,30 @@ class PlanningTaskController extends Controller
             }
         });
 
-        // If a new task was created, prefer sending the user directly to that task so it's visible immediately
-        if ($createReplacement && isset($newTaskId)) {
-            $newTask = \App\Models\Task::find($newTaskId);
-            if ($newTask) {
-                return redirect()
-                    ->route('tasks.show', $newTask)
-                    ->with('success', 'Taak afgekeurd. Nieuwe taak is aangemaakt in de backlog met de reden en foto\'s.');
-            }
+        $message = $request->boolean('create_replacement')
+            ? 'Taak afgekeurd. Een nieuwe taak is aangemaakt in de backlog.'
+            : 'Taak afgekeurd. Er is geen nieuwe taak aangemaakt.';
+
+        // Async path: return JSON when requested
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => $message,
+                'planning_task_id' => $planning_task->id,
+                'planning_id' => $planning_task->planning_id,
+                'new_status' => TaskStatus::REJECTED->value,
+                'replacement_created' => (bool) $request->boolean('create_replacement'),
+            ]);
         }
 
-        // Conditional redirect fallback: if coming from a planning overview, go back there unless no more reviewable tasks remain
+        // Preferred redirect: if coming from a planning overview, always go back there
         if ($request->filled('planning_id')) {
             $planning = $planning_task->planning;
-            $remaining = \App\Models\PlanningTask::where('planning_id', $planning->id)
-                ->where('status', TaskStatus::REVIEW->value)
-                ->where('id', '!=', $planning_task->id)
-                ->count();
-
-            if ($remaining > 0) {
-                return redirect()->route('plannings.show', $planning)->with('success', $request->boolean('create_replacement')
-                    ? 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.'
-                    : 'Taak afgekeurd. Er is geen nieuwe taak aangemaakt.');
-            }
+            return redirect()->route('plannings.show', $planning)
+                ->with('success', $message);
         }
 
-        return redirect()->route('plannings.review')->with('success', $request->boolean('create_replacement')
-            ? 'Taak afgekeurd. Een nieuwe versie is aangemaakt in de backlog.'
-            : 'Taak afgekeurd. Er is geen nieuwe taak aangemaakt.');
+        return redirect()->route('plannings.review')->with('success', $message);
     }
 
     /**

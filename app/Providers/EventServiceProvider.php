@@ -23,9 +23,9 @@ class EventServiceProvider extends ServiceProvider
         TaskReadyForReview::class => [
             SendTaskReviewNotification::class,
         ],
-        LocationCompleted::class => [
-            SendLocationCompletedNotification::class,
-        ],
+//        LocationCompleted::class => [
+//            SendLocationCompletedNotification::class,
+//        ],
     ];
 
     /**
@@ -48,4 +48,4 @@ class EventServiceProvider extends ServiceProvider
     {
         return false;
     }
-} 
+}

@@ -325,7 +325,7 @@ class EndChecklistController extends Controller
     /**
      * Admin: Approve a checklist item (and all related items).
      */
-    public function approveItem(EndChecklistItem $item)
+    public function approveItem(Request $request, EndChecklistItem $item)
     {
         // Get all related items (same requirement AND title, or same end_action title)
         if ($item->type === 'material' && $item->requirement_id) {
@@ -361,6 +361,24 @@ class EndChecklistController extends Controller
 
         $count = $related_items->count();
         $message = $count > 1 ? "Checklist item goedgekeurd (inclusief {$count} gerelateerde items)" : 'Checklist item goedgekeurd';
+
+        // Async path
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => $message,
+                'affected_count' => $count,
+                'affected_item_ids' => $related_items->pluck('id')->values(),
+            ]);
+        }
+
+        // If we know which planning context we came from, send the user back there
+        if ($request->filled('planning_id')) {
+            $planningId = (int) $request->input('planning_id');
+            if ($planningId && ($planning = Planning::find($planningId))) {
+                return redirect()->route('plannings.show', $planning)->with('success', $message);
+            }
+        }
 
         return redirect()->route('admin.tasks.review')->with('success', $message);
     }
@@ -421,14 +439,67 @@ class EndChecklistController extends Controller
         // Check if admin wants to create a new task
         if ($request->boolean('create_new_task')) {
             // Redirect to task creation with pre-filled data
-            $location = $item->location_id ?? 1; // Default to first location if no location set
-            return redirect()->route('locations.tasks.create', ['location' => $location])
-                ->with('prefill', [
-                    'title' => $item->title,
-                    'description' => $item->description . "\n\nGemaakt vanuit afgewezen end checklist item.\nAfwijzingsreden: " . $request->admin_notes,
-                    'location_id' => $item->location_id,
-                ])
+            // Determine a valid location id for the new task to avoid 404s from route-model binding.
+            // Priority:
+            // 1) The item-specific location
+            // 2) First location on the related planning
+            // 3) First location in the system
+            // 4) If none are available, fall back to review page with an error
+            $locationId = $item->location_id
+                ?? ($item->planning ? $item->planning->locations()->first()?->id : null)
+                ?? (\App\Models\Location::query()->first()?->id);
+
+            if (!$locationId) {
+                // No location could be determined — gracefully fall back
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'status' => 'ok',
+                        'message' => $message . ' Geen locatie gevonden om een nieuwe taak aan te maken.',
+                        'affected_count' => $count,
+                        'new_task' => null,
+                    ]);
+                }
+                return redirect()->route('admin.tasks.review')
+                    ->with('error', 'Kan geen locatie bepalen voor de nieuwe taak. De checklist is afgewezen, maar er is geen nieuwe taak aangemaakt.');
+            }
+
+            $prefill = [
+                'title' => $item->title,
+                'description' => ($item->description ?? '') . "\n\nGemaakt vanuit afgewezen end checklist item.\nAfwijzingsreden: " . $request->admin_notes,
+                'location_id' => $locationId,
+            ];
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'ok',
+                    'message' => $message . ' Een nieuwe taak kan worden aangemaakt.',
+                    'affected_count' => $count,
+                    'new_task' => [
+                        'create_url' => route('locations.tasks.create', ['location' => $locationId]),
+                        'prefill' => $prefill,
+                    ],
+                ]);
+            }
+
+            return redirect()->route('locations.tasks.create', ['location' => $locationId])
+                ->with('prefill', $prefill)
                 ->with('success', $message . ' Een nieuwe taak wordt aangemaakt.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => $message,
+                'affected_count' => $count,
+            ]);
+        }
+
+        // If we know which planning context we came from, send the user back there
+        if ($request->filled('planning_id')) {
+            $planningId = (int) $request->input('planning_id');
+            if ($planningId && ($planning = Planning::find($planningId))) {
+                return redirect()->route('plannings.show', $planning)->with('success', $message);
+            }
         }
 
         return redirect()->route('admin.tasks.review')->with('success', $message);

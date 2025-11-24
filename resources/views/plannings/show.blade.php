@@ -45,14 +45,49 @@
                 $actualTotals = $actualTotals ?? ['travel_seconds' => 0, 'on_location_seconds' => 0];
             @endphp
 
+            {{-- Snackbar notifications --}}
             @if (session('success'))
-                <div class="mb-6 p-4 bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100 rounded-md shadow-sm">
-                    {{ session('success') }}
+                <div x-data="{ show: true }"
+                     x-init="setTimeout(() => show = false, 4000)"
+                     x-show="show"
+                     x-transition
+                     class="fixed z-50 top-4 right-4 max-w-sm w-full">
+                    <div class="rounded-md bg-green-600 text-white shadow-lg ring-1 ring-black/5 overflow-hidden">
+                        <div class="p-4 flex items-start">
+                            <svg class="h-5 w-5 text-white/90 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div class="text-sm font-medium flex-1">{{ session('success') }}</div>
+                            <button type="button" @click="show = false" class="ml-3 text-white/80 hover:text-white focus:outline-none">
+                                <span class="sr-only">Sluiten</span>
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             @endif
             @if (session('error'))
-                <div class="mb-6 p-4 bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100 rounded-md shadow-sm">
-                    {{ session('error') }}
+                <div x-data="{ show: true }"
+                     x-init="setTimeout(() => show = false, 5000)"
+                     x-show="show"
+                     x-transition
+                     class="fixed z-50 top-4 right-4 mt-16 max-w-sm w-full">
+                    <div class="rounded-md bg-red-600 text-white shadow-lg ring-1 ring-black/5 overflow-hidden">
+                        <div class="p-4 flex items-start">
+                            <svg class="h-5 w-5 text-white/90 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 4.93l.71.71m12.02 0l.71-.71M12 3v1m0 16v1M3 12h1m16 0h1M4.93 19.07l.71-.71m12.02 0l.71.71" />
+                            </svg>
+                            <div class="text-sm font-medium flex-1">{{ session('error') }}</div>
+                            <button type="button" @click="show = false" class="ml-3 text-white/80 hover:text-white focus:outline-none">
+                                <span class="sr-only">Sluiten</span>
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             @endif
 
@@ -515,7 +550,7 @@
                                                                 {{ $estimatedMinutes > 0 ? $estimatedMinutes . ' min' : 'N/A' }}
                                                             </td>
                                                             <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                                <span id="task-status-{{ $planningTask->id }}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                                     @php
                                                                         $statusValue = is_object($planningTask->status) ? $planningTask->status->value : $planningTask->status;
                                                                     @endphp
@@ -589,8 +624,13 @@
                                                                         </div>
                                                                     @endif
                                                                     @if (Auth::user()->isAdmin())
-                                                                        <div class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
-                                                                            <form action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
+                                                                        <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
+                                                                            <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
+                                                                                ? $store.planningActions.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                : (window.approvePlanningTask
+                                                                                    ? window.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                    : $event.currentTarget.submit())"
+                                                                                  action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                 @csrf
                                                                                 <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                 <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
@@ -602,19 +642,43 @@
                                                                             >Afkeuren</x-danger-button>
 
                                                                             <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                                                <form action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6">
+                                                                                <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
+                                                                                    ? $store.planningActions.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                    : (window.rejectPlanningTask
+                                                                                        ? window.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                        : $event.currentTarget.submit())"
+                                                                                      action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
                                                                                     @csrf
                                                                                     <input type="hidden" name="planning_id" value="{{ $planning->id }}">
 
                                                                                     <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                                                                        {{ __('Taak Afkeuren: ') . $planningTask->title }}
+                                                                                        Afkeuren: {{ $planningTask->title }}
                                                                                     </h2>
 
+                                                                                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                                                                        @if($planningTask->description)
+                                                                                            <p class="whitespace-pre-wrap">{{ $planningTask->description }}</p>
+                                                                                        @endif
+                                                                                        @php
+                                                                                            // Try to show a single preview image similar to end-checklist modal
+                                                                                            $firstPreview = null;
+                                                                                            if (!empty($photoUrls)) {
+                                                                                                $firstPreview = $photoUrls[0];
+                                                                                            }
+                                                                                        @endphp
+                                                                                        @if($firstPreview)
+                                                                                            <div class="mt-3">
+                                                                                                <img src="{{ $firstPreview }}" alt="Bewijsfoto" class="max-w-full h-40 object-contain rounded border border-gray-200 dark:border-gray-700">
+                                                                                            </div>
+                                                                                        @endif
+                                                                                    </div>
+
                                                                                     <div class="mt-6">
-                                                                                        <x-input-label for="review_notes_{{ $planningTask->id }}" value="{{ __('Reden van afkeuring (verplicht)') }}" />
+                                                                                        <x-input-label for="review_notes_{{ $planningTask->id }}" value="{{ __('Reden voor afwijzing (verplicht)') }}" />
                                                                                         <textarea
                                                                                             id="review_notes_{{ $planningTask->id }}"
                                                                                             name="review_notes"
+                                                                                            rows="4"
                                                                                             required
                                                                                             class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
                                                                                         >{{ old('review_notes') }}</textarea>
@@ -633,7 +697,7 @@
                                                                                         <x-secondary-button x-on:click="$dispatch('close')">
                                                                                             {{ __('Annuleren') }}
                                                                                         </x-secondary-button>
-                                                                                        <x-danger-button class="ml-3">
+                                                                                        <x-danger-button type="submit" class="ml-3">
                                                                                             {{ __('Definitief afkeuren') }}
                                                                                         </x-danger-button>
                                                                                     </div>
@@ -862,7 +926,7 @@
                                                                         'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
                                                                     ][$status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
                                                                 @endphp
-                                                                <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeClasses }}">
+                                                                <span id="end-item-status-{{ $item->id }}" class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeClasses }}">
                                                                     {{ ucfirst($status) }}
                                                                 </span>
                                                                 @if($item->reviewer)
@@ -878,15 +942,84 @@
                                                             </td>
                                                             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 align-top">
                                                                 @if(auth()->user() && method_exists(auth()->user(), 'isAdmin') && auth()->user()->isAdmin())
-                                                                    <div class="flex items-center gap-2">
+                                                                    <div id="end-item-actions-{{ $item->id }}" class="flex items-center gap-2">
                                                                         @if(($item->status ?? 'pending') === 'pending')
-                                                                            <form method="POST" action="{{ route('admin.end-checklist.approve', $item) }}" onsubmit="return confirm('Checklist item goedkeuren?');">
+                                                                            <form x-on:submit.prevent="$store.endChecklistActions && $store.endChecklistActions.approve
+                                                                                ? $store.endChecklistActions.approve($event, {{ $item->id }})
+                                                                                : (window.approveEndChecklistItem
+                                                                                    ? window.approveEndChecklistItem($event, {{ $item->id }})
+                                                                                    : $event.currentTarget.submit())"
+                                                                                  method="POST" action="{{ route('admin.end-checklist.approve', $item) }}">
                                                                                 @csrf
+                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                 <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                             </form>
-                                                                            <form method="GET" action="{{ route('admin.end-checklist.reject', $item) }}">
-                                                                                <x-danger-button type="submit" class="!py-1 !px-2 !text-xs">Afkeuren</x-danger-button>
-                                                                            </form>
+
+                                                                            <x-danger-button
+                                                                                type="button"
+                                                                                x-data
+                                                                                x-on:click.prevent="$dispatch('open-modal', 'reject-end-item-{{ $item->id }}')"
+                                                                                class="!py-1 !px-2 !text-xs"
+                                                                            >Afkeuren</x-danger-button>
+
+                                                                            <!-- Reject modal for End Checklist Item (planning detail page) -->
+                                                                            <x-modal name="reject-end-item-{{ $item->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                                <form x-on:submit.prevent="$store.endChecklistActions && $store.endChecklistActions.reject
+                                                                                    ? $store.endChecklistActions.reject($event, {{ $item->id }})
+                                                                                    : (window.rejectEndChecklistItem
+                                                                                        ? window.rejectEndChecklistItem($event, {{ $item->id }})
+                                                                                        : $event.currentTarget.submit())"
+                                                                                      method="POST" action="{{ route('admin.end-checklist.reject.process', $item) }}" class="p-6">
+                                                                                    @csrf
+                                                                                    <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+
+                                                                                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                                                        Afkeuren: {{ $item->title }}
+                                                                                    </h2>
+
+                                                                                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                                                                        @if($item->description)
+                                                                                            <p class="whitespace-pre-wrap">{{ $item->description }}</p>
+                                                                                        @endif
+                                                                                        @php
+                                                                                            $modalPhotoUrl = null;
+                                                                                            if ($item->photos && $item->photos->count() > 0) {
+                                                                                                $modalPhotoUrl = $item->photos->first()->url;
+                                                                                            } elseif ($item->photo_path) {
+                                                                                                $modalPhotoUrl = route('media', ['path' => $item->photo_path]);
+                                                                                            }
+                                                                                        @endphp
+                                                                                        @if($modalPhotoUrl)
+                                                                                            <div class="mt-3">
+                                                                                                <img src="{{ $modalPhotoUrl }}" alt="Checklist item foto" class="max-w-full h-40 object-contain rounded border border-gray-200 dark:border-gray-700">
+                                                                                            </div>
+                                                                                        @endif
+                                                                                    </div>
+
+                                                                                    <div class="mt-6">
+                                                                                        <x-input-label for="admin_notes_{{ $item->id }}" value="{{ __('Reden voor afwijzing (verplicht)') }}" />
+                                                                                        <textarea id="admin_notes_{{ $item->id }}" name="admin_notes" rows="4" required class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('admin_notes') }}</textarea>
+                                                                                        <x-input-error class="mt-2" :messages="$errors->get('admin_notes')" />
+                                                                                    </div>
+
+                                                                                    <div class="mt-4 flex items-start space-x-3">
+                                                                                        <input type="hidden" name="create_new_task" value="0">
+                                                                                        <input id="create_new_task_{{ $item->id }}" name="create_new_task" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_new_task', '1') ? 'checked' : '' }}>
+                                                                                        <label for="create_new_task_{{ $item->id }}" class="text-sm text-gray-700 dark:text-gray-300">
+                                                                                            Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
+                                                                                        </label>
+                                                                                    </div>
+
+                                                                                    <div class="mt-6 flex justify-end">
+                                                                                        <x-secondary-button x-on:click="$dispatch('close')">
+                                                                                            {{ __('Annuleren') }}
+                                                                                        </x-secondary-button>
+                                                                                        <x-danger-button type="submit" class="ml-3">
+                                                                                            {{ __('Definitief afkeuren') }}
+                                                                                        </x-danger-button>
+                                                                                    </div>
+                                                                                </form>
+                                                                            </x-modal>
                                                                         @else
                                                                             <span class="text-xs text-gray-400">Geen acties</span>
                                                                         @endif
@@ -915,3 +1048,255 @@
 
 
 </x-app-layout>
+@push('scripts')
+<script>
+    (function(){
+        // Robustly expose handlers to Alpine via a store to avoid scope/timing issues
+        function registerPlanningActionsStore() {
+            try {
+                if (!window.Alpine) return false;
+                // Idempotent: don't overwrite if already present
+                if (typeof window.Alpine.store === 'function') {
+                    const existing = (() => { try { return window.Alpine.store('planningActions'); } catch(_) { return undefined; } })();
+                    if (existing) return true;
+                    window.Alpine.store('planningActions', {
+                        approvePlanningTask: function(){ return window.approvePlanningTask && window.approvePlanningTask.apply(this, arguments); },
+                        rejectPlanningTask: function(){ return window.rejectPlanningTask && window.rejectPlanningTask.apply(this, arguments); },
+                    });
+                    return true;
+                }
+            } catch(_) {}
+            return false;
+        }
+
+        // Also expose End Checklist actions via Alpine store
+        function registerEndChecklistActionsStore() {
+            try {
+                if (!window.Alpine) return false;
+                if (typeof window.Alpine.store === 'function') {
+                    const existing = (() => { try { return window.Alpine.store('endChecklistActions'); } catch(_) { return undefined; } })();
+                    if (existing) return true;
+                    window.Alpine.store('endChecklistActions', {
+                        approve: function(){ return window.approveEndChecklistItem && window.approveEndChecklistItem.apply(this, arguments); },
+                        reject: function(){ return window.rejectEndChecklistItem && window.rejectEndChecklistItem.apply(this, arguments); },
+                    });
+                    return true;
+                }
+            } catch(_) {}
+            return false;
+        }
+
+        // 1) If Alpine is already on the page, register immediately
+        registerPlanningActionsStore();
+        registerEndChecklistActionsStore();
+        // 2) Also register on Alpine init (covers deferred Alpine loading)
+        document.addEventListener('alpine:init', function(){
+            registerPlanningActionsStore();
+            registerEndChecklistActionsStore();
+        });
+        // 3) As a final fallback, try again after window load and on next tick
+        window.addEventListener('load', () => {
+            registerPlanningActionsStore();
+            registerEndChecklistActionsStore();
+            setTimeout(registerPlanningActionsStore, 0);
+            setTimeout(registerEndChecklistActionsStore, 0);
+        });
+
+        function csrf() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'; }
+
+        function showToast(message, type = 'success') {
+            const container = document.createElement('div');
+            container.className = 'fixed z-50 top-4 right-4 max-w-sm w-full';
+            const bg = type === 'error' ? 'bg-red-600' : 'bg-green-600';
+            container.innerHTML = `
+                <div class="rounded-md ${bg} text-white shadow-lg ring-1 ring-black/5 overflow-hidden">
+                    <div class="p-4 flex items-start">
+                        <svg class="h-5 w-5 text-white/90 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div class="text-sm font-medium flex-1">${message}</div>
+                        <button type="button" class="ml-3 text-white/80 hover:text-white focus:outline-none" aria-label="Sluiten">✕</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(container);
+            const closeBtn = container.querySelector('button');
+            const close = () => { container.remove(); };
+            closeBtn.addEventListener('click', close);
+            setTimeout(close, type === 'error' ? 5000 : 4000);
+        }
+
+        async function postJson(url, formData) {
+            let resp;
+            try {
+                resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf(),
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+            } catch (networkErr) {
+                // Network issue: fall back to full page submit to not block the flow
+                try { window.location.reload(); } catch(_) {}
+                throw networkErr;
+            }
+
+            // If server responded with a redirect, follow it with a hard navigation
+            if (resp.redirected) {
+                window.location.href = resp.url;
+                // Return a promise that never resolves to stop further handling
+                return new Promise(() => {});
+            }
+
+            const contentType = resp.headers.get('content-type') || '';
+
+            if (!resp.ok) {
+                // Common auth/CSRF issues: refresh to recover session
+                if (resp.status === 401 || resp.status === 419) {
+                    window.location.reload();
+                    return new Promise(() => {});
+                }
+
+                let msg = 'Onbekende fout.';
+                if (contentType.includes('application/json')) {
+                    try {
+                        const data = await resp.json();
+                        if (data?.message) msg = data.message;
+                        if (data?.errors) {
+                            const firstKey = Object.keys(data.errors)[0];
+                            if (firstKey) msg = data.errors[firstKey][0] || msg;
+                        }
+                    } catch(_) {}
+                } else {
+                    // Try to extract a meaningful line from HTML/text responses
+                    try {
+                        const text = await resp.text();
+                        // Very naive extraction: look for the first <title> or a line with "message"
+                        const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
+                        if (titleMatch && titleMatch[1]) {
+                            msg = titleMatch[1].trim();
+                        } else {
+                            const firstLine = text.split('\n').map(l => l.trim()).find(l => l);
+                            if (firstLine) msg = firstLine.slice(0, 160);
+                        }
+                    } catch(_) {}
+                }
+                throw new Error(msg);
+            }
+
+            if (contentType.includes('application/json')) {
+                return await resp.json();
+            }
+
+            // Non-JSON success (e.g., 204 or HTML). Prefer a reload to reflect latest state.
+            window.location.reload();
+            return new Promise(() => {});
+        }
+
+        window.approvePlanningTask = async function(e, taskId) {
+            const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
+            const formData = new FormData(form);
+            try {
+                const data = await postJson(form.action, formData);
+                // Update badge
+                const badge = document.getElementById(`task-status-${taskId}`);
+                if (badge) {
+                    badge.textContent = 'Voltooid';
+                    badge.className = badge.className
+                        .replace(/bg-\w+-100\s+text-\w+-800|dark:bg-\w+-900\s+dark:text-\w+-200/g, '')
+                        + ' bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                }
+                // Remove actions
+                const actions = document.getElementById(`task-actions-${taskId}`);
+                if (actions) actions.remove();
+                showToast(data.message || 'Geplande taak goedgekeurd.');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        window.rejectPlanningTask = async function(e, taskId) {
+            const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
+            const formData = new FormData(form);
+            try {
+                const data = await postJson(form.action, formData);
+                // Close modal
+                window.dispatchEvent(new CustomEvent('close'));
+                // Update badge
+                const badge = document.getElementById(`task-status-${taskId}`);
+                if (badge) {
+                    badge.textContent = 'Afgewezen';
+                    badge.className = badge.className
+                        .replace(/bg-\w+-100\s+text-\w+-800|dark:bg-\w+-900\s+dark:text-\w+-200/g, '')
+                        + ' bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                }
+                // Remove actions
+                const actions = document.getElementById(`task-actions-${taskId}`);
+                if (actions) actions.remove();
+                showToast(data.message || 'Taak afgekeurd.');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        window.approveEndChecklistItem = async function(e, itemId) {
+            const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
+            const formData = new FormData(form);
+            try {
+                const data = await postJson(form.action, formData);
+                const badge = document.getElementById(`end-item-status-${itemId}`);
+                if (badge) {
+                    badge.textContent = 'Goedgekeurd';
+                    badge.className = badge.className
+                        .replace(/bg-\w+-100\s+text-\w+-800|dark:bg-\w+-900\s+dark:text-\w+-200/g, '')
+                        + ' bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                }
+                const actions = document.getElementById(`end-item-actions-${itemId}`);
+                if (actions) actions.remove();
+                showToast(data.message || 'Checklist item goedgekeurd.');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        window.rejectEndChecklistItem = async function(e, itemId) {
+            const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
+            const formData = new FormData(form);
+            try {
+                const data = await postJson(form.action, formData);
+                // Close modal
+                window.dispatchEvent(new CustomEvent('close'));
+                const badge = document.getElementById(`end-item-status-${itemId}`);
+                if (badge) {
+                    badge.textContent = 'Afgewezen';
+                    badge.className = badge.className
+                        .replace(/bg-\w+-100\s+text-\w+-800|dark:bg-\w+-900\s+dark:text-\w+-200/g, '')
+                        + ' bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                }
+                const actions = document.getElementById(`end-item-actions-${itemId}`);
+                if (actions) actions.remove();
+                let msg = data.message || 'Checklist item afgewezen.';
+                if (data.new_task && data.new_task.create_url) {
+                    msg += ' '; // append link below as separate toast with anchor
+                    const a = document.createElement('a');
+                    a.href = data.new_task.create_url;
+                    a.textContent = 'Nieuwe taak aanmaken';
+                    a.className = 'underline font-semibold';
+                    showToast(msg);
+                    // Also store prefill in session via POST? Not possible from here. Just include link.
+                } else {
+                    showToast(msg);
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Backward compatibility for legacy inline calls
+        window.approveEndItem = window.approveEndChecklistItem;
+        window.rejectEndItem = window.rejectEndChecklistItem;
+    })();
+</script>
+@endpush

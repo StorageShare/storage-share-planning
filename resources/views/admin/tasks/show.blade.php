@@ -218,41 +218,87 @@
                         </div>
                     </div>
 
-                    {{-- Review form (approve/reject) --}}
-                    <form id="checklist-review-form" method="POST">
-                        @csrf
-                        <div class="p-6 border-t border-gray-200 dark:border-gray-700">
-                            <label for="review_notes" class="block text-lg font-medium text-gray-900 dark:text-gray-100">Opmerkingen (verplicht bij afwijzing)</label>
-                            <div class="mt-2">
-                                <textarea id="review_notes" name="review_notes" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200" placeholder="Voeg hier je opmerkingen toe...">{{ old('review_notes') }}</textarea>
+                    {{-- Review actions (approve / reject via modal) --}}
+                    <div class="p-6 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+                        <div class="flex items-center justify-between">
+                            <a href="{{ route('admin.tasks.review') }}"
+                               class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">
+                                <x-heroicon-s-arrow-left class="w-4 h-4 mr-2" />
+                                Terug naar Review Overzicht
+                            </a>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <!-- Reject opens modal -->
+                            <x-danger-button
+                                x-data
+                                x-on:click.prevent="$dispatch('open-modal', 'reject-end-item-{{ $task->item->id }}')"
+                                class="inline-flex items-center px-6 py-2.5 text-sm"
+                            >Afkeuren</x-danger-button>
+
+                            <!-- Approve posts (robust: Alpine store → window → native submit) -->
+                            <form
+                                x-on:submit.prevent="$store.endChecklistActions && $store.endChecklistActions.approve
+                                    ? $store.endChecklistActions.approve($event, {{ $task->item->id }})
+                                    : (window.approveEndChecklistItem
+                                        ? window.approveEndChecklistItem($event, {{ $task->item->id }})
+                                        : $event.currentTarget.submit())"
+                                method="POST" action="{{ $task->approve_route }}">
+                                @csrf
+                                <x-primary-button type="submit" class="px-6 py-2.5 text-sm">Goedkeuren</x-primary-button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Reject modal for End Checklist Item -->
+                    <x-modal name="reject-end-item-{{ $task->item->id }}" :show="$errors->isNotEmpty()" focusable>
+                        <form
+                            x-on:submit.prevent="$store.endChecklistActions && $store.endChecklistActions.reject
+                                ? $store.endChecklistActions.reject($event, {{ $task->item->id }})
+                                : (window.rejectEndChecklistItem
+                                    ? window.rejectEndChecklistItem($event, {{ $task->item->id }})
+                                    : $event.currentTarget.submit())"
+                            method="POST" action="{{ route('admin.end-checklist.reject.process', $task->item) }}" class="p-6">
+                            @csrf
+
+                            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                Afkeuren: {{ $task->title }}
+                            </h2>
+
+                            <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                @if($task->description)
+                                    <p class="whitespace-pre-wrap">{{ $task->description }}</p>
+                                @endif
+                                @if($task->photo_url)
+                                    <div class="mt-3">
+                                        <img src="{{ $task->photo_url }}" alt="Checklist item foto" class="max-w-full h-40 object-contain rounded border border-gray-200 dark:border-gray-700">
+                                    </div>
+                                @endif
                             </div>
+
+                            <div class="mt-6">
+                                <x-input-label for="admin_notes_{{ $task->item->id }}" value="{{ __('Reden voor afwijzing (verplicht)') }}" />
+                                <textarea id="admin_notes_{{ $task->item->id }}" name="admin_notes" rows="4" required class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('admin_notes') }}</textarea>
+                                <x-input-error class="mt-2" :messages="$errors->get('admin_notes')" />
+                            </div>
+
                             <div class="mt-4 flex items-start space-x-3">
-                                <input type="hidden" name="create_replacement" value="0">
-                                <input id="create_replacement" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
-                                <label for="create_replacement" class="text-sm text-gray-700 dark:text-gray-300">
+                                <input type="hidden" name="create_new_task" value="0">
+                                <input id="create_new_task_{{ $task->item->id }}" name="create_new_task" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_new_task', '1') ? 'checked' : '' }}>
+                                <label for="create_new_task_{{ $task->item->id }}" class="text-sm text-gray-700 dark:text-gray-300">
                                     Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
                                 </label>
                             </div>
-                        </div>
 
-                        <div class="p-6 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
-                            <div class="flex items-center justify-between">
-                                <a href="{{ route('admin.tasks.review') }}"
-                                   class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">
-                                    <x-heroicon-s-arrow-left class="w-4 h-4 mr-2" />
-                                    Terug naar Review Overzicht
-                                </a>
+                            <div class="mt-6 flex justify-end">
+                                <x-secondary-button x-on:click="$dispatch('close')">
+                                    {{ __('Annuleren') }}
+                                </x-secondary-button>
+                                <x-danger-button type="submit" class="ml-3">
+                                    {{ __('Definitief afkeuren') }}
+                                </x-danger-button>
                             </div>
-                            <div class="flex items-center space-x-4">
-                                <button type="submit" formaction="{{ $task->reject_route }}" class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    Afkeuren
-                                </button>
-                                <button type="submit" formaction="{{ $task->approve_route }}" class="px-6 py-2.5 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                    Goedkeuren
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                        </form>
+                    </x-modal>
                 @elseif($type === 'skipped_planning_task')
                     {{-- Special handling for skipped tasks --}}
                     <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">
@@ -364,3 +410,143 @@
     </div>
     <x-modal-image />
 </x-app-layout>
+@push('scripts')
+<script>
+    (function(){
+        // Robustly expose handlers to Alpine via a store to avoid scope/timing issues
+        function registerEndChecklistActionsStore() {
+            try {
+                if (!window.Alpine) return false;
+                if (typeof window.Alpine.store === 'function') {
+                    const existing = (() => { try { return window.Alpine.store('endChecklistActions'); } catch(_) { return undefined; } })();
+                    if (existing) return true;
+                    window.Alpine.store('endChecklistActions', {
+                        approve: function(){ return window.approveEndChecklistItem && window.approveEndChecklistItem.apply(this, arguments); },
+                        reject: function(){ return window.rejectEndChecklistItem && window.rejectEndChecklistItem.apply(this, arguments); },
+                    });
+                    return true;
+                }
+            } catch(_) {}
+            return false;
+        }
+
+        // 1) If Alpine is already on the page, register immediately
+        registerEndChecklistActionsStore();
+        // 2) Also register on Alpine init (covers deferred Alpine loading)
+        document.addEventListener('alpine:init', registerEndChecklistActionsStore);
+        // 3) As a final fallback, try again after window load and on next tick
+        window.addEventListener('load', () => { registerEndChecklistActionsStore(); setTimeout(registerEndChecklistActionsStore, 0); });
+
+        function csrf() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'; }
+
+        function showToast(message, type = 'success') {
+            const container = document.createElement('div');
+            container.className = 'fixed z-50 top-4 right-4 max-w-sm w-full';
+            const bg = type === 'error' ? 'bg-red-600' : 'bg-green-600';
+            container.innerHTML = `
+                <div class="rounded-md ${bg} text-white shadow-lg ring-1 ring-black/5 overflow-hidden">
+                    <div class="p-4 flex items-start">
+                        <svg class="h-5 w-5 text-white/90 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div class="text-sm font-medium flex-1">${message}</div>
+                        <button type="button" class="ml-3 text-white/80 hover:text-white focus:outline-none" aria-label="Sluiten">✕</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(container);
+            const closeBtn = container.querySelector('button');
+            const close = () => { container.remove(); };
+            closeBtn.addEventListener('click', close);
+            setTimeout(close, type === 'error' ? 5000 : 4000);
+        }
+
+        async function postJson(url, formData) {
+            let resp;
+            try {
+                resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf(),
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+            } catch (networkErr) {
+                try { window.location.reload(); } catch(_) {}
+                throw networkErr;
+            }
+
+            if (resp.redirected) {
+                window.location.href = resp.url;
+                return new Promise(() => {});
+            }
+
+            const contentType = resp.headers.get('content-type') || '';
+
+            if (!resp.ok) {
+                if (resp.status === 401 || resp.status === 419) {
+                    window.location.reload();
+                    return new Promise(() => {});
+                }
+
+                let msg = 'Onbekende fout.';
+                if (contentType.includes('application/json')) {
+                    try {
+                        const data = await resp.json();
+                        if (data?.message) msg = data.message;
+                        if (data?.errors) {
+                            const firstKey = Object.keys(data.errors)[0];
+                            if (firstKey) msg = data.errors[firstKey][0] || msg;
+                        }
+                    } catch(_) {}
+                } else {
+                    try {
+                        const text = await resp.text();
+                        const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
+                        if (titleMatch && titleMatch[1]) {
+                            msg = titleMatch[1].trim();
+                        } else {
+                            const firstLine = text.split('\n').map(l => l.trim()).find(l => l);
+                            if (firstLine) msg = firstLine.slice(0, 160);
+                        }
+                    } catch(_) {}
+                }
+                throw new Error(msg);
+            }
+
+            if (contentType.includes('application/json')) {
+                return await resp.json();
+            }
+
+            window.location.reload();
+            return new Promise(() => {});
+        }
+
+        window.approveEndChecklistItem = async function(e, itemId) {
+            const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
+            const formData = new FormData(form);
+            try {
+                const data = await postJson(form.action, formData);
+                showToast((data && (data.message || data.success && 'End checklist item goedgekeurd.')) || 'End checklist item goedgekeurd.');
+                // If no redirect happened and JSON returned, we can update UI or reload for simplicity
+                try { window.location.reload(); } catch(_) {}
+            } catch (err) {
+                showToast(err.message || 'Kon item niet goedkeuren.', 'error');
+            }
+        }
+
+        window.rejectEndChecklistItem = async function(e, itemId) {
+            const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
+            const formData = new FormData(form);
+            try {
+                const data = await postJson(form.action, formData);
+                showToast((data && (data.message || data.success && 'End checklist item afgekeurd.')) || 'End checklist item afgekeurd.');
+                try { window.location.reload(); } catch(_) {}
+            } catch (err) {
+                showToast(err.message || 'Kon item niet afkeuren.', 'error');
+            }
+        }
+    })();
+</script>
+@endpush

@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -25,6 +26,7 @@ class StorePlanningRequestValidationTest extends TestCase
     private function validPayload(array $overrides = []): array
     {
         $location = $overrides['__location'] ?? Location::factory()->create();
+        $vehicle = $overrides['__vehicle'] ?? Vehicle::factory()->create();
 
         return array_merge([
             'location_ids' => [$location->id],
@@ -34,6 +36,7 @@ class StorePlanningRequestValidationTest extends TestCase
             'start_address_custom' => 'Teststraat 1, 1234 AB Teststad',
             'start_address' => 'irrelevant because of prepareForValidation',
             'start_time' => '08:00',
+            'vehicle_id' => $vehicle->id,
         ], $overrides);
     }
 

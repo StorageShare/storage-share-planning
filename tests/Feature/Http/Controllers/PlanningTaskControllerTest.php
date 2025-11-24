@@ -233,6 +233,8 @@ class PlanningTaskControllerTest extends TestCase
             ->withHeader('X-CSRF-TOKEN', $this->token)
             ->post(route('plannings.tasks.reject', $pt), [
                 'review_notes' => 'Fix it',
+                // New checkbox to indicate a replacement backlog task should be created
+                'create_replacement' => '1',
             ]);
 
         $resp->assertRedirect(route('plannings.review'));
@@ -414,6 +416,6 @@ class PlanningTaskControllerTest extends TestCase
                 'planning_id' => $planning->id,
             ]);
 
-        $resp->assertRedirect(route('plannings.review'));
+        $resp->assertRedirect(route('plannings.show', $planning));
     }
 }

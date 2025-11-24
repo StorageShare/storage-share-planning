@@ -12,6 +12,7 @@ use App\Models\PlanningLocationTimer;
 use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Services\TravelTimeService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -111,6 +112,7 @@ class PlanningControllerTest extends TestCase
         $u2 = User::factory()->create();
         $l1 = Location::factory()->create();
         $l2 = Location::factory()->create();
+        $vehicle = Vehicle::factory()->create();
 
         $dt1 = DefaultTask::create(['title' => 'DT1', 'description' => '']);
         $dt1->locations()->sync([$l1->id]);
@@ -123,6 +125,7 @@ class PlanningControllerTest extends TestCase
             'start_address_option' => 'Kantoor',
             'start_address' => 'Kantoor',
             'start_time' => '08:00',
+            'vehicle_id' => $vehicle->id,
             'location_ids' => [$l1->id, $l2->id],
             'location_order' => $l2->id . ',' . $l1->id, // reverse order
             'user_ids' => [$u1->id, $u2->id],
@@ -278,6 +281,7 @@ class PlanningControllerTest extends TestCase
         $l1 = Location::factory()->create();
         $l2 = Location::factory()->create();
         $planning->locations()->attach([$l1->id => ['sort_order' => 0]]);
+        $vehicle = Vehicle::factory()->create();
 
         $dt = DefaultTask::create(['title' => 'DT', 'description' => '']);
         $dt->locations()->sync([$l2->id]);
@@ -289,6 +293,7 @@ class PlanningControllerTest extends TestCase
             'start_address_option' => 'Kantoor',
             'start_address' => 'Kantoor',
             'start_time' => '09:00',
+            'vehicle_id' => $vehicle->id,
             'location_ids' => [$l2->id, $l1->id],
             'location_order' => $l1->id . ',' . $l2->id, // swap order again
             'user_ids' => [$u1->id, $u2->id],
