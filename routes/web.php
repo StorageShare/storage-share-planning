@@ -16,6 +16,7 @@ use App\Http\Controllers\TaskBacklogController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\DefaultVehicleTaskController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyPlanningController;
 
@@ -129,6 +130,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Default Vehicle Tasks (for quick selection)
+    Route::get('default-vehicle-tasks/active', [DefaultVehicleTaskController::class, 'active'])->name('default-vehicle-tasks.active');
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {

@@ -137,18 +137,23 @@ class MyPlanningController extends Controller
             return $planningTask->location_id ?? $planningTask->task?->location_id;
         });
 
-        // Add tasks with no location (true backlog) first as a "location"
+        // Add tasks with no location (true backlog and vehicle tasks) first as a "location"
         if (isset($tasksByLocation[''])) {
             $noLocationTasks = $tasksByLocation[''];
 
-            // Partition into backlog vs standard
-            [$backlogTasks, $standardTasks] = $noLocationTasks->partition(fn ($pt) => ! is_null($pt->task_id));
+            // Partition vehicle tasks first
+            $vehicleTasks = $noLocationTasks->filter(fn ($pt) => (bool) $pt->is_vehicle_task === true);
+            $nonVehicleTasks = $noLocationTasks->reject(fn ($pt) => (bool) $pt->is_vehicle_task === true);
+
+            // Within non-vehicle tasks, partition into backlog vs standard
+            [$backlogTasks, $standardTasks] = $nonVehicleTasks->partition(fn ($pt) => ! is_null($pt->task_id));
 
             // Sort backlog tasks by priority
             $priorityOrder = [TaskPriority::HIGH->value => 1, TaskPriority::NORMAL->value => 2, TaskPriority::LOW->value => 3];
             $sortedBacklog = $backlogTasks->sortBy(fn ($pt) => $priorityOrder[$pt->task?->priority?->value] ?? 99);
 
-            $sortedTasks = $sortedBacklog->concat($standardTasks);
+            // Final order: vehicle tasks first, then backlog (by priority), then standard
+            $sortedTasks = $vehicleTasks->concat($sortedBacklog)->concat($standardTasks);
 
             $tasksForBacklog = [];
             foreach ($sortedTasks as $task) {
@@ -167,6 +172,7 @@ class MyPlanningController extends Controller
                     'completed_notes' => $latestCompletion->comment ?? null,
                     'photos' => $latestCompletion ? $latestCompletion->photos->pluck('url') : [],
                     'backlog_photos' => $backlogPhotos,
+                    'is_vehicle_task' => (bool) $task->is_vehicle_task,
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
                 ];
@@ -381,6 +387,8 @@ class MyPlanningController extends Controller
                         'type' => $item->type,
                         'title' => $item->title,
                         'description' => $item->description,
+                        // Needed on the client to rebuild payload when adding vehicle tasks
+                        'requirement_id' => $item->requirement?->id,
                         'photo_path' => $item->photo_path,
                         'photo_url' => $item->photo_path ? asset('storage/' . $item->photo_path) : null,
                         'status' => $item->status,
@@ -395,6 +403,9 @@ class MyPlanningController extends Controller
                 'has_submitted' => $planning->hasSubmittedEndChecklist(),
                 'is_approved' => $planning->hasApprovedEndChecklist(),
                 'planning_id' => $planning->id,
+                // Expose vehicle presence so UI can show the vehicle tasks creation panel
+                'has_vehicle' => (bool) $planning->vehicle_id,
+                'vehicle_name' => $planning->vehicle?->name,
             ];
         }
 

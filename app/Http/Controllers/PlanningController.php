@@ -930,6 +930,25 @@ class PlanningController extends Controller
 
     private function createPlanningTasks(Planning $planning, array $validatedData): void
     {
+        // 1) Inject open vehicle tasks for the assigned vehicle so they appear first
+        if ($planning->vehicle_id) {
+            $openVehicleTasks = \App\Models\VehicleTask::where('vehicle_id', $planning->vehicle_id)
+                ->where('status', \App\Enums\TaskStatus::OPEN->value)
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($openVehicleTasks as $vt) {
+                $planning->planningTasks()->create([
+                    'vehicle_task_id' => $vt->id,
+                    'title' => $vt->title,
+                    'description' => $vt->description,
+                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'estimated_time_minutes' => $vt->estimated_time_minutes,
+                    'is_vehicle_task' => true,
+                ]);
+            }
+        }
+
         // Logic for adding default tasks
         if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
             $selected_location_ids = collect($validatedData['location_ids']);
@@ -967,6 +986,31 @@ class PlanningController extends Controller
 
     private function updatePlanningTasks(Planning $planning, array $validatedData): void
     {
+        // Ensure vehicle tasks are present for assigned vehicle (if any were added after planning creation)
+        if ($planning->vehicle_id) {
+            $existingLinkedVehicleTaskIds = $planning->planningTasks()
+                ->where('is_vehicle_task', true)
+                ->whereNotNull('vehicle_task_id')
+                ->pluck('vehicle_task_id');
+
+            $openVehicleTasks = \App\Models\VehicleTask::where('vehicle_id', $planning->vehicle_id)
+                ->where('status', \App\Enums\TaskStatus::OPEN->value)
+                ->whereNotIn('id', $existingLinkedVehicleTaskIds)
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($openVehicleTasks as $vt) {
+                $planning->planningTasks()->create([
+                    'vehicle_task_id' => $vt->id,
+                    'title' => $vt->title,
+                    'description' => $vt->description,
+                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'estimated_time_minutes' => $vt->estimated_time_minutes,
+                    'is_vehicle_task' => true,
+                ]);
+            }
+        }
+
         // Logic for adding/removing default tasks based on selection
         $current_default_planning_tasks = $planning->planningTasks()
             ->whereNotNull('default_task_id')

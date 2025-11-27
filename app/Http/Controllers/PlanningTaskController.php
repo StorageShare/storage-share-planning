@@ -18,6 +18,16 @@ use Illuminate\Support\Facades\Log;
 
 class PlanningTaskController extends Controller
 {
+    private function syncLinkedVehicleTaskStatus(PlanningTask $planningTask, TaskStatus $status): void
+    {
+        try {
+            if ($planningTask->is_vehicle_task && $planningTask->vehicleTask) {
+                $planningTask->vehicleTask->update(['status' => $status]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed syncing vehicle task status: '.$e->getMessage());
+        }
+    }
     public function show(PlanningTask $planning_task): View
     {
         $planning_task->load([
@@ -98,6 +108,9 @@ class PlanningTaskController extends Controller
             'completed_notes' => $request->input('completed_notes'), // Keep last note for easy access
             'status' => $newStatus,
         ]);
+
+        // Sync vehicle task status when applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, $newStatus);
 
         // If it's a backlog task, also update the main task's status
         if ($planning_task->task) {
@@ -195,6 +208,9 @@ class PlanningTaskController extends Controller
     public function approve(Request $request, PlanningTask $planning_task): RedirectResponse
     {
         $planning_task->update(['status' => TaskStatus::COMPLETED]);
+
+        // Sync linked vehicle task if applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::COMPLETED);
 
         // Add review notes to the latest completion
         if ($latest_completion = $planning_task->completions()->latest()->first()) {
@@ -566,6 +582,9 @@ class PlanningTaskController extends Controller
             'status' => TaskStatus::SKIPPED,
         ]);
 
+        // Sync vehicle task status when applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::SKIPPED);
+
         if ($planning_task->task) {
             $planning_task->task->update(['status' => TaskStatus::SKIPPED]);
         }
@@ -603,6 +622,9 @@ class PlanningTaskController extends Controller
             'completed_at' => null,
             'status' => TaskStatus::OPEN,
         ]);
+
+        // Sync vehicle task status when applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::OPEN);
 
         if ($planning_task->task) {
             $planning_task->task->update(['status' => TaskStatus::OPEN]);
