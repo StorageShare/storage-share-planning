@@ -369,7 +369,7 @@ class MyPlanningController extends Controller
             }
         }
 
-        // Add end-of-day checklist as final step if there are items to return or actions to perform
+        // Add end-of-day checklist as final step (followed by optional vehicle tasks step) if there are items to return or actions to perform
         if ($uniqueRequirements->isNotEmpty() || $endDayActions->isNotEmpty()) {
             // Create end checklist items if they don't exist yet for this planning
             $this->ensureEndChecklistItemsExist($planning, $uniqueRequirements, $endDayActions);
@@ -403,10 +403,18 @@ class MyPlanningController extends Controller
                 'has_submitted' => $planning->hasSubmittedEndChecklist(),
                 'is_approved' => $planning->hasApprovedEndChecklist(),
                 'planning_id' => $planning->id,
-                // Expose vehicle presence so UI can show the vehicle tasks creation panel
-                'has_vehicle' => (bool) $planning->vehicle_id,
-                'vehicle_name' => $planning->vehicle?->name,
             ];
+
+            // If a vehicle is linked to this planning, add a separate step for creating vehicle tasks for the next day
+            if ($planning->vehicle_id) {
+                $locationSteps[] = [
+                    'type' => 'vehicle_tasks',
+                    'title' => 'Voertuig taken (volgende dag)',
+                    'details' => 'Voeg optioneel voertuig taken toe die morgen als eerste verschijnen bij hetzelfde voertuig.',
+                    'planning_id' => $planning->id,
+                    'vehicle_name' => $planning->vehicle?->name,
+                ];
+            }
         }
 
         // Calculate travel times between locations (same as in planning show)

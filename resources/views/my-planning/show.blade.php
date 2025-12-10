@@ -48,6 +48,12 @@
                                 <template x-if="currentLocation && currentLocation.type === 'summary'">
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Planning overzicht</div>
                                 </template>
+                                <template x-if="currentLocation && currentLocation.type === 'vehicle_tasks'">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="currentLocation.title || 'Voertuig taken'"></div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400" x-text="`${selectedVehicleTasks.length} geselecteerd`"></div>
+                                    </div>
+                                </template>
                                 <template x-if="currentLocation && currentLocation.type === 'location'">
                                     <div>
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="currentLocation.title"></div>
@@ -304,91 +310,6 @@
                                 </div>
                                 <p class="text-gray-600 dark:text-gray-400 mb-6" x-text="location.details"></p>
 
-                                {{-- Vehicle Tasks Creator Panel --}}
-                                <div x-show="currentLocation?.has_vehicle" class="mb-6">
-                                    <div class="p-4 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20">
-                                        <div class="flex items-start justify-between gap-3">
-                                            <div>
-                                                <h3 class="text-base font-semibold text-blue-900 dark:text-blue-100">Voertuig taken voor de volgende dag</h3>
-                                                <p class="text-sm text-blue-800 dark:text-blue-200 mt-1">
-                                                    Voeg voertuig taken toe voor <span class="font-semibold" x-text="currentLocation.vehicle_name || 'het voertuig'"></span>. Deze verschijnen morgen als eerste taken wanneer hetzelfde voertuig is ingepland.
-                                                </p>
-                                            </div>
-                                            <div class="text-xs text-blue-800 dark:text-blue-200" x-show="vehicleDefaultsLoading">
-                                                Laden...
-                                            </div>
-                                        </div>
-
-                                        {{-- Defaults quick-pick --}}
-                                        <div class="mt-4">
-                                            <div class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Snelle selectie</div>
-                                            <template x-if="vehicleDefaultsError">
-                                                <div class="text-sm text-red-700 dark:text-red-300 mb-2" x-text="vehicleDefaultsError"></div>
-                                            </template>
-                                            <div class="flex flex-wrap gap-2" x-show="vehicleDefaults.length > 0">
-                                                <template x-for="def in vehicleDefaults" :key="def.id">
-                                                    <button type="button"
-                                                            @click="toggleDefaultVehicleTask(def)"
-                                                            class="px-3 py-1 rounded-full text-xs border transition"
-                                                            :class="isDefaultSelected(def.id) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-700'">
-                                                        <span x-text="def.title"></span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                            <div x-show="!vehicleDefaultsLoading && vehicleDefaults.length === 0" class="text-sm text-blue-800 dark:text-blue-200">
-                                                Geen standaard voertuig taken beschikbaar. Voeg hieronder een eigen taak toe.
-                                            </div>
-                                        </div>
-
-                                        {{-- Custom creator --}}
-                                        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                            <div>
-                                                <label class="block text-xs text-blue-900 dark:text-blue-100 mb-1">Titel (verplicht voor eigen taak)</label>
-                                                <input type="text" x-model="customVehicleTask.title" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900" placeholder="Bijv. Vuilnis wegbrengen">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs text-blue-900 dark:text-blue-100 mb-1">Omschrijving</label>
-                                                <input type="text" x-model="customVehicleTask.description" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900" placeholder="Optioneel">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs text-blue-900 dark:text-blue-100 mb-1">Geschatte tijd (minuten)</label>
-                                                <input type="number" min="0" x-model.number="customVehicleTask.estimated_time_minutes" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900" placeholder="0">
-                                            </div>
-                                        </div>
-                                        <div class="mt-2">
-                                            <button type="button" @click="addCustomVehicleTask()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md">Eigen voertuig taak toevoegen</button>
-                                        </div>
-
-                                        {{-- Selected list --}}
-                                        <div class="mt-4" x-show="selectedVehicleTasks.length > 0">
-                                            <div class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Geselecteerde voertuig taken</div>
-                                            <ul class="space-y-2">
-                                                <template x-for="(vt, idx) in selectedVehicleTasks" :key="vt._key">
-                                                    <li class="flex items-center justify-between p-3 rounded border bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700">
-                                                        <div class="min-w-0">
-                                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="vt.title || ('Standaard: ' + (vt._default?.title || vt.default_id))"></div>
-                                                            <div class="text-xs text-gray-600 dark:text-gray-300" x-show="vt.description" x-text="vt.description"></div>
-                                                            <div class="text-xs text-gray-600 dark:text-gray-300" x-show="vt.estimated_time_minutes != null">Tijd: <span x-text="vt.estimated_time_minutes"></span> min</div>
-                                                        </div>
-                                                        <button type="button" @click="removeSelectedVehicleTask(idx)" class="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded">Verwijderen</button>
-                                                    </li>
-                                                </template>
-                                            </ul>
-                                        </div>
-
-                                        {{-- Submit vehicle tasks --}}
-                                        <div class="mt-4">
-                                            <button type="button" @click="submitVehicleTasks(currentLocation.planning_id)"
-                                                    :disabled="selectedVehicleTasks.length === 0 || submittingVehicleTasks"
-                                                    class="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md">
-                                                <template x-if="submittingVehicleTasks">
-                                                    <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                                                </template>
-                                                <span x-text="submittingVehicleTasks ? 'Toevoegen...' : 'Voertuig taken toevoegen'"></span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 {{-- Status Indicator --}}
                                 <div class="mb-6 p-4 rounded-lg border"
@@ -542,10 +463,11 @@
                                                     </template>
 
                                                     {{-- Photo Upload (Task-like: DnD + preview queue + upload) --}}
-                                                    <template x-if="!item.photo_url || item.status === 'rejected'">
+                                                    <!-- Show uploader for all non-approved items so users can add/replace photos even if one already exists -->
+                                                    <template x-if="item.status !== 'approved'">
                                                         <div class="mb-4">
                                                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                                Upload bewijs foto's
+                                                                Upload bewijs foto's
                                                             </label>
 
                                                             <!-- Drag & Drop Zone -->
@@ -565,7 +487,7 @@
                                                                         </label>
                                                                         <span class="mx-1 text-sm text-gray-500 dark:text-gray-400">of sleep ze hierheen</span>
                                                                     </div>
-                                                                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Meerdere afbeeldingen toegestaan (JPG, PNG, GIF, WEBP cu2264 10MB per bestand)</div>
+                                                                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Meerdere afbeeldingen toegestaan (JPG, PNG, GIF, WEBP, max. 10MB per bestand)</div>
                                                                     <input type="file"
                                                                            class="sr-only"
                                                                            :id="`photo_input_${item.id}`"
@@ -660,6 +582,95 @@
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600">
                                         <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" :style="`width: ${getEndChecklistProgress()}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        {{-- Vehicle Tasks Step --}}
+                        <template x-if="location.type === 'vehicle_tasks'">
+                            <div>
+                                <div class="flex items-center mb-4">
+                                    <svg class="w-8 h-8 text-blue-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h2l1 3h11l1-3h2M5 13l1-3h12l1 3M7 10V7a5 5 0 0110 0v3"></path>
+                                    </svg>
+                                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Voertuig taken voor de volgende dag</h2>
+                                </div>
+                                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                                    Voeg voertuig taken toe voor <span class="font-semibold" x-text="location.vehicle_name || 'het voertuig'"></span>. Deze verschijnen morgen als eerste taken wanneer hetzelfde voertuig is ingepland.
+                                </p>
+
+                                <div class="p-4 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <h3 class="text-base font-semibold text-blue-900 dark:text-blue-100">Voertuig taken</h3>
+                                            <p class="text-sm text-blue-800 dark:text-blue-200 mt-1">Maak een selectie uit de standaarden of voeg eigen taken toe.</p>
+                                        </div>
+                                        <div class="text-xs text-blue-800 dark:text-blue-200" x-show="vehicleDefaultsLoading">Laden...</div>
+                                    </div>
+
+                                    {{-- Defaults quick-pick --}}
+                                    <div class="mt-4">
+                                        <div class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Snelle selectie</div>
+                                        <template x-if="vehicleDefaultsError">
+                                            <div class="text-sm text-red-700 dark:text-red-300 mb-2" x-text="vehicleDefaultsError"></div>
+                                        </template>
+                                        <div class="flex flex-wrap gap-2" x-show="vehicleDefaults.length > 0">
+                                            <template x-for="def in vehicleDefaults" :key="def.id">
+                                                <button type="button" @click="toggleDefaultVehicleTask(def)" class="px-3 py-1 rounded-full text-xs border transition" :class="isDefaultSelected(def.id) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-700'">
+                                                    <span x-text="def.title"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                        <div x-show="!vehicleDefaultsLoading && vehicleDefaults.length === 0" class="text-sm text-blue-800 dark:text-blue-200">
+                                            Geen standaard voertuig taken beschikbaar. Voeg hieronder een eigen taak toe.
+                                        </div>
+                                    </div>
+
+                                    {{-- Custom creator --}}
+                                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div>
+                                            <label class="block text-xs text-blue-900 dark:text-blue-100 mb-1">Titel (verplicht voor eigen taak)</label>
+                                            <input type="text" x-model="customVehicleTask.title" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900" placeholder="Bijv. Vuilnis wegbrengen">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-blue-900 dark:text-blue-100 mb-1">Omschrijving</label>
+                                            <input type="text" x-model="customVehicleTask.description" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900" placeholder="Optioneel">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-blue-900 dark:text-blue-100 mb-1">Geschatte tijd (minuten)</label>
+                                            <input type="number" min="0" x-model.number="customVehicleTask.estimated_time_minutes" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" @click="addCustomVehicleTask()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md">Eigen voertuig taak toevoegen</button>
+                                    </div>
+
+                                    {{-- Selected list --}}
+                                    <div class="mt-4" x-show="selectedVehicleTasks.length > 0">
+                                        <div class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Geselecteerde voertuig taken</div>
+                                        <ul class="space-y-2">
+                                            <template x-for="(vt, idx) in selectedVehicleTasks" :key="vt._key">
+                                                <li class="flex items-center justify-between p-3 rounded border bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700">
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="vt.title || ('Standaard: ' + (vt._default?.title || vt.default_id))"></div>
+                                                        <div class="text-xs text-gray-600 dark:text-gray-300" x-show="vt.description" x-text="vt.description"></div>
+                                                        <div class="text-xs text-gray-600 dark:text-gray-300" x-show="vt.estimated_time_minutes != null">Tijd: <span x-text="vt.estimated_time_minutes"></span> min</div>
+                                                    </div>
+                                                    <button type="button" @click="removeSelectedVehicleTask(idx)" class="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded">Verwijderen</button>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+
+                                    {{-- Submit vehicle tasks --}}
+                                    <div class="mt-4">
+                                        <button type="button" @click="submitVehicleTasks(location.planning_id)" :disabled="selectedVehicleTasks.length === 0 || submittingVehicleTasks" class="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md">
+                                            <template x-if="submittingVehicleTasks">
+                                                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            </template>
+                                            <span x-text="submittingVehicleTasks ? 'Toevoegen...' : 'Voertuig taken toevoegen'"></span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1032,7 +1043,7 @@
 
                 {{-- Completion Animation --}}
                 <div x-show="isCompleted()" class="text-center animate-fade-in bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                    <template x-if="locationSteps[locationSteps.length - 1]?.type === 'end_checklist' && !locationSteps[locationSteps.length - 1]?.is_approved">
+                    <template x-if="isEndChecklistWaitingApproval()">
                         <div>
                             <h2 class="text-2xl font-bold text-blue-500 mb-4">Planning Ingediend!</h2>
                             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
@@ -1056,7 +1067,7 @@
                             </div>
                         </div>
                     </template>
-                    <template x-if="locationSteps[locationSteps.length - 1]?.type !== 'end_checklist' || locationSteps[locationSteps.length - 1]?.is_approved">
+                    <template x-if="!isEndChecklistWaitingApproval()">
                         <div>
                             <h2 class="text-2xl font-bold text-green-500 mb-4">Planning Voltooid!</h2>
                             <div id="lottie-animation" style="width: 300px; height: 300px; margin: auto;"></div>
@@ -1196,9 +1207,9 @@
                         localStorage.setItem(`planning_location_${this.planningId}`, value);
                         await this.startLocationTimer();
                         if (this.isCompleted()) this.playAnimation();
-                        // Lazy-load defaults when entering end checklist step
+                        // Lazy-load vehicle task defaults when entering the vehicle tasks step
                         const cur = this.currentLocation;
-                        if (cur && cur.type === 'end_checklist' && cur.has_vehicle) {
+                        if (cur && cur.type === 'vehicle_tasks') {
                             this.loadVehicleDefaultsIfNeeded();
                         }
                     });
@@ -1207,9 +1218,9 @@
                         this.stopLocationTimer(false);
                     });
 
-                    // Also try to load defaults if we start directly on end_checklist
+                    // Also try to load defaults if we start directly on vehicle tasks
                     const curAtStart = this.currentLocation;
-                    if (curAtStart && curAtStart.type === 'end_checklist' && curAtStart.has_vehicle) {
+                    if (curAtStart && curAtStart.type === 'vehicle_tasks') {
                         this.loadVehicleDefaultsIfNeeded();
                     }
                 },
@@ -1551,10 +1562,11 @@
                     }
                 },
                 buildEndChecklistPayloadWithVehicleTasks() {
-                    const cur = this.currentLocation;
+                    // Always base materials/end_actions on the end_checklist step (even when we are on vehicle_tasks)
+                    const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
                     const payload = { materials: [], end_actions: [], vehicle_tasks: [] };
-                    if (cur && Array.isArray(cur.checklist_items)) {
-                        cur.checklist_items.forEach(ci => {
+                    if (endStep && Array.isArray(endStep.checklist_items)) {
+                        endStep.checklist_items.forEach(ci => {
                             if (ci.type === 'material') {
                                 if (ci.requirement_id) payload.materials.push(ci.requirement_id);
                             } else if (ci.type === 'end_action') {
@@ -1577,9 +1589,9 @@
                 submitVehicleTasks(planningId) {
                     if (this.selectedVehicleTasks.length === 0) return;
                     // Safeguard: warn if current checklist items already have photos, as the endpoint recreates items
-                    const cur = this.currentLocation;
-                    if (cur && Array.isArray(cur.checklist_items)) {
-                        const hasAnyPhoto = cur.checklist_items.some(ci => !!ci.photo_path || (Array.isArray(ci.photos) && ci.photos.length > 0));
+                    const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
+                    if (endStep && Array.isArray(endStep.checklist_items)) {
+                        const hasAnyPhoto = endStep.checklist_items.some(ci => !!ci.photo_path || (Array.isArray(ci.photos) && ci.photos.length > 0));
                         if (hasAnyPhoto) {
                             const proceed = confirm('Let op: Je hebt al foto\'s geüpload bij de eind checklist. Deze actie maakt de checklist-items opnieuw aan en kan bestaande foto\'s overschrijven. Weet je zeker dat je door wilt gaan?');
                             if (!proceed) return;
@@ -1943,15 +1955,15 @@
                 },
 
                 refreshEndChecklistData() {
-                    const current = this.currentLocation;
-                    if (!current || current.type !== 'end_checklist') return;
+                    // Always locate the end_checklist step and refresh it
+                    const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
+                    if (!endStep) return;
 
-                    // Fetch updated checklist data
-                    axios.get(`/plannings/${current.planning_id}/end-checklist`)
+                    axios.get(`/plannings/${endStep.planning_id}/end-checklist`)
                         .then(response => {
-                            current.checklist_items = response.data.items;
-                            current.has_submitted = response.data.has_submitted;
-                            current.is_approved = response.data.is_approved;
+                            endStep.checklist_items = response.data.items;
+                            endStep.has_submitted = response.data.has_submitted;
+                            endStep.is_approved = response.data.is_approved;
                         })
                         .catch(error => {
                             console.error('Failed to refresh checklist data:', error);
@@ -2013,9 +2025,17 @@
                 async goToNextLocation() {
                     if (this.canProceedToNext()) {
                         const currentLocation = this.currentLocation;
+                        // If we are on the end_checklist step and try to move forward, enforce submission first
+                        if (currentLocation && currentLocation.type === 'end_checklist') {
+                            if (!currentLocation.has_submitted) {
+                                alert('Je moet eerst alle foto\'s uploaden en de eind checklist indienen voordat je doorgaat.');
+                                return;
+                            }
+                        }
 
                         // Handle final step (end checklist completion)
                         if (this.currentLocationIndex === this.locationSteps.length - 1) {
+                            // If the final step is end_checklist, keep legacy behavior
                             if (currentLocation && currentLocation.type === 'end_checklist') {
                                 if (!currentLocation.has_submitted) {
                                     alert('Je moet eerst alle foto\'s uploaden en de checklist indienen.');
@@ -2026,6 +2046,20 @@
                                     // Planning is submitted but not approved - show completion message
                                     this.currentLocationIndex++;
                                     return;
+                                }
+                            } else {
+                                // If final step is not end_checklist, but an end_checklist exists and is not approved
+                                const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
+                                if (endStep) {
+                                    if (!endStep.has_submitted) {
+                                        alert('Dien eerst de eind checklist in voordat je afrondt.');
+                                        return;
+                                    }
+                                    if (!endStep.is_approved) {
+                                        // Allow proceeding to waiting screen
+                                        this.currentLocationIndex++;
+                                        return;
+                                    }
                                 }
                             }
 
@@ -2294,13 +2328,9 @@
                     const totalSteps = this.locationSteps.length;
                     let currentStep = this.currentLocationIndex + 1;
 
-                    // If we're completed and it's the waiting for approval screen, show step totalSteps/totalSteps
-                    if (this.isCompleted()) {
-                        const lastStep = this.locationSteps[this.locationSteps.length - 1];
-                        if (lastStep && lastStep.type === 'end_checklist' && !lastStep.is_approved) {
-                            // Show as complete (max step) when submitted but waiting for approval
-                            currentStep = totalSteps;
-                        }
+                    // If completed and end checklist is waiting approval, show max step
+                    if (this.isCompleted() && this.isEndChecklistWaitingApproval()) {
+                        currentStep = totalSteps;
                     }
 
                     // Never show more than totalSteps
@@ -2313,18 +2343,19 @@
                     const totalSteps = this.locationSteps.length;
                     let currentStep = this.currentLocationIndex + 1;
 
-                    // If we're completed and it's the waiting for approval screen, show 100%
-                    if (this.isCompleted()) {
-                        const lastStep = this.locationSteps[this.locationSteps.length - 1];
-                        if (lastStep && lastStep.type === 'end_checklist' && !lastStep.is_approved) {
-                            // Show 100% when submitted but waiting for approval
-                            return 100;
-                        }
+                    // If completed and end checklist is waiting approval, show 100%
+                    if (this.isCompleted() && this.isEndChecklistWaitingApproval()) {
+                        return 100;
                     }
 
                     // Never show more than 100%
                     const percentage = Math.min((currentStep / totalSteps) * 100, 100);
                     return Math.round(percentage);
+                },
+                isEndChecklistWaitingApproval() {
+                    const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
+                    if (!endStep) return false;
+                    return !!endStep.has_submitted && !endStep.is_approved;
                 },
 
                 playAnimation() {
