@@ -1,0 +1,210 @@
+/* Storage Share email theme */
+
+/* Base */
+body,
+body *:not(html):not(style):not(br):not(tr):not(code) {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    position: relative;
+}
+
+body {
+    -webkit-text-size-adjust: none;
+    background-color: #ffffff; /* Brand background: white */
+    color: #2d3748; /* Neutral dark text */
+    height: 100%;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+}
+
+p,
+ul,
+ol,
+blockquote {
+    line-height: 1.6;
+    text-align: left;
+}
+
+a { color: #00527a; } /* Brand blue */
+
+a img {
+    border: none;
+}
+
+/* Typography */
+h1 {
+    color: #1a202c;
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 0;
+    text-align: left;
+}
+
+h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 0;
+    text-align: left;
+}
+
+h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 0;
+    text-align: left;
+}
+
+p {
+    font-size: 16px;
+    line-height: 1.6em;
+    margin-top: 0;
+    text-align: left;
+}
+
+p.sub {
+    font-size: 12px;
+    color: #718096;
+}
+
+img { max-width: 100%; }
+
+/* Layout */
+.wrapper {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #ffffff; /* White wrapper */
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.content {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Header */
+.header {
+    padding: 24px 0;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0; /* subtle separator */
+}
+
+.header a {
+    color: #00527a;
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Body */
+.body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.inner-body {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+    border-radius: 6px;
+    border-width: 1px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    margin: 0 auto;
+    padding: 32px;
+    width: 570px;
+}
+
+/* Subcopy */
+.subcopy {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 25px;
+    padding-top: 25px;
+}
+
+.subcopy p {
+    font-size: 14px;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    color: #718096;
+}
+
+.footer p {
+    font-size: 12px;
+    color: #718096;
+}
+
+/* Tables */
+.table table {
+    width: 100%;
+}
+
+.table th {
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table td { color: #2d3748; }
+
+/* Buttons */
+.action { width: 100%; }
+
+.button {
+    border-radius: 6px;
+    box-sizing: border-box;
+    color: #fff;
+    display: inline-block;
+    text-decoration: none;
+    -webkit-text-size-adjust: none;
+}
+
+.button-blue,
+.button-primary {
+    background-color: #00527a; /* Brand primary */
+    border-top: 10px solid #00527a;
+    border-right: 18px solid #00527a;
+    border-bottom: 10px solid #00527a;
+    border-left: 18px solid #00527a;
+}
+
+.button-green { /* keep variants but align with brand for consistency */
+    background-color: #0ea5e9;
+    border-color: #0ea5e9;
+}
+
+.button-red {
+    background-color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* Panels */
+.panel {
+    border-left: #00527a solid 4px;
+}
+
+.panel-content {
+    background-color: #f8fafc;
+    color: #2d3748;
+}
+
+.panel-item {
+    padding: 8px 0;
+}
+
+.panel-item p:last-of-type { margin-bottom: 0; }
+
+/* Promotions */
+.promotion { background-color: #f1f5f9; border: 1px dashed #cbd5e1; }
+.promotion h1 { text-align: center; }
+.promotion p { font-size: 15px; text-align: center; }
