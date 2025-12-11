@@ -17,6 +17,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\DefaultVehicleTaskController;
+use App\Http\Controllers\PlanningVehicleTaskController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyPlanningController;
 
@@ -109,6 +110,9 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     Route::post('end-checklist-items/{item}/upload-photo', [EndChecklistController::class, 'uploadPhoto'])->name('end-checklist-items.upload-photo');
     Route::delete('end-checklist-items/{item}/photo', [EndChecklistController::class, 'deletePhoto'])->name('end-checklist-items.delete-photo');
     Route::delete('end-checklist-items/{item}/photos/{photo}', [EndChecklistController::class, 'deleteSpecificPhoto'])->name('end-checklist-items.photos.delete');
+
+    // Vehicle tasks routes (separate step)
+    Route::post('plannings/{planning}/vehicle-tasks', [PlanningVehicleTaskController::class, 'store'])->name('plannings.vehicle-tasks.store');
 
     Route::get('/plannings/{planning}/locations/{location}/timer', [PlanningController::class, 'getLocationTimer']);
     Route::post('/plannings/{planning}/locations/{location}/timer/start', [PlanningController::class, 'startLocationTimer']);

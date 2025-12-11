@@ -1561,19 +1561,8 @@
                         this.selectedVehicleTasks.splice(index, 1);
                     }
                 },
-                buildEndChecklistPayloadWithVehicleTasks() {
-                    // Always base materials/end_actions on the end_checklist step (even when we are on vehicle_tasks)
-                    const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
-                    const payload = { materials: [], end_actions: [], vehicle_tasks: [] };
-                    if (endStep && Array.isArray(endStep.checklist_items)) {
-                        endStep.checklist_items.forEach(ci => {
-                            if (ci.type === 'material') {
-                                if (ci.requirement_id) payload.materials.push(ci.requirement_id);
-                            } else if (ci.type === 'end_action') {
-                                payload.end_actions.push({ title: ci.title || '', description: ci.description || null });
-                            }
-                        });
-                    }
+                buildVehicleTasksPayload() {
+                    const payload = { vehicle_tasks: [] };
                     this.selectedVehicleTasks.forEach(vt => {
                         if (vt.default_id) {
                             payload.vehicle_tasks.push({ default_id: vt.default_id });
@@ -1588,23 +1577,12 @@
                 },
                 submitVehicleTasks(planningId) {
                     if (this.selectedVehicleTasks.length === 0) return;
-                    // Safeguard: warn if current checklist items already have photos, as the endpoint recreates items
-                    const endStep = this.locationSteps.find(s => s.type === 'end_checklist');
-                    if (endStep && Array.isArray(endStep.checklist_items)) {
-                        const hasAnyPhoto = endStep.checklist_items.some(ci => !!ci.photo_path || (Array.isArray(ci.photos) && ci.photos.length > 0));
-                        if (hasAnyPhoto) {
-                            const proceed = confirm('Let op: Je hebt al foto\'s geüpload bij de eind checklist. Deze actie maakt de checklist-items opnieuw aan en kan bestaande foto\'s overschrijven. Weet je zeker dat je door wilt gaan?');
-                            if (!proceed) return;
-                        }
-                    }
-                    const payload = this.buildEndChecklistPayloadWithVehicleTasks();
+                    const payload = this.buildVehicleTasksPayload();
                     this.submittingVehicleTasks = true;
-                    axios.post(`/plannings/${planningId}/end-checklist`, payload)
+                    axios.post(`/plannings/${planningId}/vehicle-tasks`, payload)
                         .then(() => {
                             alert('Voertuig taken toegevoegd.');
                             this.selectedVehicleTasks = [];
-                            // Refresh checklist step to ensure latest data
-                            this.refreshEndChecklistData();
                         })
                         .catch(error => {
                             console.error('Fout bij toevoegen voertuig taken:', error);
@@ -1933,7 +1911,6 @@
                     }
 
                     this.submittingEndChecklist = true;
-
                     axios.post(`/plannings/${planningId}/end-checklist/submit`)
                         .then(response => {
                             // Update the current location data
@@ -1942,7 +1919,6 @@
                                 current.has_submitted = true;
                                 current.is_approved = false; // Will be determined by admin
                             }
-
                             alert('End checklist succesvol ingediend voor beoordeling!');
                         })
                         .catch(error => {

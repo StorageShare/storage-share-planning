@@ -8,6 +8,7 @@ use App\Models\EndChecklistItemPhoto;
 use App\Models\Planning;
 use App\Models\Task;
 use App\Models\DefaultTask;
+use App\Models\PlanningTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,12 +30,6 @@ class EndChecklistController extends Controller
             'end_actions' => 'required|array',
             'end_actions.*.title' => 'required|string|max:255',
             'end_actions.*.description' => 'nullable|string',
-            // Optional: vehicle tasks to create as part of end-of-day flow
-            'vehicle_tasks' => 'sometimes|array',
-            'vehicle_tasks.*.default_id' => 'nullable|exists:default_vehicle_tasks,id',
-            'vehicle_tasks.*.title' => 'required_without:vehicle_tasks.*.default_id|string|max:255',
-            'vehicle_tasks.*.description' => 'nullable|string',
-            'vehicle_tasks.*.estimated_time_minutes' => 'nullable|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request, $planning) {
@@ -64,46 +59,6 @@ class EndChecklistController extends Controller
                 ]);
             }
 
-            // Optionally create vehicle tasks when a vehicle is assigned
-            if ($planning->vehicle_id && $request->filled('vehicle_tasks')) {
-                $defaultsById = collect();
-                // Preload defaults if any default_id present
-                $defaultIds = collect($request->vehicle_tasks)
-                    ->pluck('default_id')
-                    ->filter()
-                    ->unique();
-                if ($defaultIds->isNotEmpty()) {
-                    $defaultsById = \App\Models\DefaultVehicleTask::whereIn('id', $defaultIds)->get()->keyBy('id');
-                }
-
-                /** @var \App\Models\User $user */
-                $user = Auth::user();
-                foreach ($request->vehicle_tasks as $vtInput) {
-                    $title = $vtInput['title'] ?? null;
-                    $description = $vtInput['description'] ?? null;
-                    $estimated = $vtInput['estimated_time_minutes'] ?? null;
-
-                    if (!empty($vtInput['default_id'])) {
-                        $def = $defaultsById->get($vtInput['default_id']);
-                        if ($def) {
-                            $title = $def->title;
-                            $description = $description ?? $def->description;
-                            $estimated = $estimated ?? $def->estimated_time_minutes;
-                        }
-                    }
-
-                    if ($title) {
-                        \App\Models\VehicleTask::create([
-                            'vehicle_id' => $planning->vehicle_id,
-                            'title' => $title,
-                            'description' => $description,
-                            'estimated_time_minutes' => $estimated,
-                            'status' => \App\Enums\TaskStatus::OPEN,
-                            'created_by' => $user?->id,
-                        ]);
-                    }
-                }
-            }
         });
 
         return response()->json([
@@ -270,8 +225,10 @@ class EndChecklistController extends Controller
     /**
      * Submit the complete end checklist for admin review.
      */
-    public function submit(Planning $planning): JsonResponse
+    public function submit(Request $request, Planning $planning): JsonResponse
     {
+        // Vehicle tasks are handled via the dedicated PlanningVehicleTaskController now.
+
         // Check if all checklist items have at least one photo
         $itemsWithoutPhotos = $planning->endChecklistItems()
             ->doesntHave('photos')
