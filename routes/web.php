@@ -44,6 +44,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('default-tasks', DefaultTaskController::class);
     Route::resource('requirements', RequirementController::class);
     Route::resource('vehicles', VehicleController::class);
+    Route::resource('default-vehicle-tasks', DefaultVehicleTaskController::class)->except(['show']);
 
     // CSV Import routes
     Route::get('csv-import', [CsvImportController::class, 'show'])->name('csv-import.index');

@@ -64,6 +64,8 @@ class UpdatePlanningRequest extends FormRequest
                         ->whereDate('planned_date', $date)
                         ->where('vehicle_id', $value)
                         ->when($planning_id, fn($q) => $q->where('id', '!=', $planning_id))
+                        // Allow if any existing planning(s) on that date for this vehicle are completed
+                        ->where('status', '!=', 'completed')
                         ->exists();
                     if ($exists) {
                         $fail('Dit voertuig is al gekoppeld aan een planning op deze datum.');

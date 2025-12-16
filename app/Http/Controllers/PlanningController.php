@@ -349,7 +349,13 @@ class PlanningController extends Controller
         $selectedDate = $request->input('planned_date') ?? now()->toDateString();
         $availableVehicles = Vehicle::query()
             ->whereDoesntHave('plannings', function ($q) use ($selectedDate) {
-                $q->whereDate('planned_date', $selectedDate);
+                // Exclude only vehicles that are assigned to a non-completed planning on the selected date
+                // Treat NULL status as non-completed
+                $q->whereDate('planned_date', $selectedDate)
+                  ->where(function ($qq) {
+                      $qq->whereNull('status')
+                         ->orWhere('status', '!=', 'completed');
+                  });
             })
             ->orderBy('name')
             ->get();
@@ -413,6 +419,8 @@ class PlanningController extends Controller
                     'task.location',
                     'defaultTask.locations',
                     'specificLocation',
+                    // Also eager-load vehicleTask to show vehicle-related planning tasks without N+1
+                    'vehicleTask',
                     'completions' => function ($completionQuery) {
                         $completionQuery->with(['user', 'photos'])->orderBy('created_at', 'desc');
                     },
@@ -595,8 +603,14 @@ class PlanningController extends Controller
         $selectedDate = $planning->planned_date->toDateString();
         $availableVehicles = Vehicle::query()
             ->whereDoesntHave('plannings', function ($q) use ($selectedDate, $planning) {
+                // Exclude only vehicles that are assigned to a non-completed planning on the selected date, excluding the current planning
+                // Treat NULL status as non-completed
                 $q->whereDate('planned_date', $selectedDate)
-                  ->where('plannings.id', '!=', $planning->id);
+                  ->where('plannings.id', '!=', $planning->id)
+                  ->where(function ($qq) {
+                      $qq->whereNull('status')
+                         ->orWhere('status', '!=', 'completed');
+                  });
             })
             ->orderBy('name')
             ->get();

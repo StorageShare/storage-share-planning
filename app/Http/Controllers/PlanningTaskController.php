@@ -166,6 +166,9 @@ class PlanningTaskController extends Controller
             'status' => TaskStatus::OPEN, // Explicitly set the status back to open
         ]);
 
+        // Sync linked vehicle task if applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::OPEN);
+
         // Also update the original task's status
         if ($planning_task->task) {
             $planning_task->task->update(['status' => TaskStatus::OPEN]);
@@ -274,6 +277,9 @@ class PlanningTaskController extends Controller
                 'completed_at' => null, // A rejected task is not considered completed
             ]);
 
+            // Sync linked vehicle task if applicable
+            $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::REJECTED);
+
             // --- Main Rejection Logic ---
             if ($createReplacement) {
                 $reason = (string) $request->input('review_notes');
@@ -371,6 +377,9 @@ class PlanningTaskController extends Controller
             ? 'Taak afgekeurd. Een nieuwe taak is aangemaakt in de backlog.'
             : 'Taak afgekeurd. Er is geen nieuwe taak aangemaakt.';
 
+        // Enforce planning status gating after rejection
+        $planning_task->planning->checkAndUpdateStatus();
+
         // Async path: return JSON when requested
         if ($request->expectsJson()) {
             return response()->json([
@@ -433,6 +442,14 @@ class PlanningTaskController extends Controller
             'status' => TaskStatus::COMPLETED,
         ]);
 
+        // Sync linked vehicle task if applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::COMPLETED);
+
+        // Keep linked backlog task in sync as well
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => TaskStatus::COMPLETED]);
+        }
+
         $planning->checkAndUpdateStatus();
 
         // Check if this location is now completed and notify if needed
@@ -454,6 +471,13 @@ class PlanningTaskController extends Controller
             'completed_at' => null,
             'status' => TaskStatus::OPEN,
         ]);
+
+        // Sync linked vehicle task if applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, TaskStatus::OPEN);
+
+        if ($planning_task->task) {
+            $planning_task->task->update(['status' => TaskStatus::OPEN]);
+        }
 
         $planning->checkAndUpdateStatus();
 
@@ -515,6 +539,9 @@ class PlanningTaskController extends Controller
             'completed_notes' => $request->input('completed_notes'),
             'status' => $newStatus,
         ]);
+
+        // Sync linked vehicle task if applicable
+        $this->syncLinkedVehicleTaskStatus($planning_task, $newStatus);
 
         if ($planning_task->task) {
             $planning_task->task->update(['status' => $newStatus]);
