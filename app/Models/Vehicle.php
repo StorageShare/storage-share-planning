@@ -49,4 +49,12 @@ class Vehicle extends Model
     {
         return $this->hasMany(Planning::class);
     }
+
+    /**
+     * Vehicle-specific tasks that can be scheduled for this vehicle.
+     */
+    public function vehicleTasks(): HasMany
+    {
+        return $this->hasMany(VehicleTask::class);
+    }
 }

@@ -16,6 +16,8 @@ use App\Http\Controllers\TaskBacklogController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\DefaultVehicleTaskController;
+use App\Http\Controllers\PlanningVehicleTaskController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyPlanningController;
 
@@ -42,6 +44,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::resource('default-tasks', DefaultTaskController::class);
     Route::resource('requirements', RequirementController::class);
     Route::resource('vehicles', VehicleController::class);
+    Route::resource('default-vehicle-tasks', DefaultVehicleTaskController::class)->except(['show']);
 
     // CSV Import routes
     Route::get('csv-import', [CsvImportController::class, 'show'])->name('csv-import.index');
@@ -109,6 +112,9 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     Route::delete('end-checklist-items/{item}/photo', [EndChecklistController::class, 'deletePhoto'])->name('end-checklist-items.delete-photo');
     Route::delete('end-checklist-items/{item}/photos/{photo}', [EndChecklistController::class, 'deleteSpecificPhoto'])->name('end-checklist-items.photos.delete');
 
+    // Vehicle tasks routes (separate step)
+    Route::post('plannings/{planning}/vehicle-tasks', [PlanningVehicleTaskController::class, 'store'])->name('plannings.vehicle-tasks.store');
+
     Route::get('/plannings/{planning}/locations/{location}/timer', [PlanningController::class, 'getLocationTimer']);
     Route::post('/plannings/{planning}/locations/{location}/timer/start', [PlanningController::class, 'startLocationTimer']);
     Route::post('/plannings/{planning}/locations/{location}/timer/stop', [PlanningController::class, 'stopLocationTimer']);
@@ -129,6 +135,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Default Vehicle Tasks (for quick selection)
+    Route::get('default-vehicle-tasks/active', [DefaultVehicleTaskController::class, 'active'])->name('default-vehicle-tasks.active');
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {

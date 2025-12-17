@@ -165,6 +165,235 @@
                         @endif
                     </div>
 
+                    {{-- Vehicle Tasks section --}}
+                    @php
+                        $vehiclePlanningTasks = $planning->planningTasks->filter(function($pt){ return (bool)($pt->is_vehicle_task ?? false); });
+                    @endphp
+                    @if($vehiclePlanningTasks->count() > 0)
+                        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Voertuigtaken</h3>
+
+                            <ul class="divide-y divide-gray-200 dark:divide-gray-700 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                @foreach($vehiclePlanningTasks as $vpt)
+                                    @php
+                                        $title = $vpt->title ?: ($vpt->vehicleTask?->title ?? 'Voertuigtaak');
+                                        $desc = $vpt->description ?: ($vpt->vehicleTask?->description ?? null);
+                                        $status = strtolower($vpt->status?->value ?? (string)($vpt->status ?? 'open'));
+                                        $est = $vpt->estimated_time_minutes ?? $vpt->vehicleTask?->estimated_time_minutes ?? null;
+                                        $latestCompletion = $vpt->completions->first();
+                                        $photoUrls = $latestCompletion ? $latestCompletion->photos->pluck('url')->all() : [];
+                                    @endphp
+                                    <li class="p-4 bg-white dark:bg-gray-800">
+                                        <div class="flex items-start justify-between">
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-2">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $title }}</p>
+                                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                        @switch($status)
+                                                            @case('open') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
+                                                            @case('in_progress') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 @break
+                                                            @case('completed') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
+                                                            @case('review') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 @break
+                                                            @case('rejected') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 @break
+                                                            @case('skipped') bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 @break
+                                                            @default bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200
+                                                        @endswitch">
+                                                        {{ ucfirst(str_replace('_',' ',$status)) }}
+                                                    </span>
+                                                </div>
+                                                @if($desc)
+                                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ $desc }}</p>
+                                                @endif
+
+                                                {{-- Review notes preview and image thumbnails when in review --}}
+                                                @if ($status === 'review')
+                                                    @if($latestCompletion && $latestCompletion->comment)
+                                                        <div class="mt-2">
+                                                            <div class="text-left text-xs text-gray-500 dark:text-gray-400 max-w-prose break-anywhere">Notities: {{ \Illuminate\Support\Str::limit($latestCompletion->comment, 100) }}</div>
+                                                            <button type="button"
+                                                                    x-data
+                                                                    x-on:click.prevent="$dispatch('open-modal', 'view-comment-vpt-{{ $vpt->id }}')"
+                                                                    class="mt-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium">
+                                                                Lees volledig
+                                                            </button>
+                                                            <x-modal name="view-comment-vpt-{{ $vpt->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                <div class="p-6">
+                                                                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 text-left">Notities</h3>
+                                                                    <div class="mt-4 max-h-64 overflow-y-auto overscroll-contain text-left">
+                                                                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-anywhere">{{ $latestCompletion->comment }}</p>
+                                                                    </div>
+                                                                    <div class="mt-6 text-right">
+                                                                        <x-secondary-button x-on:click="$dispatch('close')">
+                                                                            Sluiten
+                                                                        </x-secondary-button>
+                                                                    </div>
+                                                                </div>
+                                                            </x-modal>
+                                                        </div>
+                                                    @endif
+                                                    @if (!empty($photoUrls))
+                                                        <div class="mt-2">
+                                                            <div class="flex items-center gap-2">
+                                                                @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
+                                                                    <button type="button"
+                                                                            class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                            x-data="{}"
+                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                        <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
+                                                                    </button>
+                                                                @endforeach
+                                                                @if (count($photoUrls) > 3)
+                                                                    <button type="button"
+                                                                            class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                            x-data="{}"
+                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
+                                                                        <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
+                                                                        <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                @endif
+                                            </div>
+
+                                            <div class="ml-4 flex-shrink-0 text-right">
+                                                @if(!is_null($est))
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400">Geschatte tijd</div>
+                                                    <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $est }} min</div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        {{-- Actions --}}
+                                        <div class="mt-3 flex flex-wrap items-center gap-2 justify-end">
+                                            @php $statusValue = $status; @endphp
+                                            @if ($statusValue === 'review' && Auth::user() && Auth::user()->isAdmin())
+                                                <form action="{{ route('plannings.tasks.approve', $vpt) }}" method="POST">
+                                                    @csrf
+                                                    <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+                                                    <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
+                                                </form>
+
+                                                <x-danger-button
+                                                    x-data
+                                                    x-on:click.prevent="$dispatch('open-modal', 'reject-vpt-{{ $vpt->id }}')"
+                                                    class="!py-1 !px-2 !text-xs"
+                                                >Afkeuren</x-danger-button>
+
+                                                <x-modal name="reject-vpt-{{ $vpt->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                    <form action="{{ route('plannings.tasks.reject', $vpt) }}" method="POST" class="p-6 text-left">
+                                                        @csrf
+                                                        <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+
+                                                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                            Afkeuren: {{ $title }}
+                                                        </h2>
+
+                                                        <div class="mt-6">
+                                                            <x-input-label for="review_notes_vpt_{{ $vpt->id }}" value="{{ __('Reden voor afwijzing (verplicht)') }}" />
+                                                            <textarea id="review_notes_vpt_{{ $vpt->id }}" name="review_notes" rows="4" required class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('review_notes') }}</textarea>
+                                                            <x-input-error class="mt-2" :messages="$errors->get('review_notes')" />
+                                                        </div>
+
+                                                        <div class="mt-4 flex items-start space-x-3">
+                                                            <input type="hidden" name="create_replacement" value="0">
+                                                            <input id="create_replacement_vpt_{{ $vpt->id }}" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
+                                                            <label for="create_replacement_vpt_{{ $vpt->id }}" class="text-sm text-gray-700 dark:text-gray-300">
+                                                                Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
+                                                            </label>
+                                                        </div>
+
+                                                        <div class="mt-6 flex justify-end">
+                                                            <x-secondary-button x-on:click="$dispatch('close')">
+                                                                {{ __('Annuleren') }}
+                                                            </x-secondary-button>
+                                                            <x-danger-button type="submit" class="ml-3">
+                                                                {{ __('Definitief afkeuren') }}
+                                                            </x-danger-button>
+                                                        </div>
+                                                    </form>
+                                                </x-modal>
+                                            @elseif (!in_array($statusValue, ['completed', 'review']))
+                                                {{-- Complete modal trigger --}}
+                                                <x-primary-button x-data="" x-on:click.prevent="$dispatch('open-modal', 'complete-vpt-{{ $vpt->id }}')" class="!py-1 !px-2 !text-xs">Voltooien</x-primary-button>
+
+                                                <x-modal name="complete-vpt-{{ $vpt->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                    <form method="post" action="{{ route('plannings.tasks.complete', [$planning, $vpt]) }}" class="p-6" enctype="multipart/form-data">
+                                                        @csrf
+
+                                                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                            {{ __('Taak Voltooien: ') . $title }}
+                                                        </h2>
+
+                                                        <div class="mt-6">
+                                                            <x-input-label for="completed_notes_vpt_{{ $vpt->id }}" value="{{ __('Opmerking') }}" />
+                                                            <textarea name="completed_notes" id="completed_notes_vpt_{{ $vpt->id }}" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>{{ old('completed_notes') }}</textarea>
+                                                            <x-input-error class="mt-2" :messages="$errors->get('completed_notes')" />
+                                                        </div>
+
+                                                        <div class="mt-6">
+                                                            <x-input-label for="photos_vpt_{{ $vpt->id }}" value="{{ __('Fotos (minimaal 1)') }}" />
+                                                            <input type="file" name="photos[]" id="photos_vpt_{{ $vpt->id }}" multiple @if(!Auth::user()->isAdmin()) required @endif class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
+                                                            <x-input-error class="mt-2" :messages="$errors->get('photos.*')" />
+                                                            <x-input-error class="mt-2" :messages="$errors->get('photos')" />
+                                                        </div>
+
+                                                        <div class="mt-6">
+                                                            <label for="is_fully_completed_vpt_{{ $vpt->id }}" class="inline-flex items-center">
+                                                                <input type="hidden" name="is_fully_completed" value="0">
+                                                                <input id="is_fully_completed_vpt_{{ $vpt->id }}" type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-indigo-500" name="is_fully_completed" value="1" checked>
+                                                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-300">{{ __('Taak is volledig voltooid') }}</span>
+                                                            </label>
+                                                        </div>
+
+                                                        <div class="mt-6 flex justify-end">
+                                                            <x-secondary-button x-on:click="$dispatch('close')">
+                                                                {{ __('Annuleren') }}
+                                                            </x-secondary-button>
+
+                                                            <x-primary-button class="ml-3">
+                                                                {{ __('Taak afronden') }}
+                                                            </x-primary-button>
+                                                        </div>
+                                                    </form>
+                                                </x-modal>
+                                            @elseif ($statusValue === 'completed')
+
+                                                <x-danger-button x-data="" x-on:click.prevent="$dispatch('open-modal', 'reopen-vpt-{{ $vpt->id }}')" class="!py-1 !px-2 !text-xs">Heropenen</x-danger-button>
+
+                                                <x-modal name="reopen-vpt-{{ $vpt->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                    <form method="post" action="{{ route('plannings.tasks.uncomplete', [$planning, $vpt]) }}" class="p-6">
+                                                        @csrf
+
+                                                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                            {{ __('Taak Heropenen: ') . $title }}
+                                                        </h2>
+
+                                                        <div class="mt-6">
+                                                            <x-input-label for="rejection_reason_vpt_{{ $vpt->id }}" value="{{ __('Reden voor heropenen') }}" />
+                                                            <textarea name="rejection_reason" id="rejection_reason_vpt_{{ $vpt->id }}" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>{{ old('rejection_reason') }}</textarea>
+                                                            <x-input-error class="mt-2" :messages="$errors->get('rejection_reason')" />
+                                                        </div>
+
+                                                        <div class="mt-6 flex justify-end">
+                                                            <x-secondary-button x-on:click="$dispatch('close')">
+                                                                {{ __('Annuleren') }}
+                                                            </x-secondary-button>
+                                                            <x-primary-button class="ml-3">
+                                                                {{ __('Taak heropenen') }}
+                                                            </x-primary-button>
+                                                        </div>
+                                                    </form>
+                                                </x-modal>
+                                            @endif
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     {{-- Route & Reistijden sectie --}}
                     @if($planning->locations->count() > 0)
                         <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">

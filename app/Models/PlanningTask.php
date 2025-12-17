@@ -20,6 +20,7 @@ class PlanningTask extends Model
         'planning_id',
         'task_id',
         'default_task_id',
+        'vehicle_task_id',
         'location_id',
         'title',
         'description',
@@ -27,6 +28,8 @@ class PlanningTask extends Model
         'review_notes',
         'completed_at',
         'completed_notes',
+        'estimated_time_minutes',
+        'is_vehicle_task',
     ];
 
     /**
@@ -37,6 +40,7 @@ class PlanningTask extends Model
     protected $casts = [
         'completed_at' => 'datetime',
         'status' => \App\Enums\TaskStatus::class,
+        'is_vehicle_task' => 'boolean',
     ];
 
     /**
@@ -69,6 +73,14 @@ class PlanningTask extends Model
     public function specificLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    /**
+     * Vehicle task linkage when this planning task represents a vehicle task.
+     */
+    public function vehicleTask(): BelongsTo
+    {
+        return $this->belongsTo(VehicleTask::class);
     }
 
     /**

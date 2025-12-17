@@ -61,6 +61,11 @@ class StorePlanningRequest extends FormRequest
                     $exists = \App\Models\Planning::query()
                         ->whereDate('planned_date', $date)
                         ->where('vehicle_id', $value)
+                        // Allow if the only planning(s) on that date are completed
+                        ->where(function ($q) {
+                            $q->whereNull('status')
+                              ->orWhere('status', '!=', 'completed');
+                        })
                         ->exists();
                     if ($exists) {
                         $fail('Dit voertuig is al gekoppeld aan een planning op deze datum.');

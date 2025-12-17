@@ -349,7 +349,13 @@ class PlanningController extends Controller
         $selectedDate = $request->input('planned_date') ?? now()->toDateString();
         $availableVehicles = Vehicle::query()
             ->whereDoesntHave('plannings', function ($q) use ($selectedDate) {
-                $q->whereDate('planned_date', $selectedDate);
+                // Exclude only vehicles that are assigned to a non-completed planning on the selected date
+                // Treat NULL status as non-completed
+                $q->whereDate('planned_date', $selectedDate)
+                  ->where(function ($qq) {
+                      $qq->whereNull('status')
+                         ->orWhere('status', '!=', 'completed');
+                  });
             })
             ->orderBy('name')
             ->get();
@@ -413,6 +419,8 @@ class PlanningController extends Controller
                     'task.location',
                     'defaultTask.locations',
                     'specificLocation',
+                    // Also eager-load vehicleTask to show vehicle-related planning tasks without N+1
+                    'vehicleTask',
                     'completions' => function ($completionQuery) {
                         $completionQuery->with(['user', 'photos'])->orderBy('created_at', 'desc');
                     },
@@ -595,8 +603,14 @@ class PlanningController extends Controller
         $selectedDate = $planning->planned_date->toDateString();
         $availableVehicles = Vehicle::query()
             ->whereDoesntHave('plannings', function ($q) use ($selectedDate, $planning) {
+                // Exclude only vehicles that are assigned to a non-completed planning on the selected date, excluding the current planning
+                // Treat NULL status as non-completed
                 $q->whereDate('planned_date', $selectedDate)
-                  ->where('plannings.id', '!=', $planning->id);
+                  ->where('plannings.id', '!=', $planning->id)
+                  ->where(function ($qq) {
+                      $qq->whereNull('status')
+                         ->orWhere('status', '!=', 'completed');
+                  });
             })
             ->orderBy('name')
             ->get();
@@ -930,6 +944,26 @@ class PlanningController extends Controller
 
     private function createPlanningTasks(Planning $planning, array $validatedData): void
     {
+        // 1) Inject open vehicle tasks for the assigned vehicle so they appear first
+        if ($planning->vehicle_id) {
+            $openVehicleTasks = \App\Models\VehicleTask::where('vehicle_id', $planning->vehicle_id)
+                ->where('status', \App\Enums\TaskStatus::OPEN->value)
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($openVehicleTasks as $vt) {
+                $planning->planningTasks()->create([
+                    'vehicle_task_id' => $vt->id,
+                    'title' => $vt->title,
+                    // Some vehicle tasks may not have a description; DB column is NOT NULL
+                    'description' => $vt->description ?? '',
+                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'estimated_time_minutes' => $vt->estimated_time_minutes,
+                    'is_vehicle_task' => true,
+                ]);
+            }
+        }
+
         // Logic for adding default tasks
         if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
             $selected_location_ids = collect($validatedData['location_ids']);
@@ -942,7 +976,8 @@ class PlanningController extends Controller
                             'location_id' => $location_id,
                             'default_task_id' => $template->id,
                             'title' => $template->title,
-                            'description' => $template->description,
+                            // Ensure non-null description for NOT NULL column
+                            'description' => $template->description ?? '',
                         ]);
                     }
                 }
@@ -956,7 +991,8 @@ class PlanningController extends Controller
                 $planning->planningTasks()->create([
                     'task_id' => $backlogTask->id,
                     'title' => $backlogTask->title,
-                    'description' => $backlogTask->description,
+                    // Ensure non-null description for NOT NULL column
+                    'description' => $backlogTask->description ?? '',
                     'location_id' => $backlogTask->location_id,
                     'priority' => $backlogTask->priority,
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
@@ -967,6 +1003,31 @@ class PlanningController extends Controller
 
     private function updatePlanningTasks(Planning $planning, array $validatedData): void
     {
+        // Ensure vehicle tasks are present for assigned vehicle (if any were added after planning creation)
+        if ($planning->vehicle_id) {
+            $existingLinkedVehicleTaskIds = $planning->planningTasks()
+                ->where('is_vehicle_task', true)
+                ->whereNotNull('vehicle_task_id')
+                ->pluck('vehicle_task_id');
+
+            $openVehicleTasks = \App\Models\VehicleTask::where('vehicle_id', $planning->vehicle_id)
+                ->where('status', \App\Enums\TaskStatus::OPEN->value)
+                ->whereNotIn('id', $existingLinkedVehicleTaskIds)
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($openVehicleTasks as $vt) {
+                $planning->planningTasks()->create([
+                    'vehicle_task_id' => $vt->id,
+                    'title' => $vt->title,
+                    'description' => $vt->description,
+                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'estimated_time_minutes' => $vt->estimated_time_minutes,
+                    'is_vehicle_task' => true,
+                ]);
+            }
+        }
+
         // Logic for adding/removing default tasks based on selection
         $current_default_planning_tasks = $planning->planningTasks()
             ->whereNotNull('default_task_id')

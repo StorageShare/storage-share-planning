@@ -8,6 +8,7 @@ use App\Models\EndChecklistItemPhoto;
 use App\Models\Planning;
 use App\Models\Task;
 use App\Models\DefaultTask;
+use App\Models\PlanningTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,7 @@ class EndChecklistController extends Controller
                     'description' => $endAction['description'] ?? null,
                 ]);
             }
+
         });
 
         return response()->json([
@@ -223,8 +225,10 @@ class EndChecklistController extends Controller
     /**
      * Submit the complete end checklist for admin review.
      */
-    public function submit(Planning $planning): JsonResponse
+    public function submit(Request $request, Planning $planning): JsonResponse
     {
+        // Vehicle tasks are handled via the dedicated PlanningVehicleTaskController now.
+
         // Check if all checklist items have at least one photo
         $itemsWithoutPhotos = $planning->endChecklistItems()
             ->doesntHave('photos')
