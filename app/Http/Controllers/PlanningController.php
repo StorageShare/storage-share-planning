@@ -955,7 +955,8 @@ class PlanningController extends Controller
                 $planning->planningTasks()->create([
                     'vehicle_task_id' => $vt->id,
                     'title' => $vt->title,
-                    'description' => $vt->description,
+                    // Some vehicle tasks may not have a description; DB column is NOT NULL
+                    'description' => $vt->description ?? '',
                     'status' => \App\Enums\TaskStatus::OPEN,
                     'estimated_time_minutes' => $vt->estimated_time_minutes,
                     'is_vehicle_task' => true,
@@ -975,7 +976,8 @@ class PlanningController extends Controller
                             'location_id' => $location_id,
                             'default_task_id' => $template->id,
                             'title' => $template->title,
-                            'description' => $template->description,
+                            // Ensure non-null description for NOT NULL column
+                            'description' => $template->description ?? '',
                         ]);
                     }
                 }
@@ -989,7 +991,8 @@ class PlanningController extends Controller
                 $planning->planningTasks()->create([
                     'task_id' => $backlogTask->id,
                     'title' => $backlogTask->title,
-                    'description' => $backlogTask->description,
+                    // Ensure non-null description for NOT NULL column
+                    'description' => $backlogTask->description ?? '',
                     'location_id' => $backlogTask->location_id,
                     'priority' => $backlogTask->priority,
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
