@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use Illuminate\Support\Facades\Storage;
+
 class EndChecklistItemPhoto extends Model
 {
     use HasFactory;
@@ -35,8 +37,7 @@ class EndChecklistItemPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        // Use route helper to serve via media route (avoids direct storage path issues)
-
-        return route('media', ['path' => $this->file_path]);
+        // Always generate URLs from the public disk, since files are stored there
+        return Storage::disk('public')->url($this->file_path);
     }
 }

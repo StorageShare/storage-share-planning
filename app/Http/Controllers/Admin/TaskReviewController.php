@@ -10,6 +10,7 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class TaskReviewController extends Controller
@@ -275,7 +276,7 @@ class TaskReviewController extends Controller
                 'history' => $completion_history,
                 'approve_route' => route('admin.end-checklist.approve', $checklist_item),
                 'reject_route' => route('admin.end-checklist.reject', $checklist_item),
-                'photo_url' => $checklist_item->photo_path ? asset('storage/' . $checklist_item->photo_path) : null,
+                'photo_url' => $checklist_item->photo_path ? Storage::disk('public')->url($checklist_item->photo_path) : null,
                 'checklist_type' => $checklist_item->type,
                 'admin_notes' => $checklist_item->admin_notes,
                 'uploader_name' => $checklist_item->uploader?->name,

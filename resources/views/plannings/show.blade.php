@@ -1162,7 +1162,7 @@
                                                                         ? $item->photos->pluck('url')->all()
                                                                         : [];
                                                                     if (empty($photoUrls) && $item->photo_path) {
-                                                                        $photoUrls = [route('media', ['path' => $item->photo_path])];
+                                                                        $photoUrls = [\Illuminate\Support\Facades\Storage::disk('public')->url($item->photo_path)];
                                                                     }
                                                                 @endphp
 
@@ -1259,7 +1259,7 @@
                                                                                             if ($item->photos && $item->photos->count() > 0) {
                                                                                                 $modalPhotoUrl = $item->photos->first()->url;
                                                                                             } elseif ($item->photo_path) {
-                                                                                                $modalPhotoUrl = route('media', ['path' => $item->photo_path]);
+                                                                                                $modalPhotoUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($item->photo_path);
                                                                                             }
                                                                                         @endphp
                                                                                         @if($modalPhotoUrl)

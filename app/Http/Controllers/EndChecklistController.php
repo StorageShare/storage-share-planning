@@ -138,7 +138,7 @@ class EndChecklistController extends Controller
                 'message' => 'Foto\'s succesvol geüpload',
                 'photos' => $item->photos->map->only(['id', 'file_path', 'uploaded_at'])
                     ->map(function ($p) {
-                        $p['photo_url'] = route('media', ['path' => $p['file_path']]);
+                        $p['photo_url'] = Storage::disk('public')->url($p['file_path']);
                         return $p;
                     })
                     ->values()
