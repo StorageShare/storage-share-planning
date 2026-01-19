@@ -9,7 +9,8 @@
         <form method="POST" action="{{ route('plannings.update', $planning) }}">
             @csrf
             @method('PUT')
-            @include('plannings._form')
+            @include('plannings._form', ['isEdit' => true])
         </form>
+        @include('plannings._quick_task_modal', ['isEdit' => true])
     </div>
-</x-app-layout> 
+</x-app-layout>

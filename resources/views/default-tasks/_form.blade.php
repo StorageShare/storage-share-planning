@@ -17,6 +17,13 @@
     />
 
     <x-form-input
+        name="feedback_information"
+        label="Terugkoppeling informatie"
+        :value="$defaultTask->feedback_information ?? ''"
+        placeholder="Aan wie moet terugkoppeling gegeven worden?"
+    />
+
+    <x-form-input
         name="estimated_time_minutes"
         type="number"
         label="Geschatte tijd (minuten)"
@@ -25,6 +32,20 @@
         min="0"
         max="99999"
     />
+
+    <div class="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+        <div class="flex items-center">
+            <input id="is_always_included" name="is_always_included" type="checkbox" value="1"
+                   class="shrink-0 mt-0.5 border-gray-200 rounded text-yellow-600 focus:ring-yellow-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-yellow-500"
+                   {{ old('is_always_included', $defaultTask->is_always_included ?? false) ? 'checked' : '' }}>
+            <label for="is_always_included" class="ms-3 text-sm font-bold text-yellow-800 dark:text-yellow-200">
+                ✅ Altijd opnemen in planning (automatisch aangevinkt)
+            </label>
+        </div>
+        <p class="text-xs text-yellow-600 dark:text-yellow-300 mt-2 ml-8">
+            Wanneer deze optie is geselecteerd, wordt deze standaardtaak automatisch aangevinkt bij het maken van een nieuwe planning voor een locatie.
+        </p>
+    </div>
 
     <div>
         <x-input-label class="block text-sm font-medium mb-2">Locaties</x-input-label>

@@ -34,11 +34,11 @@ class MyPlanningController extends Controller
                 ->whereHas('users', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                 })
-                ->with(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos'])
+                ->with(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos', 'comments.photos'])
                 ->first();
         } else {
             // Load necessary relationships for the provided planning
-            $planning->load(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos']);
+            $planning->load(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos', 'comments.photos']);
 
             // Check if user has access to this planning
             if (!$user->isAdmin() && !$planning->users->contains($user)) {
@@ -109,7 +109,14 @@ class MyPlanningController extends Controller
                 : ($item->name ?? '');
         });
 
-        // Add requirements checklist as first step (only if there are requirements)
+        // Add summary as first step
+        $locationSteps[] = [
+            'type' => 'summary',
+            'title' => 'Samenvatting van je dag',
+            'details' => 'Bekijk je planning overzicht voordat je begint',
+        ];
+
+        // Add requirements checklist as second step (only if there are requirements)
         if ($uniqueRequirements->isNotEmpty()) {
             $locationSteps[] = [
                 'type' => 'requirements',
@@ -124,13 +131,6 @@ class MyPlanningController extends Controller
                 })->values()->all(),
             ];
         }
-
-        // Add summary as second step
-        $locationSteps[] = [
-            'type' => 'summary',
-            'title' => 'Samenvatting van je dag',
-            'details' => 'Bekijk je planning overzicht voordat je begint',
-        ];
 
         // Group tasks by their effective location_id (from planning_task or fallback to parent task)
         $tasksByLocation = $planning->planningTasks->groupBy(function ($planningTask) {
@@ -169,16 +169,25 @@ class MyPlanningController extends Controller
                     'details' => $task->description,
                     'task_id' => $task->id,
                     'status' => $task->status,
-                    'completed_notes' => $latestCompletion->comment ?? null,
+                    'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
                     'photos' => $latestCompletion ? $latestCompletion->photos->pluck('url') : [],
                     'backlog_photos' => $backlogPhotos,
                     'is_vehicle_task' => (bool) $task->is_vehicle_task,
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
+                    'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                 ];
             }
 
-            if (!empty($tasksForBacklog)) {
+            // Get comments for this location (backlog)
+            $commentsForBacklog = $planning->comments->whereNull('location_id')->map(fn($c) => [
+                'id' => $c->id,
+                'comment' => $c->comment,
+                'photos' => $c->photos->pluck('url'),
+                'created_at' => $c->created_at->format('H:i'),
+            ])->values()->all();
+
+            if (!empty($tasksForBacklog) || !empty($commentsForBacklog)) {
                 $locationSteps[] = [
                     'type' => 'location',
                     'title' => 'Backlog taken',
@@ -186,6 +195,7 @@ class MyPlanningController extends Controller
                     'location_name' => 'Backlog',
                     'address' => null,
                     'tasks' => $tasksForBacklog,
+                    'comments' => $commentsForBacklog,
                     'travel_from' => $planning->start_address ?: 'kantoor',
                     'travel_to' => $planning->locations->first()?->name,
                     'travel_info' => null, // No travel for backlog tasks
@@ -194,7 +204,7 @@ class MyPlanningController extends Controller
                 // Add call step after backlog tasks
                 $locationSteps[] = [
                     'type' => 'call',
-                    'title' => 'Bel kantoor',
+                    'title' => 'Bel Jaap',
                     'details' => 'Meld dat de backlog taken zijn voltooid en je onderweg bent naar de eerste locatie.',
                     'location_name' => 'Backlog taken',
                     'completed_tasks' => $tasksForBacklog,
@@ -229,13 +239,22 @@ class MyPlanningController extends Controller
                     'details' => $task->description,
                     'task_id' => $task->id,
                     'status' => $task->status,
-                    'completed_notes' => $latestCompletion->comment ?? null,
+                    'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
                     'photos' => $latestCompletion ? $latestCompletion->photos->pluck('url') : [],
                     'backlog_photos' => $backlogPhotos,
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
+                    'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                 ];
             }
+
+            // Get comments for this location
+            $commentsForLocation = $planning->comments->where('location_id', $location->id)->map(fn($c) => [
+                'id' => $c->id,
+                'comment' => $c->comment,
+                'photos' => $c->photos->pluck('url'),
+                'created_at' => $c->created_at->format('H:i'),
+            ])->values()->all();
 
             // Calculate travel info to this location
             $travelInfo = null;
@@ -267,8 +286,8 @@ class MyPlanningController extends Controller
                 ];
             }
 
-            // Only add location if it has tasks
-            if (!empty($tasksForLocation)) {
+            // Only add location if it has tasks or comments
+            if (!empty($tasksForLocation) || !empty($commentsForLocation)) {
                 // Add travel step if we have travel info and travel time > 0
                 if ($travelInfo && $travelInfo['duration_minutes'] > 0) {
                     $locationSteps[] = [
@@ -293,6 +312,7 @@ class MyPlanningController extends Controller
                     'location_name' => $location->name,
                     'address' => $location->full_address,
                     'tasks' => $tasksForLocation,
+                    'comments' => $commentsForLocation,
                     'travel_info' => $travelInfo,
                     'outdoor_safe_code' => $location->outdoor_safe_code,
                     'indoor_safe_code' => $location->indoor_safe_code,
@@ -306,7 +326,7 @@ class MyPlanningController extends Controller
                 // Add call step after each location
                 $locationSteps[] = [
                     'type' => 'call',
-                    'title' => 'Bel kantoor',
+                    'title' => 'Bel Jaap',
                     'details' => "Meld dat de taken op {$location->name} zijn voltooid.",
                     'location_name' => $location->name,
                     'completed_tasks' => $tasksForLocation,

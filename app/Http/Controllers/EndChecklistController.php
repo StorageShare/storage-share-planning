@@ -345,6 +345,11 @@ class EndChecklistController extends Controller
                 ->get();
         }
 
+        // If no related items found, at least update the current item
+        if ($related_items->isEmpty()) {
+            $related_items = collect([$item]);
+        }
+
         // Approve all related items
         foreach ($related_items as $related_item) {
             $related_item->update([
@@ -417,6 +422,11 @@ class EndChecklistController extends Controller
                 ->where('title', $item->title)
                 ->where('status', 'pending')
                 ->get();
+        }
+
+        // If no related items found, at least update the current item
+        if ($related_items->isEmpty()) {
+            $related_items = collect([$item]);
         }
 
         // Reject all related items

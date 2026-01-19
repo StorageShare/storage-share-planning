@@ -27,6 +27,13 @@
         required
     />
 
+    <x-form-input
+        name="feedback_information"
+        label="Terugkoppeling informatie"
+        :value="$prefillData['feedback_information'] ?? $currentTask->feedback_information ?? ''"
+        placeholder="Aan wie moet terugkoppeling gegeven worden?"
+    />
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
             <x-input-label for="priority" class="block text-sm font-medium mb-2">Prioriteit</x-input-label>

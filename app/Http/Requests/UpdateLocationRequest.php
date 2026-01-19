@@ -23,9 +23,26 @@ class UpdateLocationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'sometimes|required|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:255',
+            'external_id' => 'nullable|integer',
+            'sync_external_id' => 'nullable|integer',
+            'address' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:20',
+            'city' => 'required|string|max:255',
+            'zip_code' => 'nullable|string|max:20',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'google_place_id' => 'nullable|string|max:255',
+            'outdoor_safe_code' => 'nullable|string|max:255',
+            'indoor_safe_code' => 'nullable|string|max:255',
+            'outdoor_safe_content' => 'nullable|string',
+            'indoor_safe_content' => 'nullable|string',
+            'intratone_number' => 'nullable|string|max:255',
+            'intratone_multiple_numbers' => 'nullable|string',
+            'gate_number' => 'nullable|string|max:255',
+            'lift' => 'nullable|string|max:255',
+            'bv' => 'nullable|string|max:255',
+            'type_deur' => 'nullable|string|max:255',
         ];
     }
 }

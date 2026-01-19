@@ -18,13 +18,13 @@
                                 {{ $item->description }}
                             </p>
                         @endif
-                        
+
                         @if($item->location)
                             <p class="text-sm text-gray-500 dark:text-gray-400">
                                 <strong>Locatie:</strong> {{ $item->location->name }}
                             </p>
                         @endif
-                        
+
                         @if($item->uploader)
                             <p class="text-sm text-gray-500 dark:text-gray-400">
                                 <strong>Geüpload door:</strong> {{ $item->uploader->name }}
@@ -36,16 +36,18 @@
 
                         @if($item->photo_path)
                             <div class="mt-4">
-                                <img src="{{ asset('storage/' . $item->photo_path) }}" 
-                                     alt="Checklist item foto" 
-                                     class="max-w-md h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600">
+                                <img src="{{ asset('storage/' . $item->photo_path) }}"
+                                     alt="Checklist item foto"
+                                     class="max-w-md h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-75 transition"
+                                     @click="$dispatch('open-image-modal', { imageUrls: ['{{ asset('storage/' . $item->photo_path) }}'], startIndex: 0 })">
+                                <p class="mt-1 text-xs text-gray-500">{{ __('Klik op de foto om deze te vergroten') }}</p>
                             </div>
                         @endif
                     </div>
 
                     <form method="POST" action="{{ route('admin.end-checklist.reject.process', $item) }}" class="space-y-6">
                         @csrf
-                        
+
                         <div>
                             <label for="admin_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Reden voor afwijzing <span class="text-red-500">*</span>
@@ -87,12 +89,12 @@
                         </div>
 
                         <div class="flex items-center justify-between pt-4">
-                            <a href="{{ route('admin.tasks.review') }}" 
+                            <a href="{{ route('admin.tasks.review') }}"
                                class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                 Annuleren
                             </a>
-                            
-                            <button type="submit" 
+
+                            <button type="submit"
                                 class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -105,4 +107,4 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</x-app-layout>

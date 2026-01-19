@@ -56,6 +56,12 @@
                                     <dt class="text-gray-500 dark:text-gray-400 mb-1">Omschrijving</dt>
                                     <dd class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{{ $task->description }}</dd>
                                 </div>
+                                @if($task->feedback_information)
+                                <div class="py-3 flex justify-between text-sm font-medium">
+                                    <dt class="text-gray-500 dark:text-gray-400">Terugkoppeling informatie</dt>
+                                    <dd class="text-gray-900 dark:text-gray-100">{{ $task->feedback_information }}</dd>
+                                </div>
+                                @endif
                                 <div class="py-3 flex justify-between text-sm font-medium">
                                     <dt class="text-gray-500 dark:text-gray-400">Prioriteit</dt>
                                     <dd class="text-gray-900 dark:text-gray-100">

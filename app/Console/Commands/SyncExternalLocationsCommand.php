@@ -29,87 +29,43 @@ class SyncExternalLocationsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(): int
+    public function handle(\App\Services\ExternalLocationService $externalLocationService): int
     {
         $this->info('Starting locations synchronization...');
         Log::info('SyncExternalLocationsCommand: Starting synchronization.');
 
-        $apiUrl = Config::get('services.external_locations_api.url');
-        $apiToken = Config::get('services.external_locations_api.token');
+        $externalLocationsData = $externalLocationService->fetchExternalLocations();
 
-        if (empty($apiUrl) || empty($apiToken)) {
-            $this->error('API URL or Token is not configured.');
-            Log::error('SyncExternalLocationsCommand: API URL or Token not configured.');
+        if ($externalLocationsData === null) {
+            $this->error('Failed to fetch external locations.');
 
             return Command::FAILURE;
         }
 
         try {
-            $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
-
-            if (! $response->successful()) {
-                $this->error("API request failed: Status {$response->status()}");
-                Log::error('SyncExternalLocationsCommand: API request failed.', ['status' => $response->status(), 'body' => $response->body()]);
-
-                return Command::FAILURE;
-            }
-
-            $rawResponseData = $response->json();
-            $externalLocationsData = null;
-
-            // 1. Check for 'spaces' key (likely given API path /api/spaces)
-            if (isset($rawResponseData['spaces']) && is_array($rawResponseData['spaces'])) {
-                $externalLocationsData = $rawResponseData['spaces'];
-            }
-            // 2. Check for 'data' key (common Laravel convention)
-            elseif (isset($rawResponseData['data']) && is_array($rawResponseData['data'])) {
-                $externalLocationsData = $rawResponseData['data'];
-            }
-            // 3. Check if the raw response itself is the array of locations
-            //    (i.e., response is `[{"id":1,...}, {"id":2,...}]`)
-            //    Heuristic: is it an array, non-empty, and does its first item look like a location?
-            elseif (is_array($rawResponseData) && ! empty($rawResponseData) && isset($rawResponseData[0]['id']) && isset($rawResponseData[0]['name'])) {
-                $externalLocationsData = $rawResponseData;
-            }
-            // 4. Handle case where raw response is an empty array (valid scenario: no external locations)
-            elseif (is_array($rawResponseData) && empty($rawResponseData)) {
-                $externalLocationsData = $rawResponseData; // Should be an empty array []
-            }
-
-            // If $externalLocationsData is still not a valid array, then error out
-            if (! is_array($externalLocationsData)) {
-                $this->error('API response did not contain an identifiable array of locations (tried keys "spaces", "data", or root array).');
-                Log::error('SyncExternalLocationsCommand: Failed to extract locations array from API response.', [
-                    'response_body' => $response->body(), // Log the original body for debugging
-                ]);
-
-                return Command::FAILURE;
-            }
-
             $externalLocationIds = Arr::pluck($externalLocationsData, 'id');
             // Check if IDs could be plucked, but only if the source array was not empty to begin with.
             // If $externalLocationsData is an empty array [], $externalLocationIds will also be [], which is valid.
             if (empty($externalLocationIds) && ! empty($externalLocationsData)) {
-                Log::warning('SyncExternalLocationsCommand: API returned locations but failed to pluck IDs. Check structure of individual location items.', ['response_body' => $response->body(), 'parsed_locations_array' => $externalLocationsData]);
+                Log::warning('SyncExternalLocationsCommand: API returned locations but failed to pluck IDs. Check structure of individual location items.', ['parsed_locations_array' => $externalLocationsData]);
                 $this->error('Could not parse IDs from API response items. Check log.');
 
                 return Command::FAILURE;
             }
 
-            // Soft delete local locations that have an external_id not in the API response
-            $deletedNotInApiCount = Location::whereNotNull('external_id')
-                ->whereNotIn('external_id', $externalLocationIds)
+            // Soft delete local locations that have an external_id or sync_external_id not in the API response
+            $deletedNotInApiCount = Location::where(function ($query) use ($externalLocationIds) {
+                    $query->whereNotNull('external_id')
+                          ->whereNotIn('external_id', $externalLocationIds);
+                })
+                ->orWhere(function ($query) use ($externalLocationIds) {
+                    $query->whereNotNull('sync_external_id')
+                          ->whereNotIn('sync_external_id', $externalLocationIds);
+                })
                 ->delete(); // Soft delete
             if ($deletedNotInApiCount > 0) {
-                $this->info("{$deletedNotInApiCount} local locations (with external_id) not found in API were soft-deleted.");
-                Log::info("SyncExternalLocationsCommand: {$deletedNotInApiCount} local locations (with external_id) soft-deleted.");
-            }
-
-            // Soft delete local locations that were never synced (external_id is null)
-            $deletedNeverSyncedCount = Location::whereNull('external_id')->delete(); // Soft delete
-            if ($deletedNeverSyncedCount > 0) {
-                $this->info("{$deletedNeverSyncedCount} local unsynced locations (external_id is null) were soft-deleted.");
-                Log::info("SyncExternalLocationsCommand: {$deletedNeverSyncedCount} local unsynced locations soft-deleted.");
+                $this->info("{$deletedNotInApiCount} local locations (with external_id or sync_external_id) not found in API were soft-deleted.");
+                Log::info("SyncExternalLocationsCommand: {$deletedNotInApiCount} local locations (with external_id or sync_external_id) soft-deleted.");
             }
 
             $createdCount = 0;
@@ -123,51 +79,51 @@ class SyncExternalLocationsCommand extends Command
                     continue;
                 }
 
-                // Use withTrashed to find even soft-deleted records for update
-                $location = Location::withTrashed()->updateOrCreate(
-                    ['external_id' => $extLocation['id']],
-                    [
-                        'name' => $extLocation['name'],
-                        'outdoor_safe_code' => $extLocation['outdoor_safe_code'] ?? null,
-                        'indoor_safe_code' => $extLocation['indoor_safe_code'] ?? null,
-                        'outdoor_safe_content' => $extLocation['outdoor_safe_content'] ?? null,
-                        'indoor_safe_content' => $extLocation['indoor_safe_content'] ?? null,
-                        'intratone_number' => $extLocation['intratone_number'] ?? null,
-                        'intratone_multiple_numbers' => $extLocation['intratone_multiple_numbers'] ?? null,
-                        'gate_number' => $extLocation['gate_number'] ?? null,
-                        'lift' => $extLocation['lift'] ?? null,
-                        'type_deur' => $extLocation['type_deur'] ?? null,
-                        'bv' => $extLocation['bv'] ?? null,
-                        'last_synced_at' => Carbon::now(),
-                        'deleted_at' => null, // Explicitly restore if found (or ensure it's null for new/updated)
-                    ]
-                );
+                // Check if we already have this location by external_id or sync_external_id
+                $location = Location::withTrashed()
+                    ->where(function ($query) use ($extLocation) {
+                        $query->where('external_id', $extLocation['id'])
+                              ->orWhere('sync_external_id', $extLocation['id']);
+                    })
+                    ->first();
 
-                if ($location->wasRecentlyCreated) {
+                $dataToUpdate = [
+                    'address' => $extLocation['address'] ?? null,
+                    'postal_code' => $extLocation['postal_code'] ?? null,
+                    'city' => $extLocation['city'] ?? null,
+                    'outdoor_safe_code' => $extLocation['outdoor_safe_code'] ?? null,
+                    'indoor_safe_code' => $extLocation['indoor_safe_code'] ?? null,
+                    'outdoor_safe_content' => $extLocation['outdoor_safe_content'] ?? null,
+                    'indoor_safe_content' => $extLocation['indoor_safe_content'] ?? null,
+                    'intratone_number' => $extLocation['intratone_number'] ?? null,
+                    'intratone_multiple_numbers' => $extLocation['intratone_multiple_numbers'] ?? null,
+                    'gate_number' => $extLocation['gate_number'] ?? null,
+                    'lift' => $extLocation['lift'] ?? null,
+                    'type_deur' => $extLocation['type_deur'] ?? null,
+                    'bv' => $extLocation['bv'] ?? null,
+                    'last_synced_at' => Carbon::now(),
+                    'deleted_at' => null, // Restore if found
+                ];
+
+                if (! $location) {
+                    // If not found by external_id, it might have been manually created and now linked.
+                    // But wait, if it was manually created and linked, it WOULD have an external_id now.
+                    // If it's the first time we see this external_id, we create it.
+                    $dataToUpdate['external_id'] = $extLocation['id'];
+                    $dataToUpdate['name'] = $extLocation['name'];
+                    $location = Location::create($dataToUpdate);
                     $createdCount++;
                 } else {
-                    // Check if it was restored
-                    if ($location->trashed() && ! $location->wasChanged('deleted_at')) {
-                        // This case is tricky. updateOrCreate on a trashed model might not trigger wasChanged() for deleted_at if it was already null from restore.
-                        // If it was trashed and now deleted_at is null, it's restored.
-                        // A more reliable way to check for restoration is if it was trashed before the operation.
-                        // However, updateOrCreate doesn't give us the previous state directly.
-                        // For simplicity, we assume if it wasn't created and `deleted_at` is now null, it was updated/restored.
-                        // A better check for restored: $location->wasChanged('deleted_at') && is_null($location->deleted_at)
-                        // But if it was already restored (deleted_at was null), this won't trigger.
-                        // Let's assume wasChanged() covers name/last_synced_at changes for existing non-deleted.
-                        // If it was soft-deleted and is now found by updateOrCreate, setting deleted_at = null restores it.
-                        // The $location->trashed() check *before* setting deleted_at = null would be ideal.
+                    // It exists. We update everything EXCEPT the name.
+                    $location->fill($dataToUpdate);
+
+                    if ($location->trashed() && is_null($location->deleted_at)) {
+                        $restoredCount++;
+                    } elseif ($location->isDirty()) {
+                        $updatedCount++;
                     }
-                    if ($location->wasChanged()) {
-                        // This will be true if name, last_synced_at or deleted_at (from null to value or value to null) changed.
-                        // If deleted_at was changed from a timestamp to null, it means it was restored.
-                        if ($location->wasChanged('deleted_at') && is_null($location->deleted_at)) {
-                            $restoredCount++;
-                        } else {
-                            $updatedCount++; // counts other changes if not restored in this cycle
-                        }
-                    }
+
+                    $location->save();
                 }
             }
 

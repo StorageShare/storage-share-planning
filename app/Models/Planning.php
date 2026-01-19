@@ -99,6 +99,11 @@ class Planning extends Model
         return $this->hasMany(PlanningLocationTimer::class);
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(PlanningComment::class);
+    }
+
     /**
      * Check if all end checklist items are approved.
      */
@@ -127,7 +132,7 @@ class Planning extends Model
         }
 
         return $endChecklistItems->every(function ($item) {
-            return !empty($item->photo_path);
+            return $item->photos()->exists() || !empty($item->photo_path);
         });
     }
 
@@ -136,8 +141,8 @@ class Planning extends Model
      */
     public function checkAndUpdateStatus(): void
     {
-        // Eager load the planningTasks relationship to prevent N+1 issues
-        $this->loadMissing('planningTasks', 'endChecklistItems', 'locations', 'locationTimers');
+        // Force reload the relationships to ensure we have the latest status from the database
+        $this->load(['planningTasks', 'endChecklistItems', 'locations', 'locationTimers']);
 
         if ($this->planningTasks->isEmpty()) {
             if ($this->status !== 'completed') {

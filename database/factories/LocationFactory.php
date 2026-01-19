@@ -18,6 +18,8 @@ class LocationFactory extends Factory
             'external_id' => null,
             'name' => $this->faker->company().' - '.$this->faker->city(),
             'address' => $this->faker->streetAddress(),
+            'postal_code' => $this->faker->postcode(),
+            'city' => $this->faker->city(),
             'description' => $this->faker->sentence(),
             'last_synced_at' => null,
             'type_deur' => $this->faker->randomElement(['overhead deur', 'deurloopt', 'deurloopt-deur', null]),

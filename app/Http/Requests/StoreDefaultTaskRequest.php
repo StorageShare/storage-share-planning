@@ -25,7 +25,9 @@ class StoreDefaultTaskRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
+            'feedback_information' => 'nullable|string|max:255',
             'estimated_time_minutes' => 'nullable|integer|min:0',
+            'is_always_included' => 'nullable|boolean',
             'applies_to_all_locations' => 'nullable|boolean',
             'applies_to_lift_locations' => 'nullable|boolean',
             'applies_to_door_types' => 'nullable|boolean',

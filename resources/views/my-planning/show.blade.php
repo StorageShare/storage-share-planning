@@ -70,18 +70,76 @@
                                     </div>
                                 </template>
                                 <template x-if="currentLocation && currentLocation.type === 'call'">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Bel kantoor</div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Bel Jaap</div>
                                 </template>
                             </div>
-                            <div class="text-right">
+                        <div class="text-right flex items-center space-x-4">
+                            <button @click="$dispatch('open-full-overview')" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                                </svg>
+                            </button>
+                            <div>
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="getStepDisplay()"></div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400" x-text="getProgressPercentage() + '%'"></div>
                             </div>
+                        </div>
                         </div>
 
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div class="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
                                 :style="`width: ${getProgressPercentage()}%`"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Full Overview Modal --}}
+                <div x-data="{ open: false }"
+                     @open-full-overview.window="open = true"
+                     x-show="open"
+                     class="fixed inset-0 z-50 overflow-y-auto"
+                     style="display: none;">
+                    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                        <div x-show="open"
+                             x-transition:enter="ease-out duration-300"
+                             x-transition:enter-start="opacity-0"
+                             x-transition:enter-end="opacity-100"
+                             x-transition:leave="ease-in duration-200"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0"
+                             class="fixed inset-0 transition-opacity" aria-hidden="true">
+                            <div class="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                        </div>
+
+                        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                        <div x-show="open"
+                             x-transition:enter="ease-out duration-300"
+                             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                             x-transition:leave="ease-in duration-200"
+                             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                             class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+
+                            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Volledig overzicht</h3>
+                                    <button @click="open = false" class="text-gray-400 hover:text-gray-500">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="mt-2 max-h-[70vh] overflow-y-auto">
+                                    @include('my-planning.partials.summary-content')
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                <button type="button" @click="open = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-600 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Sluiten
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -701,54 +759,6 @@
                                     @endif
                                 </div>
 
-                                {{-- Safe and Access Information --}}
-                                <div x-show="location.outdoor_safe_code || location.indoor_safe_code || location.outdoor_safe_content || location.indoor_safe_content || location.intratone_number || location.intratone_multiple_numbers || location.gate_number" class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                    <div class="flex items-center mb-3">
-                                        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                        </svg>
-                                        <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200">Toegangsinformatie</h3>
-                                    </div>
-
-                                    <div class="space-y-4">
-                                        {{-- Rij 1: Intratone nummer(s) en hek nummer --}}
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div class="bg-white dark:bg-gray-800 p-3 rounded border">
-                                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Intratone nummer(s):</div>
-                                                <div class="text-gray-900 dark:text-gray-100 font-mono text-lg" x-text="location.intratone_multiple_numbers || location.intratone_number || '-'"></div>
-                                            </div>
-                                            <div class="bg-white dark:bg-gray-800 p-3 rounded border">
-                                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Hek nummer:</div>
-                                                <div class="text-gray-900 dark:text-gray-100 font-mono text-lg" x-text="location.gate_number || '-'"></div>
-                                            </div>
-                                        </div>
-
-                                        {{-- Rij 2: Buitenkluis code en inhoud --}}
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div class="bg-white dark:bg-gray-800 p-3 rounded border">
-                                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Buitenkluis code:</div>
-                                                <div class="text-gray-900 dark:text-gray-100 font-mono text-lg" x-text="location.outdoor_safe_code || '-'"></div>
-                                            </div>
-                                            <div class="bg-white dark:bg-gray-800 p-3 rounded border">
-                                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Buitenkluis inhoud:</div>
-                                                <div class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap" x-text="location.outdoor_safe_content || '-'"></div>
-                                            </div>
-                                        </div>
-
-                                        {{-- Rij 3: Binnenkluis code en inhoud --}}
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div class="bg-white dark:bg-gray-800 p-3 rounded border">
-                                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Binnenkluis code:</div>
-                                                <div class="text-gray-900 dark:text-gray-100 font-mono text-lg" x-text="location.indoor_safe_code || '-'"></div>
-                                            </div>
-                                            <div class="bg-white dark:bg-gray-800 p-3 rounded border">
-                                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Binnenkluis inhoud:</div>
-                                                <div class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap" x-text="location.indoor_safe_content || '-'"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {{-- Tasks List --}}
                                 <div class="space-y-4">
                                     {{-- Vehicle tasks hint when present and for the backlog/no-location step --}}
@@ -807,6 +817,9 @@
                                                         <h3 class="font-medium text-gray-900 dark:text-gray-100" x-text="task.title"></h3>
                                                         <span x-show="task.is_vehicle_task" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-700" title="Voertuig taak" aria-label="Voertuig taak">
                                                             Voertuig
+                                                        </span>
+                                                        <span x-show="task.is_extra" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-700" title="Extra toevoeging" aria-label="Extra toevoeging">
+                                                            Extra
                                                         </span>
                                                     </div>
                                                 </div>
@@ -989,6 +1002,22 @@
                                                             </div>
                                                         </div>
 
+                                                        <!-- Previous photos for this task -->
+                                                        <div class="mt-3" x-show="task.photos && task.photos.length > 0">
+                                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Eerder toegevoegde foto's:</span>
+                                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
+                                                                <template x-for="photo in task.photos" :key="photo">
+                                                                    <div class="relative">
+                                                                        <img :src="photo" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600 opacity-75">
+                                                                        <div class="absolute inset-0 flex items-center justify-center">
+                                                                            <span class="bg-gray-900/50 text-white text-[10px] px-1.5 py-0.5 rounded">Bewaard</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                            <p class="text-[10px] text-gray-500 mt-1">* Eerdere foto's blijven behouden tenzij je nieuwe toevoegt.</p>
+                                                        </div>
+
                                                         <!-- Queued previews for this task -->
                                                         <div class="mt-3" x-show="getTaskCompletion(task.task_id).photos.length > 0">
                                                             <div class="flex items-center justify-between mb-2">
@@ -1035,6 +1064,107 @@
                                             </div>
                                         </div>
                                     </template>
+
+                                    {{-- Comments List --}}
+                                    <div class="mt-8 space-y-4" x-show="location.comments && location.comments.length > 0">
+                                        <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300">Opmerkingen</h4>
+                                        <template x-for="comment in location.comments" :key="'comment-' + comment.id">
+                                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                                                <div class="flex items-start justify-between">
+                                                    <div class="flex-1">
+                                                        <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
+                                                        <div x-show="comment.photos && comment.photos.length > 0" class="mt-3 flex flex-wrap gap-2">
+                                                            <template x-for="(photo, pIdx) in comment.photos" :key="pIdx">
+                                                                <button @click="openImageModal(comment.photos, pIdx)">
+                                                                    <img :src="photo" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
+                                                                </button>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    {{-- Extra Section --}}
+                                    <div class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Extra opmerking toevoegen</h4>
+                                            <button @click="showExtraForm = !showExtraForm"
+                                                class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition shadow-lg">
+                                                <svg class="w-6 h-6 transition-transform" :class="showExtraForm ? 'rotate-45' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {{-- Extra Task Form --}}
+                                        <div x-show="showExtraForm" x-transition class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-900 mb-6">
+                                            <div class="space-y-4">
+                                                <div x-show="false">
+                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel / Onderwerp</label>
+                                                    <input type="text" x-model="extraTaskTitle"
+                                                        class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="Bijv. Extra lamp vervangen of Opmerking over deur">
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opmerking</label>
+                                                    <textarea x-model="extraTaskNotes" rows="3"
+                                                        class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="Typ hier je extra opmerking..."></textarea>
+                                                    <template x-if="extraTaskErrors.notes">
+                                                        <p class="mt-1 text-sm text-red-600" x-text="extraTaskErrors.notes[0]"></p>
+                                                    </template>
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto's toevoegen</label>
+                                                    <div class="flex items-center gap-4">
+                                                        <label class="cursor-pointer inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 transition">
+                                                            <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                            </svg>
+                                                            Kies bestanden
+                                                            <input type="file" multiple accept="image/*" class="hidden" @change="queueExtraPhotoFiles">
+                                                        </label>
+                                                        <span class="text-xs text-gray-500" x-text="`${extraTaskPhotos.length} geselecteerd`"></span>
+                                                    </div>
+
+                                                    <div x-show="extraTaskPhotos.length > 0" class="mt-4 flex flex-wrap gap-2">
+                                                        <template x-for="(file, fIndex) in extraTaskPhotos" :key="fIndex">
+                                                            <div class="relative group">
+                                                                <img :src="URL.createObjectURL(file)" class="w-20 h-20 object-cover rounded-lg border dark:border-gray-600">
+                                                                <button @click="removeExtraQueuedFile(fIndex)"
+                                                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex justify-end gap-3 pt-2">
+                                                    <button @click="showExtraForm = false"
+                                                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 transition">
+                                                        Annuleren
+                                                    </button>
+                                                    <button @click="submitExtraTask"
+                                                        :disabled="isSubmittingExtra"
+                                                        class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-sm text-white hover:bg-blue-700 transition disabled:opacity-50">
+                                                        <svg x-show="isSubmittingExtra" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Toevoegen
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -1088,9 +1218,6 @@
                         <span x-text="getNextButtonText()"></span>
                     </button>
                 </div>
-
-                {{-- Image Modal --}}
-                <x-modal-image />
 
                 {{-- Skip Task Modal --}}
                 <div x-show="isSkipModalOpen"
@@ -1146,6 +1273,12 @@
                 locationSteps: [],
                 planningId: null,
                 isSubmitting: false,
+                isSubmittingExtra: false,
+                showExtraForm: false,
+                extraTaskTitle: '',
+                extraTaskNotes: '',
+                extraTaskPhotos: [],
+                extraTaskErrors: {},
                 isSkipModalOpen: false,
                 skipCompletion: {
                     reason: '',
@@ -1183,7 +1316,7 @@
                         if (location.type === 'location' && location.tasks) {
                             location.tasks.forEach(task => {
                                 this.taskCompletions[task.task_id] = {
-                                    notes: '',
+                                    notes: task.completed_notes || '',
                                     photos: [],
                                     isFullyCompleted: false
                                 };
@@ -1309,6 +1442,85 @@
                         imageUrls,
                         startIndex
                     });
+                },
+
+                queueExtraPhotoFiles(event) {
+                    const files = Array.from(event.target?.files || event.files || []);
+                    if (!files.length) return;
+
+                    for (const file of files) {
+                        if (file.size > 10 * 1024 * 1024) {
+                            alert('Bestand is te groot. Maximum 10MB per bestand.');
+                            continue;
+                        }
+                        if (!file.type || !file.type.startsWith('image/')) {
+                            alert('Alleen afbeeldingen zijn toegestaan.');
+                            continue;
+                        }
+                        this.extraTaskPhotos.push(file);
+                    }
+
+                    if (event.target) {
+                        event.target.value = '';
+                    }
+                },
+
+                removeExtraQueuedFile(index) {
+                    this.extraTaskPhotos.splice(index, 1);
+                },
+
+                submitExtraTask() {
+                    if (!this.extraTaskNotes.trim()) {
+                        this.extraTaskErrors = { notes: ['Opmerking is verplicht'] };
+                        return;
+                    }
+
+                    this.isSubmittingExtra = true;
+                    this.extraTaskErrors = {};
+
+                    const locationId = this.currentLocation.location_id || 'backlog';
+                    const url = `/plannings/${this.planningId}/locations/${locationId}/extra-task`;
+
+                    const formData = new FormData();
+                    formData.append('title', this.extraTaskTitle || 'Opmerking');
+                    formData.append('notes', this.extraTaskNotes);
+                    this.extraTaskPhotos.forEach(photo => {
+                        formData.append('photos[]', photo);
+                    });
+
+                    axios.post(url, formData, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data'
+                            }
+                        })
+                        .then(response => {
+                            const newComment = response.data.comment;
+
+                            // Add to current location's comments
+                            if (!this.currentLocation.comments) {
+                                this.currentLocation.comments = [];
+                            }
+                            this.currentLocation.comments.push(newComment);
+
+                            // Reset form
+                            this.extraTaskTitle = '';
+                            this.extraTaskNotes = '';
+                            this.extraTaskPhotos = [];
+                            this.showExtraForm = false;
+                            this.isSubmittingExtra = false;
+
+                            if (this.checkAndUpdateRouteStatus) {
+                                this.checkAndUpdateRouteStatus();
+                            }
+                        })
+                        .catch(error => {
+                            this.isSubmittingExtra = false;
+                            if (error.response && error.response.status === 422) {
+                                this.extraTaskErrors = error.response.data.errors;
+                            } else {
+                                alert('Er is een fout opgetreden bij het toevoegen van de extra taak.');
+                            }
+                        });
                 },
 
                 submitTaskCompletion(task) {
@@ -1459,10 +1671,17 @@
                     axios.post(url)
                         .then(response => {
                             task.status = response.data.task.status;
+                            task.photos = response.data.task.photos || [];
+
+                            // Update local state so changes are visible immediately without refresh
+                            if (this.taskCompletions[task.task_id]) {
+                                this.taskCompletions[task.task_id].notes = task.completed_notes || '';
+                            }
 
                             // Update corresponding tasks in call steps
                             this.updateTaskInCallSteps(task.task_id, {
-                                status: response.data.task.status
+                                status: response.data.task.status,
+                                photos: task.photos
                             });
                         })
                         .catch(error => {

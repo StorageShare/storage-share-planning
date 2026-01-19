@@ -79,7 +79,7 @@
                                                     <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="item.title"></h4>
                                                     <p class="text-sm text-gray-500 dark:text-gray-400" x-text="item.description"></p>
                                                     <div class="mt-2" x-show="item.photo_url">
-                                                        <img :src="item.photo_url" :alt="item.title" class="w-24 h-24 object-cover rounded border cursor-pointer" @click="openReviewModal(item)">
+                                                        <img :src="item.photo_url" :alt="item.title" class="w-24 h-24 object-cover rounded border cursor-pointer hover:opacity-75 transition" @click="$dispatch('open-image-modal', { imageUrls: [item.photo_url], startIndex: 0 })">
                                                     </div>
                                                 </div>
                                             </div>
@@ -100,7 +100,7 @@
                                                         Wacht op beoordeling
                                                     </span>
                                                 </template>
-                                                
+
                                                 {{-- Review Button --}}
                                                 <template x-if="item.status === 'pending'">
                                                     <button @click="openReviewModal(item)" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">
@@ -109,7 +109,7 @@
                                                 </template>
                                             </div>
                                         </div>
-                                        
+
                                         {{-- Admin Notes --}}
                                         <div x-show="item.admin_notes" class="mt-3 p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm">
                                             <strong>Admin opmerkingen:</strong> <span x-text="item.admin_notes"></span>
@@ -124,8 +124,8 @@
         </template>
 
         {{-- Review Modal --}}
-        <div x-show="isReviewModalOpen" 
-             x-transition.opacity 
+        <div x-show="isReviewModalOpen"
+             x-transition.opacity
              class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center justify-between mb-4">
@@ -155,8 +155,8 @@
 
                         {{-- Photo --}}
                         <div class="mb-6" x-show="reviewingItem.photo_url">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ingediende foto:</label>
-                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ingediende foto (klik om te vergroten):</label>
+                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition" @click="$dispatch('open-image-modal', { imageUrls: [reviewingItem.photo_url], startIndex: 0 })">
                                 <img :src="reviewingItem.photo_url" :alt="reviewingItem.title" class="w-full h-96 object-contain bg-gray-50 dark:bg-gray-700">
                             </div>
                         </div>
@@ -179,11 +179,11 @@
 
                             <div>
                                 <label for="admin_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Opmerkingen 
+                                    Opmerkingen
                                     <span x-show="reviewStatus === 'rejected'" class="text-red-500">(verplicht bij afwijzing)</span>
                                 </label>
-                                <textarea x-model="adminNotes" 
-                                          id="admin_notes" 
+                                <textarea x-model="adminNotes"
+                                          id="admin_notes"
                                           rows="3"
                                           :required="reviewStatus === 'rejected'"
                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100"
@@ -191,12 +191,12 @@
                             </div>
 
                             <div class="flex justify-end space-x-3 pt-4">
-                                <button type="button" 
+                                <button type="button"
                                         @click="isReviewModalOpen = false"
                                         class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
                                     Annuleren
                                 </button>
-                                <button type="submit" 
+                                <button type="submit"
                                         :disabled="!reviewStatus || isSubmitting"
                                         class="px-4 py-2 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         :class="reviewStatus === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'">
@@ -224,11 +224,11 @@ document.addEventListener('alpine:init', () => {
         reviewStatus: '',
         adminNotes: '',
         isSubmitting: false,
-        
+
         async init() {
             await this.loadPendingChecklists();
         },
-        
+
         async loadPendingChecklists() {
             try {
                 const response = await axios.get('/end-checklists/pending');
@@ -240,39 +240,39 @@ document.addEventListener('alpine:init', () => {
                 this.loading = false;
             }
         },
-        
+
         openReviewModal(item) {
             this.reviewingItem = item;
             this.reviewStatus = '';
             this.adminNotes = '';
             this.isReviewModalOpen = true;
         },
-        
+
         async submitReview() {
             if (!this.reviewingItem || !this.reviewStatus) return;
-            
+
             this.isSubmitting = true;
-            
+
             try {
                 await axios.post(`/end-checklist-items/${this.reviewingItem.id}/review`, {
                     status: this.reviewStatus,
                     admin_notes: this.adminNotes
                 });
-                
+
                 // Update the item in the UI
                 this.reviewingItem.status = this.reviewStatus;
                 this.reviewingItem.admin_notes = this.adminNotes;
                 this.reviewingItem.reviewed_at = new Date().toISOString();
-                
+
                 // Close modal and reset form
                 this.isReviewModalOpen = false;
                 this.reviewingItem = null;
                 this.reviewStatus = '';
                 this.adminNotes = '';
-                
+
                 // Reload data to get updated status
                 await this.loadPendingChecklists();
-                
+
                 alert('Beoordeling succesvol opgeslagen!');
             } catch (error) {
                 console.error('Review submission failed:', error);
@@ -281,16 +281,16 @@ document.addEventListener('alpine:init', () => {
                 this.isSubmitting = false;
             }
         },
-        
+
         formatDate(dateString) {
             if (!dateString) return '-';
             return new Date(dateString).toLocaleString('nl-NL');
         },
-        
+
         getPlanningStatusBadge(planning) {
             const allApproved = planning.end_checklist_items.every(item => item.status === 'approved');
             const hasRejected = planning.end_checklist_items.some(item => item.status === 'rejected');
-            
+
             if (allApproved) {
                 return { class: 'bg-green-100 text-green-800', text: 'Volledig goedgekeurd' };
             } else if (hasRejected) {
@@ -303,4 +303,4 @@ document.addEventListener('alpine:init', () => {
 });
 </script>
 @endpush
-@endsection 
+@endsection

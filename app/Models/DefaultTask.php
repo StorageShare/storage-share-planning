@@ -20,7 +20,9 @@ class DefaultTask extends Model
     protected $fillable = [
         'title',
         'description',
+        'feedback_information',
         'estimated_time_minutes',
+        'is_always_included',
         'applies_to_all_locations',
         'applies_to_lift_locations',
         'applies_to_door_types',
@@ -31,6 +33,7 @@ class DefaultTask extends Model
     ];
 
     protected $casts = [
+        'is_always_included' => 'boolean',
         'applies_to_all_locations' => 'boolean',
         'applies_to_lift_locations' => 'boolean',
         'applies_to_door_types' => 'boolean',

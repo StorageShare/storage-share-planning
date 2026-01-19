@@ -8,7 +8,8 @@
     <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-12">
         <form method="POST" action="{{ route('plannings.store') }}">
             @csrf
-            @include('plannings._form')
+            @include('plannings._form', ['isCreate' => true])
         </form>
+        @include('plannings._quick_task_modal', ['isCreate' => true])
     </div>
-</x-app-layout> 
+</x-app-layout>

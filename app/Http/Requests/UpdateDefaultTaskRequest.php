@@ -25,7 +25,9 @@ class UpdateDefaultTaskRequest extends FormRequest
         return [
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
+            'feedback_information' => 'nullable|string|max:255',
             'estimated_time_minutes' => 'sometimes|nullable|integer|min:0',
+            'is_always_included' => 'sometimes|nullable|boolean',
             'applies_to_all_locations' => 'sometimes|nullable|boolean',
             'applies_to_door_types' => 'sometimes|nullable|boolean',
             'door_types' => 'nullable|array',

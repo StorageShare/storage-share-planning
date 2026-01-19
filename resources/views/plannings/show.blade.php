@@ -692,6 +692,8 @@
                                 return false;
                             });
 
+                            $commentsForLocation = $planning->comments->where('location_id', $location->id);
+
                             $priorityOrder = [
                                 'high' => 1,
                                 'normal' => 2,
@@ -717,9 +719,11 @@
                                 </div>
 
                                 @if ($tasksForLocation->isEmpty())
-                                    <div class="border border-dashed border-gray-300 dark:border-gray-700 rounded-md p-6 text-center text-gray-500 dark:text-gray-400">
-                                        Geen taken gepland voor deze locatie.
-                                    </div>
+                                    @if ($commentsForLocation->isEmpty())
+                                        <div class="border border-dashed border-gray-300 dark:border-gray-700 rounded-md p-6 text-center text-gray-500 dark:text-gray-400">
+                                            Geen taken gepland voor deze locatie.
+                                        </div>
+                                    @endif
                                 @else
                                     <div class="flex flex-col">
                                         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -757,6 +761,9 @@
                                                                 @endif
                                                                 @if($planningTask->description)
                                                                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ Str::limit($planningTask->description, 150) }}</div>
+                                                                @endif
+                                                                @if($planningTask->feedback_information)
+                                                                    <div class="text-xs font-medium text-blue-600 dark:text-blue-400 mt-1">Terugkoppeling informatie: {{ $planningTask->feedback_information }}</div>
                                                                 @endif
                                                             </td>
                                                             <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">
@@ -1037,9 +1044,46 @@
                                         </div>
                                     </div>
                                 @endif
+
+                                @if ($commentsForLocation->isNotEmpty())
+                                    <div class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+                                        <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Opmerkingen</h4>
+                                        <div class="space-y-4">
+                                            @foreach ($commentsForLocation as $comment)
+                                                @php
+                                                    $photoUrls = $comment->photos->pluck('url')->all();
+                                                @endphp
+                                                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="flex-1">
+                                                            <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{{ $comment->comment }}</p>
+                                                            @if (!empty($photoUrls))
+                                                                <div class="mt-3 flex flex-wrap gap-2">
+                                                                    @foreach ($photoUrls as $idx => $url)
+                                                                        <button type="button"
+                                                                                class="block w-20 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                x-data="{}"
+                                                                                @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                            <img src="{{ $url }}" alt="Opmerking foto" class="w-full h-full object-cover">
+                                                                        </button>
+                                                                    @endforeach
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                        <div class="ml-4 text-right">
+                                                            <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                                                {{ $comment->created_at ? $comment->created_at->format('H:i') : '' }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
-                        </div>
+                    </div>
                 @endforeach
 
                 {{-- Eind Checklist overzicht per planning (moved below tasks) --}}
@@ -1273,9 +1317,6 @@
 
         </div>
     </div>
-    <x-modal-image />
-
-
 </x-app-layout>
 @push('scripts')
 <script>

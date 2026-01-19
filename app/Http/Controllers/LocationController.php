@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
-// Remove unused Use statements for StoreLocationRequest and UpdateLocationRequest
-// if they are no longer needed after removing store/update methods.
-// use App\Http\Requests\StoreLocationRequest;
-// use App\Http\Requests\UpdateLocationRequest;
-// use Illuminate\Http\RedirectResponse; // Might still be used by sync or other future methods
+use App\Http\Requests\StoreLocationRequest;
+use App\Http\Requests\UpdateLocationRequest;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -84,6 +82,56 @@ class LocationController extends Controller
         return view('locations.show', compact('location', 'open_tasks'));
     }
 
-    // create(), store(), edit(), update(), destroy() methods are removed
-    // as locations are now managed solely via API synchronization.
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(\App\Services\ExternalLocationService $externalLocationService): View
+    {
+        $externalLocations = $externalLocationService->fetchExternalLocations() ?? [];
+
+        return view('locations.create', compact('externalLocations'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreLocationRequest $request): RedirectResponse
+    {
+        Location::create($request->validated());
+
+        return redirect()->route('locations.index')
+            ->with('success', 'Locatie succesvol aangemaakt.');
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Location $location, \App\Services\ExternalLocationService $externalLocationService): View|RedirectResponse
+    {
+        $externalLocations = $externalLocationService->fetchExternalLocations() ?? [];
+
+        return view('locations.edit', compact('location', 'externalLocations'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UpdateLocationRequest $request, Location $location): RedirectResponse
+    {
+        $location->update($request->validated());
+
+        return redirect()->route('locations.index')
+            ->with('success', 'Locatie succesvol bijgewerkt.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Location $location): RedirectResponse
+    {
+        $location->delete();
+
+        return redirect()->route('locations.index')
+            ->with('success', 'Locatie succesvol verwijderd.');
+    }
 }

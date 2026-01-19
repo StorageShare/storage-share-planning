@@ -26,6 +26,7 @@ class Task extends Model
         'location_id',
         'title',
         'description',
+        'feedback_information',
         'deadline',
         'estimated_time_minutes',
         'status',

@@ -153,6 +153,50 @@ class DefaultTaskControllerTest extends TestCase
         $this->assertEqualsCanonicalizing([$l1->id, $l3->id], $task->locations()->pluck('locations.id')->all());
     }
 
+    public function test_store_with_is_always_included_persists_correctly(): void
+    {
+        $payload = [
+            'title' => 'Always Task',
+            'description' => 'Should be always included',
+            'is_always_included' => true,
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->post(route('default-tasks.store'), $payload);
+
+        $response->assertRedirect(route('default-tasks.index'));
+        $this->assertDatabaseHas('default_tasks', [
+            'title' => 'Always Task',
+            'is_always_included' => true,
+        ]);
+    }
+
+    public function test_update_is_always_included_persists_correctly(): void
+    {
+        $task = DefaultTask::create([
+            'title' => 'Not Always',
+            'description' => 'Desc',
+            'is_always_included' => false,
+        ]);
+
+        $payload = [
+            'title' => 'Now Always',
+            'description' => 'Desc',
+            'is_always_included' => true,
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->put(route('default-tasks.update', $task), $payload);
+
+        $response->assertRedirect(route('default-tasks.index'));
+        $this->assertDatabaseHas('default_tasks', [
+            'id' => $task->id,
+            'is_always_included' => true,
+        ]);
+    }
+
     public function test_show_and_edit_views_render_with_expected_data(): void
     {
         $user = User::factory()->create();

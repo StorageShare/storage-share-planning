@@ -28,6 +28,7 @@ class StoreTaskRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
+            'feedback_information' => 'nullable|string|max:255',
             'location_id' => [
                 'required',
                 'integer',

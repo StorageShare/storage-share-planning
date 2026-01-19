@@ -4,12 +4,12 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        
+
         <!-- PWA Meta Tags -->
         <link rel="manifest" href="/manifest.json">
         <meta name="theme-color" content="#3b82f6">
         <meta name="auth-user" content="{{ auth()->check() ? auth()->id() : '' }}">
-        
+
         <!-- PWA Apple Touch Icons -->
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -41,11 +41,11 @@
             <main class="px-2 sm:px-6 lg:px-8">
                 {{ $slot }}
             </main>
-            
+
             <!-- Toast Notifications -->
             @if(session('success'))
-                <div x-data="{ show: true }" 
-                     x-show="show" 
+                <div x-data="{ show: true }"
+                     x-show="show"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="transform opacity-0 translate-y-2"
                      x-transition:enter-end="transform opacity-100 translate-y-0"
@@ -67,10 +67,10 @@
                     </div>
                 </div>
             @endif
-            
+
             @if(session('error'))
-                <div x-data="{ show: true }" 
-                     x-show="show" 
+                <div x-data="{ show: true }"
+                     x-show="show"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="transform opacity-0 translate-y-2"
                      x-transition:enter-end="transform opacity-100 translate-y-0"
@@ -94,15 +94,17 @@
             @endif
         </div>
 
+        <x-modal-image />
+
         @stack('scripts')
-        
+
         <script>
         function offlineStatus() {
             return {
                 isOnline: navigator.onLine,
                 pendingSync: 0,
                 syncInProgress: false,
-                
+
                 init() {
                     // Listen to online/offline events
                     window.addEventListener('online', () => {
@@ -111,11 +113,11 @@
                             window.offlinePlanningManager.attemptSync();
                         }
                     });
-                    
+
                     window.addEventListener('offline', () => {
                         this.isOnline = false;
                     });
-                    
+
                     // Check pending sync count every 5 seconds
                     setInterval(async () => {
                         if (window.offlinePlanningManager) {
@@ -127,7 +129,7 @@
                             }
                         }
                     }, 5000);
-                    
+
                     // Listen to sync events
                     if (window.offlinePlanningManager) {
                         window.offlinePlanningManager.onSyncStatusChange((status) => {

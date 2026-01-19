@@ -266,6 +266,7 @@ class PlanningController extends Controller
                     'description' => $task->description,
                     'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                     'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
+                    'is_always_included' => $task->is_always_included ?? false,
                 ];
             })];
         });
@@ -335,6 +336,8 @@ class PlanningController extends Controller
 
         $selected_location_id = $request->query('location_id');
 
+        $requirements = \App\Models\Requirement::orderBy('name')->get();
+
         $plannedBacklogTasks = \App\Models\PlanningTask::whereNotNull('task_id')
             ->with('planning:id,planned_date')
             ->get()
@@ -370,6 +373,7 @@ class PlanningController extends Controller
             'users',
             'plannedBacklogTasks',
             'availableVehicles',
+            'requirements'
         ));
     }
 
@@ -430,6 +434,7 @@ class PlanningController extends Controller
             'endChecklistItems' => function ($query) {
                 $query->with(['requirement', 'reviewer', 'location', 'uploader', 'photos']);
             },
+            'comments.photos',
         ]);
 
         // Calculate travel times between locations
@@ -501,6 +506,7 @@ class PlanningController extends Controller
                     'description' => $task->description,
                     'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                     'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
+                    'is_always_included' => $task->is_always_included ?? false,
                 ];
             })];
         });
@@ -619,6 +625,8 @@ class PlanningController extends Controller
             $availableVehicles = $availableVehicles->sortBy('name')->values();
         }
 
+        $requirements = \App\Models\Requirement::orderBy('name')->get();
+
         return view('plannings.edit', compact(
             'planning',
             'locations',
@@ -632,6 +640,7 @@ class PlanningController extends Controller
             'users',
             'plannedBacklogTasks',
             'availableVehicles',
+            'requirements',
         ));
     }
 
@@ -978,6 +987,7 @@ class PlanningController extends Controller
                             'title' => $template->title,
                             // Ensure non-null description for NOT NULL column
                             'description' => $template->description ?? '',
+                            'feedback_information' => $template->feedback_information,
                         ]);
                     }
                 }
@@ -993,6 +1003,7 @@ class PlanningController extends Controller
                     'title' => $backlogTask->title,
                     // Ensure non-null description for NOT NULL column
                     'description' => $backlogTask->description ?? '',
+                    'feedback_information' => $backlogTask->feedback_information,
                     'location_id' => $backlogTask->location_id,
                     'priority' => $backlogTask->priority,
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
@@ -1047,6 +1058,7 @@ class PlanningController extends Controller
                             'default_task_id' => $default_task_template->id,
                             'title' => $default_task_template->title,
                             'description' => $default_task_template->description,
+                            'feedback_information' => $default_task_template->feedback_information,
                         ]);
                     }
                 }
@@ -1083,6 +1095,7 @@ class PlanningController extends Controller
                     'task_id' => $backlogTask->id,
                     'title' => $backlogTask->title,
                     'description' => $backlogTask->description,
+                    'feedback_information' => $backlogTask->feedback_information,
                     'location_id' => $backlogTask->location_id,
                     'priority' => $backlogTask->priority,
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,

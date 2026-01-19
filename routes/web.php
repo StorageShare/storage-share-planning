@@ -96,6 +96,9 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     // Route for the step-by-step completion form
     Route::post('plannings/{planning}/tasks/{planning_task}/submit-completion', [PlanningTaskController::class, 'submitCompletion'])->name('plannings.tasks.submit-completion');
 
+    // Route for adding an extra task to a location
+    Route::post('plannings/{planning}/locations/{location_id}/extra-task', [PlanningTaskController::class, 'storeExtraTask'])->name('plannings.locations.extra-task');
+
     // Route for skipping a task
     Route::post('plannings/{planning}/tasks/{planning_task}/skip', [PlanningTaskController::class, 'skip'])->name('plannings.tasks.skip');
 

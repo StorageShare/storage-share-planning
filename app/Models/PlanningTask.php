@@ -24,6 +24,7 @@ class PlanningTask extends Model
         'location_id',
         'title',
         'description',
+        'feedback_information',
         'status',
         'review_notes',
         'completed_at',

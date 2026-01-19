@@ -20,6 +20,7 @@ class Location extends Model
      */
     protected $fillable = [
         'external_id',
+        'sync_external_id',
         'name',
         'address',
         'postal_code',
@@ -51,6 +52,16 @@ class Location extends Model
         'last_synced_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Check if the location was manually created.
+     *
+     * @return bool
+     */
+    public function isManuallyCreated(): bool
+    {
+        return empty($this->external_id);
+    }
 
     /**
      * Get the tasks for the location.

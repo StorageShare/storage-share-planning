@@ -119,6 +119,34 @@ class TaskControllerTest extends TestCase
         $this->assertSame([$matchDesc->id, $nonMatch->id], array_values(array_intersect($ordered, [$matchDesc->id, $nonMatch->id])));
     }
 
+    public function test_index_json_returns_tasks_array(): void
+    {
+        $user = User::factory()->create();
+        $loc = Location::factory()->create();
+        $task = Task::factory()->create(['location_id' => $loc->id, 'title' => 'JSON Task']);
+
+        $resp = $this->actingAs($user)->get(
+            route('locations.tasks.index', $loc),
+            ['Accept' => 'application/json']
+        );
+
+        $resp->assertOk();
+        $resp->assertJsonStructure([
+            'tasks' => [
+                '*' => [
+                    'id',
+                    'title',
+                    'description',
+                    'priority',
+                    'status',
+                    'deadline',
+                    'estimated_time_minutes',
+                ]
+            ]
+        ]);
+        $this->assertEquals('JSON Task', $resp->json('tasks.0.title'));
+    }
+
     public function test_select_location_for_task_filters_case_insensitive_and_orders(): void
     {
         $user = User::factory()->create();

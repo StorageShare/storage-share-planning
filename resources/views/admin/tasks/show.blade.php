@@ -408,7 +408,6 @@
             </div>
         </div>
     </div>
-    <x-modal-image />
 </x-app-layout>
 @push('scripts')
 <script>

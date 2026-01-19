@@ -3,7 +3,7 @@
     <div>
         <label for="planned_date" class="block text-sm font-medium mb-2 dark:text-gray-300">Geplande datum</label>
         <div class="relative">
-            <input type="text" name="planned_date" id="planned_date" value="{{ old('planned_date', isset($planning) ? $planning->planned_date->format('Y-m-d') : now()->format('Y-m-d')) }}" class="datepicker py-3 px-4 pl-11 block w-full border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('planned_date') border-red-500 @enderror" placeholder="Selecteer een datum">
+            <input type="text" name="planned_date" id="planned_date" value="{{ old('planned_date', isset($planning) ? $planning->planned_date->format('Y-m-d') : now()->addDay()->format('Y-m-d')) }}" class="datepicker py-3 px-4 pl-11 block w-full border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('planned_date') border-red-500 @enderror" placeholder="Selecteer een datum">
             <div class="absolute inset-y-0 left-0 flex items-center pointer-events-none z-20 ps-4">
                 <svg class="flex-shrink-0 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M8 2v4" />
@@ -80,7 +80,7 @@
                                 <p>Totale Tijd: <span class="font-medium">{{ $total_time }} min</span></p>
                             </div>
                         </div>
-                        <div class="ml-3">
+                        <div class="ml-3 flex flex-col gap-1">
                             <button type="button"
                                 class="add-location-btn p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors duration-150 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
                                 data-location-id="{{ $location_option->id }}"
@@ -306,6 +306,173 @@
         const isEditMode = scriptDataElement.dataset.isEditMode === 'true';
         const initialSelectedLocationIds = JSON.parse(scriptDataElement.dataset.initialSelectedLocationIds).map(id => id.toString());
 
+        window.openQuickTaskModal = function(locationId, locationName) {
+            const form = document.getElementById('quick-task-form');
+            if (form) {
+                form.reset();
+                const locationIdInput = document.getElementById('quick-task-location-id');
+                const locationNameSpan = document.getElementById('quick-task-location-name');
+
+                if (locationIdInput) {
+                    locationIdInput.value = locationId;
+                } else {
+                    console.error('quick-task-location-id input not found');
+                }
+
+                if (locationNameSpan) {
+                    locationNameSpan.textContent = locationName;
+                }
+
+                window.dispatchEvent(new CustomEvent('open-modal', { detail: 'quick-task-modal' }));
+            } else {
+                console.error('Quick task form not found');
+            }
+        };
+
+        const quickTaskForm = document.getElementById('quick-task-form');
+        const quickTaskSubmitBtn = document.getElementById('quick-task-submit-btn');
+
+        if (quickTaskForm) {
+            quickTaskForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                quickTaskSubmitBtn.disabled = true;
+
+                const formData = new FormData(quickTaskForm);
+                const locationId = formData.get('location_id');
+
+                if (!locationId) {
+                    console.error('Location ID is missing from the form');
+                    alert('Fout: Locatie ID ontbreekt. Probeer het opnieuw.');
+                    quickTaskSubmitBtn.disabled = false;
+                    return;
+                }
+
+                fetch(`/locations/${locationId}/tasks`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(async data => {
+                    if (data.success) {
+                        const newTask = data.task;
+                        const locationId = newTask.location_id;
+
+                        // Fetch the updated task list for this location to ensure consistency
+                        try {
+                            const tasksResponse = await fetch(`/locations/${locationId}/tasks`, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            const tasksData = await tasksResponse.json();
+
+                            if (tasksData.tasks) {
+                                // Update our local backlogTasksByLocation with the fresh data from server
+                                backlogTasksByLocation[locationId] = tasksData.tasks;
+
+                                // Re-calculate priority counts and total time for this location
+                                backlogPriorityCountsByLocation[locationId] = { high: 0, normal: 0, low: 0 };
+                                let totalTime = 0;
+
+                                tasksData.tasks.forEach(t => {
+                                    const priority = t.priority.value;
+                                    backlogPriorityCountsByLocation[locationId][priority] = (backlogPriorityCountsByLocation[locationId][priority] || 0) + 1;
+                                    totalTime += parseInt(t.estimated_time_minutes) || 0;
+                                });
+
+                                backlogTotalEstimatedTimeByLocation[locationId] = totalTime;
+                            }
+                        } catch (fetchError) {
+                            console.error('Error fetching updated tasks:', fetchError);
+                            // Fallback if fetch fails
+                            if (!backlogTasksByLocation[locationId]) {
+                                backlogTasksByLocation[locationId] = [];
+                            }
+                            const exists = backlogTasksByLocation[locationId].some(t => t.id === newTask.id);
+                            if (!exists) {
+                                backlogTasksByLocation[locationId].push(newTask);
+                            }
+                        }
+
+                        // Always select the newly added task
+                        liveSelectedBacklogTaskIds.add(newTask.id.toString());
+
+                        // Refresh the UI for this location item in the left column
+                        updateLocationItemUI(locationId);
+
+                        // If the location is currently selected, refresh UI
+                        if (selectedLocationIds.has(locationId.toString())) {
+                            refreshLocationTasksUI(locationId);
+                        }
+
+                        // Close modal
+                        window.dispatchEvent(new CustomEvent('close-modal', { detail: 'quick-task-modal' }));
+
+                        // Show success message
+                        showNotification(`Taak "${newTask.title}" succesvol aangemaakt.`, 'success');
+                    } else {
+                        alert('Er is een fout opgetreden: ' + (data.message || 'Onbekende fout'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Er is een fout opgetreden bij het opslaan van de taak.');
+                })
+                .finally(() => {
+                    quickTaskSubmitBtn.disabled = false;
+                });
+            });
+        }
+
+        function updateLocationItemUI(locationId) {
+            const item = document.querySelector(`.location-item[data-location-id="${locationId}"]`);
+            if (!item) return;
+
+            const counts = backlogPriorityCountsByLocation[locationId] || {};
+            const totalTime = backlogTotalEstimatedTimeByLocation[locationId] || 0;
+
+            const countsText = item.querySelector('.flex-grow p:nth-child(1)');
+            if (countsText) {
+                countsText.innerHTML = `Open Taken:
+                    <span class="font-medium text-red-600">H:</span> ${counts.high || 0},
+                    <span class="font-medium text-blue-600">N:</span> ${counts.normal || 0},
+                    <span class="font-medium text-gray-500">L:</span> ${counts.low || 0}`;
+            }
+
+            const timeText = item.querySelector('.flex-grow p:nth-child(2) span');
+            if (timeText) {
+                timeText.textContent = `${totalTime} min`;
+            }
+        }
+
+        function refreshLocationTasksUI(locationId) {
+            const locationBlock = document.querySelector(`.location-tasks-block[data-location-id="${locationId}"]`);
+            if (!locationBlock) return;
+
+            const tasksContainer = locationBlock.querySelector('.location-tasks-container');
+            if (!tasksContainer) return;
+
+            // Clear and rebuild the backlog tasks section
+            // We need to find the backlog section. In the current implementation, it's just appended.
+            // A better way might be to re-run the whole creation for this location.
+            // For now, let's find the backlog tasks header and remove everything after it for this container.
+
+            const backlogTasks = backlogTasksByLocation[locationId] || [];
+
+            // Re-render everything in this location's container to be safe and consistent
+            tasksContainer.innerHTML = '';
+
+            const locationDefaultTasks = defaultTasksByLocation[locationId] || [];
+            createTaskSubSection(tasksContainer, 'Standaard Taken', locationDefaultTasks, 'default_tasks', liveSelectedDefaultTaskIds, locationId);
+            createTaskSubSection(tasksContainer, 'Backlog Taken', backlogTasks, 'backlog_tasks', liveSelectedBacklogTaskIds, locationId);
+        }
+
         // Set voor geselecteerde locaties
         const selectedLocationIds = new Set(initialSelectedLocationIds);
 
@@ -313,6 +480,7 @@
         const liveSelectedDefaultTaskIds = new Set(
             (hasOldInput ? oldSelectedDefaultTasks : (isEditMode ? currentSelectedDefaultTasks : [])).map(id => String(id))
         );
+        const uncheckedDefaultTaskIds = new Set(); // Keep track of tasks explicitly unchecked by the user
         const liveSelectedBacklogTaskIds = new Set(
             (hasOldInput ? oldSelectedBacklogTasks : (isEditMode ? currentSelectedBacklogTasks : [])).map(id => String(id))
         );
@@ -370,8 +538,20 @@
                 div.className = `flex items-start ps-2 py-1.5 border-b border-gray-100 last:border-b-0 ${isPlannedElsewhere ? 'opacity-60' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} rounded-sm dark:border-gray-800`;
 
                 const taskIdName = `${taskType}_loc_${locationIdForTaskName}_task_${task.id}`;
-                const taskIdStr = task.id.toString();
-                let isChecked = selectedTaskIdsSet.has(taskIdStr);
+                const taskIdIdStr = task.id.toString();
+                let isChecked = selectedTaskIdsSet.has(taskIdIdStr);
+
+                // Auto-check for default tasks if is_always_included is true and it's not already in the set (first time being added)
+                // We only do this for default_tasks and only if it's not already explicitly in the set (meaning user hasn't unchecked it yet)
+                // However, the set might be empty because we just started.
+                // Better approach: if it's a default task AND is_always_included is true AND it's NOT in our list of explicitly unchecked tasks
+                if (taskType === 'default_tasks' && task.is_always_included && !isChecked) {
+                    // Check if it was previously unchecked by the user in this session
+                    if (typeof uncheckedDefaultTaskIds !== 'undefined' && !uncheckedDefaultTaskIds.has(taskIdIdStr)) {
+                        isChecked = true;
+                        selectedTaskIdsSet.add(taskIdIdStr);
+                    }
+                }
 
                 let taskEstimatedTime = parseInt(task.estimated_time_minutes) || 0;
 
@@ -446,8 +626,14 @@
                     if (tType === 'default_tasks') {
                         if (this.checked) {
                             liveSelectedDefaultTaskIds.add(tId);
+                            if (typeof uncheckedDefaultTaskIds !== 'undefined') {
+                                uncheckedDefaultTaskIds.delete(tId);
+                            }
                         } else {
                             liveSelectedDefaultTaskIds.delete(tId);
+                            if (typeof uncheckedDefaultTaskIds !== 'undefined') {
+                                uncheckedDefaultTaskIds.add(tId);
+                            }
                         }
                     } else if (tType === 'backlog_tasks') {
                         if (this.checked) {
@@ -479,14 +665,13 @@
                 selectedLocationIdsArray.forEach(locId => {
                     const defaultsForThisLoc = defaultTasksByLocation[locId] || [];
                     defaultsForThisLoc.forEach(dTask => {
-                        liveSelectedDefaultTaskIds.add(dTask.id.toString());
+                        if (dTask.is_always_included) {
+                            liveSelectedDefaultTaskIds.add(dTask.id.toString());
+                        }
                     });
                 });
-                // Set the flag only if there were actually locations and potential defaults to add.
-                // This ensures if the first selection is a location with no default tasks, the flag isn't prematurely set.
-                if (selectedLocationIdsArray.some(locId => (defaultTasksByLocation[locId] || []).length > 0)) {
-                    createModeInitialDefaultTasksAdded = true;
-                }
+                // Set the flag if we processed at least one location
+                createModeInitialDefaultTasksAdded = true;
             }
             // --- END MODIFICATION ---
 
@@ -494,20 +679,37 @@
                 const locationName = getLocationNameById(locationId);
 
                 const locationGroupDiv = document.createElement('div');
-                locationGroupDiv.className = 'mb-6 p-3 border border-gray-300 rounded-lg bg-gray-50 shadow dark:bg-gray-800 dark:border-gray-700'; // Styling for each location group
+                locationGroupDiv.className = 'location-tasks-block mb-6 p-3 border border-gray-300 rounded-lg bg-gray-50 shadow dark:bg-gray-800 dark:border-gray-700'; // Styling for each location group
+                locationGroupDiv.dataset.locationId = locationId;
 
-                const locationMainHeader = document.createElement('h4');
-                locationMainHeader.className = 'text-base font-bold text-gray-800 mb-3 border-b border-gray-300 pb-2 dark:text-gray-200 dark:border-gray-700';
-                locationMainHeader.textContent = `Taken voor: ${escapeHtml(locationName)}`;
+                const locationMainHeader = document.createElement('div');
+                locationMainHeader.className = 'flex justify-between items-center mb-3 border-b border-gray-300 pb-2 dark:border-gray-700';
+                locationMainHeader.innerHTML = `
+                    <h4 class="text-base font-bold text-gray-800 dark:text-gray-200">Taken voor: ${escapeHtml(locationName)}</h4>
+                    <button type="button"
+                        class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors duration-150 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                        onclick="openQuickTaskModal(${locationId}, '${locationName.replace(/'/g, "\\'")}')"
+                        title="Nieuwe taak toevoegen">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Nieuwe taak
+                    </button>
+                `;
                 locationGroupDiv.appendChild(locationMainHeader);
+
+                // Create container for tasks to be easily refreshable
+                const tasksContainer = document.createElement('div');
+                tasksContainer.className = 'location-tasks-container';
+                locationGroupDiv.appendChild(tasksContainer);
 
                 // Standard Tasks
                 const defaultTasksForLoc = defaultTasksByLocation[locationId] || [];
-                createTaskSubSection(locationGroupDiv, 'Standaard Taken', defaultTasksForLoc, 'default_tasks', liveSelectedDefaultTaskIds, locationId);
+                createTaskSubSection(tasksContainer, 'Standaard Taken', defaultTasksForLoc, 'default_tasks', liveSelectedDefaultTaskIds, locationId);
 
                 // Backlog Tasks
                 const backlogTasksForLoc = backlogTasksByLocation[locationId] || [];
-                createTaskSubSection(locationGroupDiv, 'Backlog Taken', backlogTasksForLoc, 'backlog_tasks', liveSelectedBacklogTaskIds, locationId);
+                createTaskSubSection(tasksContainer, 'Backlog Taken', backlogTasksForLoc, 'backlog_tasks', liveSelectedBacklogTaskIds, locationId);
 
                 tasksByLocationContainer.appendChild(locationGroupDiv);
             });
@@ -789,6 +991,15 @@
             updateSelectedLocationsList();
             updateSortableLocationsList();
             populateTasks();
+
+            // Reset location filter
+            if (locationFilterInput) {
+                locationFilterInput.value = '';
+                // Show all location items
+                locationItems.forEach(item => {
+                    item.style.display = 'flex';
+                });
+            }
 
             // Sort available locations by distance to the newly selected location
             sortAvailableLocationsByDistance(locationId);

@@ -6,6 +6,7 @@ use App\Enums\TaskStatus;
 use App\Events\LocationCompleted;
 use App\Events\TaskReadyForReview;
 use App\Models\Planning;
+use App\Models\PlanningComment;
 use App\Models\PlanningTask;
 use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
@@ -499,7 +500,7 @@ class PlanningTaskController extends Controller
         $request->validate([
             'completed_notes' => 'required|string|max:65535',
             'is_fully_completed' => 'required|boolean',
-            'photos' => 'required|array|min:1',
+            'photos' => 'nullable|array',
             'photos.*' => 'image|mimes:jpeg,png,jpg,webp,gif|max:20480', // Max 20MB - will be compressed to 2MB
         ]);
 
@@ -513,23 +514,41 @@ class PlanningTaskController extends Controller
             'task_duration_seconds' => $request->input('task_duration_seconds', 0),
         ]);
 
-        // Store photos for the completion
-        foreach ($request->file('photos') as $photo) {
-            try {
-                // Compress and save the image
-                $filename = uniqid('ptc_'.$completion->id.'_', true).'.'.$photo->getClientOriginalExtension();
-                $path = $imageService->saveCompressedImage(
-                    $photo,
-                    'planning-task-completion-photos/'.$completion->id,
-                    $filename,
-                    'public'
-                );
-                $completion->photos()->create(['file_path' => $path]);
-            } catch (\Exception $e) {
-                Log::error('Error compressing image: '.$e->getMessage());
-                // Fallback to original method if compression fails
-                $path = $photo->store('planning-task-completion-photos/'.$completion->id, 'public');
-                $completion->photos()->create(['file_path' => $path]);
+        // Check if we have new photos
+        if ($request->hasFile('photos')) {
+            // Store photos for the completion
+            foreach ($request->file('photos') as $photo) {
+                try {
+                    // Compress and save the image
+                    $filename = uniqid('ptc_'.$completion->id.'_', true).'.'.$photo->getClientOriginalExtension();
+                    $path = $imageService->saveCompressedImage(
+                        $photo,
+                        'planning-task-completion-photos/'.$completion->id,
+                        $filename,
+                        'public'
+                    );
+                    $completion->photos()->create(['file_path' => $path]);
+                } catch (\Exception $e) {
+                    Log::error('Error compressing image: '.$e->getMessage());
+                    // Fallback to original method if compression fails
+                    $path = $photo->store('planning-task-completion-photos/'.$completion->id, 'public');
+                    $completion->photos()->create(['file_path' => $path]);
+                }
+            }
+        } else {
+            // No new photos provided, copy photos from the previous completion if it exists
+            $previousCompletion = $planning_task->completions()
+                ->where('id', '!=', $completion->id)
+                ->where('review_outcome', '!=', 'reopened')
+                ->latest()
+                ->first();
+
+            if ($previousCompletion) {
+                foreach ($previousCompletion->photos as $oldPhoto) {
+                    $completion->photos()->create([
+                        'file_path' => $oldPhoto->file_path,
+                    ]);
+                }
             }
         }
 
@@ -658,8 +677,66 @@ class PlanningTaskController extends Controller
         }
 
         $planning->checkAndUpdateStatus();
+        $planning_task->load(['completions.photos']);
+        $latestCompletion = $planning_task->completions->where('review_outcome', '!=', 'reopened')->sortByDesc('created_at')->first();
+        $photos = $latestCompletion ? $latestCompletion->photos->pluck('url')->toArray() : [];
 
-        return response()->json(['task' => $planning_task->fresh()]);
+        return response()->json([
+            'task' => array_merge($planning_task->fresh()->toArray(), [
+                'photos' => $photos
+            ])
+        ]);
+    }
+
+    /**
+     * Store an extra task for a location.
+     */
+    public function storeExtraTask(Request $request, Planning $planning, $location_id, ImageService $imageService)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'notes' => 'required|string',
+            'photos.*' => 'nullable|image|max:10240',
+        ]);
+
+        $comment = $planning->comments()->create([
+            'location_id' => $location_id === 'backlog' ? null : $location_id,
+            'user_id' => $user->id,
+            'comment' => $validated['notes'],
+        ]);
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                try {
+                    $filename = uniqid('pc_'.$comment->id.'_', true).'.'.$photo->getClientOriginalExtension();
+                    $path = $imageService->saveCompressedImage(
+                        $photo,
+                        'planning-comment-photos/'.$comment->id,
+                        $filename,
+                        'public'
+                    );
+                    $comment->photos()->create(['file_path' => $path]);
+                } catch (\Exception $e) {
+                    Log::error('Error compressing image: '.$e->getMessage());
+                    $path = $photo->store('planning-comment-photos/'.$comment->id, 'public');
+                    $comment->photos()->create(['file_path' => $path]);
+                }
+            }
+        }
+
+        $comment->load('photos');
+
+        return response()->json([
+            'comment' => [
+                'id' => $comment->id,
+                'comment' => $comment->comment,
+                'photos' => $comment->photos->pluck('url'),
+                'location_id' => $comment->location_id,
+                'created_at' => $comment->created_at->format('H:i'),
+            ]
+        ]);
     }
 
     /**

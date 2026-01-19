@@ -22,7 +22,7 @@ class TaskController extends Controller
      * Display a listing of the resource for a specific location.
      * De 'index' route is vaak /locations/{location}/tasks
      */
-    public function index(Request $request, Location $location): View
+    public function index(Request $request, Location $location): View|JsonResponse
     {
         $query = $location->tasks();
 
@@ -129,6 +129,26 @@ class TaskController extends Controller
             };
         }
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'tasks' => $query->get()->map(function($task) {
+                    return [
+                        'id' => $task->id,
+                        'title' => $task->title,
+                        'description' => $task->description,
+                        'priority' => [
+                            'value' => $task->priority->value,
+                            'label' => $task->priority->label(),
+                        ],
+                        'status' => $task->status ?: \App\Enums\TaskStatus::OPEN,
+                        'deadline' => $task->deadline,
+                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                        'location_id' => $task->location_id,
+                    ];
+                })
+            ]);
+        }
+
         $tasks = $query->paginate(15);
         // Ensure pagination URLs preserve the current view state (even when defaults are used)
         $appendParams = [
@@ -191,7 +211,7 @@ class TaskController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreTaskRequest $request, Location $location): RedirectResponse
+    public function store(StoreTaskRequest $request, Location $location): RedirectResponse|JsonResponse
     {
         // De StoreTaskRequest zou al gevalideerd moeten hebben dat location_id overeenkomt
         // of de location_id uit de route parameter moeten gebruiken.
@@ -208,6 +228,10 @@ class TaskController extends Controller
         // Sync requirements
         if (!empty($validatedData['requirements'])) {
             $new_task->requirements()->sync($validatedData['requirements']);
+        }
+
+        if (!empty($validatedData['benodigdheden'])) {
+            $new_task->requirements()->sync($validatedData['benodigdheden']);
         }
 
         // Handle photo uploads
@@ -234,6 +258,26 @@ class TaskController extends Controller
                     \Illuminate\Support\Facades\Log::error('Error uploading task photo: ' . $e->getMessage());
                 }
             }
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Taak \"{$new_task->title}\" succesvol aangemaakt.",
+                'task' => [
+                    'id' => $new_task->id,
+                    'title' => $new_task->title,
+                    'description' => $new_task->description,
+                    'priority' => [
+                        'value' => $new_task->priority->value,
+                        'label' => $new_task->priority->label(),
+                    ],
+                    'status' => $new_task->status ?: \App\Enums\TaskStatus::OPEN,
+                    'deadline' => $new_task->deadline,
+                    'estimated_time_minutes' => $new_task->estimated_time_minutes ?? 0,
+                    'location_id' => $new_task->location_id,
+                ]
+            ]);
         }
 
         // Redirect to the main backlog page with a success message.
