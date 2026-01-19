@@ -36,6 +36,7 @@ class EndChecklistItemPhoto extends Model
     public function getUrlAttribute(): string
     {
         // Use route helper to serve via media route (avoids direct storage path issues)
+
         return route('media', ['path' => $this->file_path]);
     }
 }
