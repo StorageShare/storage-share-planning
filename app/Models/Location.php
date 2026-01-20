@@ -41,6 +41,9 @@ class Location extends Model
         'lift',
         'bv',
         'type_deur',
+        'total_m2_net',
+        'total_m2_gross',
+        'total_rooms',
     ];
 
     /**
@@ -51,6 +54,10 @@ class Location extends Model
     protected $casts = [
         'last_synced_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'total_m2_net' => 'decimal:2',
+        'total_m2_gross' => 'decimal:2',
+        'total_rooms' => 'integer',
+        'lift' => 'boolean',
     ];
 
     /**

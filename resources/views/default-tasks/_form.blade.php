@@ -23,15 +23,72 @@
         placeholder="Aan wie moet terugkoppeling gegeven worden?"
     />
 
-    <x-form-input
-        name="estimated_time_minutes"
-        type="number"
-        label="Geschatte tijd (minuten)"
-        :value="$defaultTask->estimated_time_minutes ?? ''"
-        placeholder="0"
-        min="0"
-        max="99999"
-    />
+    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+        <h3 class="text-md font-medium text-blue-900 dark:text-blue-100 mb-4">Tijdsinschatting</h3>
+
+        <div class="mb-4">
+            <x-input-label for="time_calculation_type" class="block text-sm font-medium mb-2">Berekeningsmethode</x-input-label>
+            <select id="time_calculation_type" name="time_calculation_type" class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:focus:ring-gray-600">
+                <option value="simplified" {{ old('time_calculation_type', $defaultTask->time_calculation_type ?? 'simplified') === 'simplified' ? 'selected' : '' }}>Eenvoudig (vaste tijd)</option>
+                <option value="advanced" {{ old('time_calculation_type', $defaultTask->time_calculation_type ?? '') === 'advanced' ? 'selected' : '' }}>Geavanceerd (per m² + lift)</option>
+            </select>
+        </div>
+
+        <div id="simplified-calculation-section">
+            <x-form-input
+                name="estimated_time_minutes"
+                type="number"
+                label="Vaste tijd (minuten)"
+                :value="$defaultTask->estimated_time_minutes ?? ''"
+                placeholder="0"
+                min="0"
+                max="99999"
+            />
+        </div>
+
+        <div id="advanced-calculation-section" style="display: none;" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <x-form-input
+                    name="base_time_minutes"
+                    type="number"
+                    label="Basistijd (minuten)"
+                    :value="$defaultTask->base_time_minutes ?? ''"
+                    placeholder="0"
+                    min="0"
+                />
+                <x-form-input
+                    name="time_per_m2_minutes"
+                    type="number"
+                    step="0.01"
+                    label="Tijd per m² (minuten)"
+                    :value="$defaultTask->time_per_m2_minutes ?? ''"
+                    placeholder="bijv. 0.15"
+                    min="0"
+                />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <x-form-input
+                    name="has_lift_extra_minutes"
+                    type="number"
+                    label="Extra tijd bij LIFT (minuten)"
+                    :value="$defaultTask->has_lift_extra_minutes ?? ''"
+                    placeholder="0"
+                    min="0"
+                />
+                <x-form-input
+                    name="no_lift_extra_minutes"
+                    type="number"
+                    label="Extra tijd bij GEEN lift (minuten)"
+                    :value="$defaultTask->no_lift_extra_minutes ?? ''"
+                    placeholder="0"
+                    min="0"
+                />
+            </div>
+            <p class="text-xs text-blue-600 dark:text-blue-300">
+                De geavanceerde berekening gebruikt: <code>Basistijd + (m² * Tijd per m²) + Lift extra</code>. Voor m² wordt de 'total_m2_net' van de locatie gebruikt.
+            </p>
+        </div>
+    </div>
 
     <div class="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
         <div class="flex items-center">
@@ -272,6 +329,23 @@
         appliesToAllCheckbox.addEventListener('change', () => handleCheckboxChange(appliesToAllCheckbox));
         appliesToDoorTypesCheckbox.addEventListener('change', () => handleCheckboxChange(appliesToDoorTypesCheckbox));
         appliesToLiftCheckbox.addEventListener('change', () => handleCheckboxChange(appliesToLiftCheckbox));
+
+        const calculationTypeSelect = document.getElementById('time_calculation_type');
+        const simplifiedSection = document.getElementById('simplified-calculation-section');
+        const advancedSection = document.getElementById('advanced-calculation-section');
+
+        function toggleCalculationSections() {
+            if (calculationTypeSelect.value === 'advanced') {
+                simplifiedSection.style.display = 'none';
+                advancedSection.style.display = 'block';
+            } else {
+                simplifiedSection.style.display = 'block';
+                advancedSection.style.display = 'none';
+            }
+        }
+
+        calculationTypeSelect.addEventListener('change', toggleCalculationSections);
+        toggleCalculationSections();
 
         // Set initial state
         toggleSections();

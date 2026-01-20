@@ -100,6 +100,9 @@ class SyncExternalLocationsCommand extends Command
                     'gate_number' => $extLocation['gate_number'] ?? null,
                     'lift' => $extLocation['lift'] ?? null,
                     'type_deur' => $extLocation['type_deur'] ?? null,
+                    'total_m2_net' => $extLocation['total_m2_net'] ?? null,
+                    'total_m2_gross' => $extLocation['total_m2_gross'] ?? null,
+                    'total_rooms' => $extLocation['total_rooms'] ?? null,
                     'bv' => $extLocation['bv'] ?? null,
                     'last_synced_at' => Carbon::now(),
                     'deleted_at' => null, // Restore if found

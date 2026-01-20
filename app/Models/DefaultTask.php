@@ -30,6 +30,11 @@ class DefaultTask extends Model
         'end_day_action_title',
         'end_day_action_description',
         'created_by',
+        'time_calculation_type',
+        'time_per_m2_minutes',
+        'base_time_minutes',
+        'has_lift_extra_minutes',
+        'no_lift_extra_minutes',
     ];
 
     protected $casts = [
@@ -38,6 +43,10 @@ class DefaultTask extends Model
         'applies_to_lift_locations' => 'boolean',
         'applies_to_door_types' => 'boolean',
         'door_types' => 'array',
+        'time_per_m2_minutes' => 'decimal:2',
+        'base_time_minutes' => 'integer',
+        'has_lift_extra_minutes' => 'integer',
+        'no_lift_extra_minutes' => 'integer',
     ];
 
     /**
@@ -146,6 +155,32 @@ class DefaultTask extends Model
         $taskDoorTypes = array_map('strtolower', array_map('trim', $this->door_types));
 
         return in_array($locationDoorType, $taskDoorTypes);
+    }
+
+    /**
+     * Calculate the estimated time for a specific location.
+     */
+    public function calculateEstimatedTime(Location $location): int
+    {
+        if ($this->time_calculation_type === 'advanced') {
+            $totalMinutes = (int) ($this->base_time_minutes ?? 0);
+
+            // Calculate based on m2 (using total_m2_net as per user request example)
+            if ($this->time_per_m2_minutes && $location->total_m2_net) {
+                $totalMinutes += (int) ceil($location->total_m2_net * $this->time_per_m2_minutes);
+            }
+
+            // Lift compensation
+            if ($location->lift) {
+                $totalMinutes += (int) ($this->has_lift_extra_minutes ?? 0);
+            } else {
+                $totalMinutes += (int) ($this->no_lift_extra_minutes ?? 0);
+            }
+
+            return $totalMinutes;
+        }
+
+        return (int) ($this->estimated_time_minutes ?? 0);
     }
 
     /**

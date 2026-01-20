@@ -259,12 +259,12 @@ class PlanningController extends Controller
             // Combineer beide collecties en verwijder duplicaten
             $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
 
-            return [$location->id => $allTasks->map(function ($task) {
+            return [$location->id => $allTasks->map(function ($task) use ($location) {
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'description' => $task->description,
-                    'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                    'estimated_time_minutes' => $task->calculateEstimatedTime($location),
                     'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
                     'is_always_included' => $task->is_always_included ?? false,
                 ];
@@ -499,12 +499,12 @@ class PlanningController extends Controller
             // Combineer beide collecties en verwijder duplicaten
             $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
 
-            return [$location->id => $allTasks->map(function ($task) {
+            return [$location->id => $allTasks->map(function ($task) use ($location) {
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'description' => $task->description,
-                    'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                    'estimated_time_minutes' => $task->calculateEstimatedTime($location),
                     'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
                     'is_always_included' => $task->is_always_included ?? false,
                 ];
@@ -973,21 +973,26 @@ class PlanningController extends Controller
             }
         }
 
-        // Logic for adding default tasks
         if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
             $selected_location_ids = collect($validatedData['location_ids']);
             $default_task_templates = DefaultTask::with('locations')->findMany($validatedData['selected_default_tasks']);
+            $locations = Location::findMany($selected_location_ids);
 
             foreach ($selected_location_ids as $location_id) {
+                $location = $locations->firstWhere('id', $location_id);
+                if (!$location) continue;
+
                 foreach ($default_task_templates as $template) {
                     if ($template->locations->contains($location_id)) {
+                        $estimatedTime = $template->calculateEstimatedTime($location);
+
                         // Duplicate DefaultTask to a normal Task
                         $newTask = Task::create([
                             'location_id' => $location_id,
                             'title' => $template->title,
                             'description' => $template->description ?? '',
                             'feedback_information' => $template->feedback_information,
-                            'estimated_time_minutes' => $template->estimated_time_minutes,
+                            'estimated_time_minutes' => $estimatedTime,
                             'status' => \App\Enums\TaskStatus::OPEN,
                             'priority' => \App\Enums\TaskPriority::NORMAL,
                             'end_day_action_title' => $template->end_day_action_title,
@@ -1008,6 +1013,7 @@ class PlanningController extends Controller
                             // Ensure non-null description for NOT NULL column
                             'description' => $template->description ?? '',
                             'feedback_information' => $template->feedback_information,
+                            'estimated_time_minutes' => $estimatedTime,
                         ]);
                     }
                 }
@@ -1069,16 +1075,22 @@ class PlanningController extends Controller
         if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
             $selected_location_ids_for_planning = collect($validatedData['location_ids']);
             $default_task_templates = DefaultTask::with('locations')->findMany($validatedData['selected_default_tasks']);
+            $locations = Location::findMany($selected_location_ids_for_planning);
 
             foreach ($selected_location_ids_for_planning as $location_id_for_planning) {
+                $location = $locations->firstWhere('id', $location_id_for_planning);
+                if (!$location) continue;
+
                 foreach ($default_task_templates as $default_task_template) {
                     if ($default_task_template->locations->contains($location_id_for_planning)) {
+                        $estimatedTime = $default_task_template->calculateEstimatedTime($location);
                         $desired_default_task_state->put($location_id_for_planning.'-'.$default_task_template->id, [
                             'location_id' => $location_id_for_planning,
                             'default_task_id' => $default_task_template->id,
                             'title' => $default_task_template->title,
                             'description' => $default_task_template->description,
                             'feedback_information' => $default_task_template->feedback_information,
+                            'estimated_time_minutes' => $estimatedTime,
                         ]);
                     }
                 }
@@ -1100,7 +1112,7 @@ class PlanningController extends Controller
                     'title' => $template->title,
                     'description' => $template->description ?? '',
                     'feedback_information' => $template->feedback_information,
-                    'estimated_time_minutes' => $template->estimated_time_minutes,
+                    'estimated_time_minutes' => $data['estimated_time_minutes'],
                     'status' => \App\Enums\TaskStatus::OPEN,
                     'priority' => \App\Enums\TaskPriority::NORMAL,
                     'end_day_action_title' => $template->end_day_action_title,

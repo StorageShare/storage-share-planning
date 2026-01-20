@@ -31,6 +31,9 @@ class LocationFactory extends Factory
             'intratone_multiple_numbers' => $this->faker->randomNumber(5, true),
             'gate_number' => $this->faker->randomNumber(5, true),
             'lift' => $this->faker->randomElement(['Lift', 'Geen lift', null]),
+            'total_m2_net' => $this->faker->randomFloat(2, 50, 1000),
+            'total_m2_gross' => $this->faker->randomFloat(2, 50, 1000),
+            'total_rooms' => $this->faker->numberBetween(1, 100),
             'bv' => $this->faker->randomElement(['BV', 'Geen bv', null]),
         ];
     }
