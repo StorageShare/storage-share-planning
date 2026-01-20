@@ -12,5 +12,6 @@
             @include('plannings._form', ['isEdit' => true])
         </form>
         @include('plannings._quick_task_modal', ['isEdit' => true])
+        @include('plannings._map_modal')
     </div>
 </x-app-layout>

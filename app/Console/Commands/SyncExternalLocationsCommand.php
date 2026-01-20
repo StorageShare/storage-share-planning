@@ -80,35 +80,27 @@ class SyncExternalLocationsCommand extends Command
                 }
 
                 // Check if we already have this location by external_id or sync_external_id
-                $location = Location::withTrashed()
+                $locations = Location::withTrashed()
                     ->where(function ($query) use ($extLocation) {
                         $query->where('external_id', $extLocation['id'])
                               ->orWhere('sync_external_id', $extLocation['id']);
                     })
-                    ->first();
+                    ->get();
 
                 $dataToUpdate = [
-                    'address' => $extLocation['address'] ?? null,
-                    'postal_code' => $extLocation['postal_code'] ?? null,
-                    'city' => $extLocation['city'] ?? null,
-                    'outdoor_safe_code' => $extLocation['outdoor_safe_code'] ?? null,
-                    'indoor_safe_code' => $extLocation['indoor_safe_code'] ?? null,
-                    'outdoor_safe_content' => $extLocation['outdoor_safe_content'] ?? null,
-                    'indoor_safe_content' => $extLocation['indoor_safe_content'] ?? null,
-                    'intratone_number' => $extLocation['intratone_number'] ?? null,
-                    'intratone_multiple_numbers' => $extLocation['intratone_multiple_numbers'] ?? null,
-                    'gate_number' => $extLocation['gate_number'] ?? null,
-                    'lift' => $extLocation['lift'] ?? null,
+                    'latitude' => $extLocation['latitude'] ?? null,
+                    'longitude' => $extLocation['longitude'] ?? null,
+                    'last_synced_at' => Carbon::now(),
                     'type_deur' => $extLocation['type_deur'] ?? null,
                     'total_m2_net' => $extLocation['total_m2_net'] ?? null,
                     'total_m2_gross' => $extLocation['total_m2_gross'] ?? null,
                     'total_rooms' => $extLocation['total_rooms'] ?? null,
+                    'lift' => $extLocation['lift'] ?? null,
                     'bv' => $extLocation['bv'] ?? null,
-                    'last_synced_at' => Carbon::now(),
                     'deleted_at' => null, // Restore if found
                 ];
 
-                if (! $location) {
+                if (! $locations->first()) {
                     // If not found by external_id, it might have been manually created and now linked.
                     // But wait, if it was manually created and linked, it WOULD have an external_id now.
                     // If it's the first time we see this external_id, we create it.
@@ -117,16 +109,18 @@ class SyncExternalLocationsCommand extends Command
                     $location = Location::create($dataToUpdate);
                     $createdCount++;
                 } else {
-                    // It exists. We update everything EXCEPT the name.
-                    $location->fill($dataToUpdate);
+                    foreach ($locations as $location) {
+                        // It exists. We update everything EXCEPT the name.
+                        $location->fill($dataToUpdate);
 
-                    if ($location->trashed() && is_null($location->deleted_at)) {
-                        $restoredCount++;
-                    } elseif ($location->isDirty()) {
-                        $updatedCount++;
+                        if ($location->trashed() && is_null($location->deleted_at)) {
+                            $restoredCount++;
+                        } elseif ($location->isDirty()) {
+                            $updatedCount++;
+                        }
+
+                        $location->save();
                     }
-
-                    $location->save();
                 }
             }
 

@@ -39,8 +39,18 @@
     <div class="md:grid md:grid-cols-12 md:gap-x-8 mb-6">
         {{-- Left Column: Available Locations --}}
         <div class="md:col-span-5 space-y-3">
-            <div>
-                <label class="block text-sm font-medium mb-2 dark:text-gray-300">Beschikbare Locaties <span class="text-xs text-gray-500 dark:text-gray-400">(klik op + om toe te voegen)</span></label>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium dark:text-gray-300">Beschikbare Locaties <span class="text-xs text-gray-500 dark:text-gray-400">(klik op + om toe te voegen)</span></label>
+                    <button type="button"
+                            x-data=""
+                            x-on:click.prevent="$dispatch('open-modal', 'location-map')"
+                            class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 border border-transparent rounded hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                        Kaart weergeven
+                    </button>
+                </div>
 
                 {{-- Filter Input --}}
                 <div class="mb-3">

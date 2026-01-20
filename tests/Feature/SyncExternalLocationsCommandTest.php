@@ -26,7 +26,6 @@ class SyncExternalLocationsCommandTest extends TestCase
         $manualLocation = Location::factory()->create([
             'name' => 'Manual Location',
             'external_id' => null,
-            'address' => 'Old Address',
         ]);
 
         // 2. Mock API response
@@ -37,8 +36,12 @@ class SyncExternalLocationsCommandTest extends TestCase
                     [
                         'id' => $externalId,
                         'name' => 'External Name',
-                        'outdoor_safe_code' => 'NEW_CODE',
-                        'address' => 'External Address', // This field is NOT in our update list in the command, wait.
+                        'address' => 'Teststraat 1',
+                        'postal_code' => '1234 AB',
+                        'city' => 'Teststad',
+                        'description' => 'Mooie locatie',
+                        'lift' => 'Ja',
+                        'total_rooms' => 18,
                     ]
                 ]
             ], 200),
@@ -59,7 +62,12 @@ class SyncExternalLocationsCommandTest extends TestCase
         $this->assertDatabaseHas('locations', [
             'external_id' => $externalId,
             'name' => 'External Name',
-            'outdoor_safe_code' => 'NEW_CODE',
+            'address' => 'Teststraat 1',
+            'postal_code' => '1234 AB',
+            'city' => 'Teststad',
+            'description' => 'Mooie locatie',
+            'lift' => 1, // 'Ja' should be cast to true/1
+            'total_rooms' => 18,
         ]);
     }
 
@@ -71,18 +79,17 @@ class SyncExternalLocationsCommandTest extends TestCase
             'name' => 'My Custom Name',
             'sync_external_id' => $externalId,
             'external_id' => null,
-            'outdoor_safe_code' => 'OLD_CODE',
+            'lift' => false,
         ]);
 
-        // 2. Mock API response with different name and code
+        // 2. Mock API response with different name and lift
         Http::fake([
             'api.example.com/*' => Http::response([
                 'spaces' => [
                     [
                         'id' => $externalId,
                         'name' => 'External API Name',
-                        'address' => 'External Address',
-                        'outdoor_safe_code' => 'NEW_CODE',
+                        'lift' => 'Ja',
                     ]
                 ]
             ], 200),
@@ -97,34 +104,32 @@ class SyncExternalLocationsCommandTest extends TestCase
             'id' => $linkedLocation->id,
             'sync_external_id' => $externalId,
             'name' => 'My Custom Name', // Preserved
-            'outdoor_safe_code' => 'NEW_CODE', // Updated
-            'address' => 'External Address', // Should be updated
+            'lift' => 1, // Updated
         ]);
     }
 
-    public function test_it_updates_address_fields_for_linked_locations(): void
+    public function test_it_updates_new_api_fields_for_linked_locations(): void
     {
         // 1. Create a location that was manual but is now linked via sync_external_id
         $externalId = 789;
         $linkedLocation = Location::factory()->create([
             'name' => 'Custom Name',
             'sync_external_id' => $externalId,
-            'address' => 'Old Address',
-            'postal_code' => '1111 AA',
-            'city' => 'Old City',
+            'total_m2_net' => 100,
+            'total_rooms' => 10,
         ]);
 
-        // 2. Mock API response with new address fields
+        // 2. Mock API response with new fields
         Http::fake([
             'api.example.com/*' => Http::response([
                 'spaces' => [
                     [
                         'id' => $externalId,
                         'name' => 'External Name',
-                        'address' => 'New Address',
-                        'postal_code' => '2222 BB',
-                        'city' => 'New City',
-                        'outdoor_safe_code' => 'NEW_CODE',
+                        'total_m2_net' => 270,
+                        'total_rooms' => 18,
+                        'latitude' => '52.283409',
+                        'longitude' => '4.866958',
                     ]
                 ]
             ], 200),
@@ -134,14 +139,14 @@ class SyncExternalLocationsCommandTest extends TestCase
         $this->artisan('locations:sync')
             ->assertExitCode(0);
 
-        // 4. Assert address fields are updated
+        // 4. Assert fields are updated
         $this->assertDatabaseHas('locations', [
             'id' => $linkedLocation->id,
             'name' => 'Custom Name', // Preserved
-            'address' => 'New Address',
-            'postal_code' => '2222 BB',
-            'city' => 'New City',
-            'outdoor_safe_code' => 'NEW_CODE',
+            'total_m2_net' => 270,
+            'total_rooms' => 18,
+            'latitude' => 52.283409,
+            'longitude' => 4.866958,
         ]);
     }
 }

@@ -40,52 +40,10 @@
             <x-input-error :messages="$errors->get('city')" class="mt-2" />
         </div>
 
-        <div>
-            <x-input-label for="outdoor_safe_code" :value="__('Outdoor Safe Code')" />
-            <x-text-input type="text" id="outdoor_safe_code" name="outdoor_safe_code" class="block mt-1 w-full" :value="old('outdoor_safe_code', $location->outdoor_safe_code ?? '')" />
-            <x-input-error :messages="$errors->get('outdoor_safe_code')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="indoor_safe_code" :value="__('Indoor Safe Code')" />
-            <x-text-input type="text" id="indoor_safe_code" name="indoor_safe_code" class="block mt-1 w-full" :value="old('indoor_safe_code', $location->indoor_safe_code ?? '')" />
-            <x-input-error :messages="$errors->get('indoor_safe_code')" class="mt-2" />
-        </div>
-
         <div class="md:col-span-2">
-            <x-input-label for="outdoor_safe_content" :value="__('Outdoor Safe Content')" />
-            <textarea id="outdoor_safe_content" name="outdoor_safe_content" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('outdoor_safe_content', $location->outdoor_safe_content ?? '') }}</textarea>
-            <x-input-error :messages="$errors->get('outdoor_safe_content')" class="mt-2" />
-        </div>
-
-        <div class="md:col-span-2">
-            <x-input-label for="indoor_safe_content" :value="__('Indoor Safe Content')" />
-            <textarea id="indoor_safe_content" name="indoor_safe_content" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('indoor_safe_content', $location->indoor_safe_content ?? '') }}</textarea>
-            <x-input-error :messages="$errors->get('indoor_safe_content')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="intratone_number" :value="__('Intratone Nummer')" />
-            <x-text-input type="text" id="intratone_number" name="intratone_number" class="block mt-1 w-full" :value="old('intratone_number', $location->intratone_number ?? '')" />
-            <x-input-error :messages="$errors->get('intratone_number')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="intratone_multiple_numbers" :value="__('Intratone Meerdere Nummers')" />
-            <x-text-input type="text" id="intratone_multiple_numbers" name="intratone_multiple_numbers" class="block mt-1 w-full" :value="old('intratone_multiple_numbers', $location->intratone_multiple_numbers ?? '')" />
-            <x-input-error :messages="$errors->get('intratone_multiple_numbers')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="gate_number" :value="__('Poort Nummer')" />
-            <x-text-input type="text" id="gate_number" name="gate_number" class="block mt-1 w-full" :value="old('gate_number', $location->gate_number ?? '')" />
-            <x-input-error :messages="$errors->get('gate_number')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="lift" :value="__('Lift')" />
-            <x-text-input type="text" id="lift" name="lift" class="block mt-1 w-full" :value="old('lift', $location->lift ?? '')" />
-            <x-input-error :messages="$errors->get('lift')" class="mt-2" />
+            <x-input-label for="description" :value="__('Omschrijving')" />
+            <textarea id="description" name="description" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" rows="3">{{ old('description', $location->description ?? '') }}</textarea>
+            <x-input-error :messages="$errors->get('description')" class="mt-2" />
         </div>
 
         <div>
@@ -95,9 +53,48 @@
         </div>
 
         <div>
+            <x-input-label for="lift" :value="__('Lift')" />
+            <select id="lift" name="lift" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                <option value="1" {{ old('lift', $location->lift ?? '') == '1' ? 'selected' : '' }}>{{ __('Ja') }}</option>
+                <option value="0" {{ old('lift', $location->lift ?? '') == '0' ? 'selected' : '' }}>{{ __('Nee') }}</option>
+            </select>
+            <x-input-error :messages="$errors->get('lift')" class="mt-2" />
+        </div>
+
+        <div>
             <x-input-label for="type_deur" :value="__('Type Deur')" />
             <x-text-input type="text" id="type_deur" name="type_deur" class="block mt-1 w-full" :value="old('type_deur', $location->type_deur ?? '')" />
             <x-input-error :messages="$errors->get('type_deur')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="latitude" :value="__('Latitude')" />
+            <x-text-input type="text" id="latitude" name="latitude" class="block mt-1 w-full" :value="old('latitude', $location->latitude ?? '')" />
+            <x-input-error :messages="$errors->get('latitude')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="longitude" :value="__('Longitude')" />
+            <x-text-input type="text" id="longitude" name="longitude" class="block mt-1 w-full" :value="old('longitude', $location->longitude ?? '')" />
+            <x-input-error :messages="$errors->get('longitude')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="total_m2_net" :value="__('Totaal m2 Netto')" />
+            <x-text-input type="number" step="0.01" id="total_m2_net" name="total_m2_net" class="block mt-1 w-full" :value="old('total_m2_net', $location->total_m2_net ?? '')" />
+            <x-input-error :messages="$errors->get('total_m2_net')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="total_m2_gross" :value="__('Totaal m2 Bruto')" />
+            <x-text-input type="number" step="0.01" id="total_m2_gross" name="total_m2_gross" class="block mt-1 w-full" :value="old('total_m2_gross', $location->total_m2_gross ?? '')" />
+            <x-input-error :messages="$errors->get('total_m2_gross')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="total_rooms" :value="__('Totaal Kamers')" />
+            <x-text-input type="number" id="total_rooms" name="total_rooms" class="block mt-1 w-full" :value="old('total_rooms', $location->total_rooms ?? '')" />
+            <x-input-error :messages="$errors->get('total_rooms')" class="mt-2" />
         </div>
     </div>
 
