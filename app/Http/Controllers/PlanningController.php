@@ -981,8 +981,28 @@ class PlanningController extends Controller
             foreach ($selected_location_ids as $location_id) {
                 foreach ($default_task_templates as $template) {
                     if ($template->locations->contains($location_id)) {
+                        // Duplicate DefaultTask to a normal Task
+                        $newTask = Task::create([
+                            'location_id' => $location_id,
+                            'title' => $template->title,
+                            'description' => $template->description ?? '',
+                            'feedback_information' => $template->feedback_information,
+                            'estimated_time_minutes' => $template->estimated_time_minutes,
+                            'status' => \App\Enums\TaskStatus::OPEN,
+                            'priority' => \App\Enums\TaskPriority::NORMAL,
+                            'end_day_action_title' => $template->end_day_action_title,
+                            'end_day_action_description' => $template->end_day_action_description,
+                            'created_by' => Auth::id(),
+                        ]);
+
+                        // Sync requirements from template to new task
+                        if ($template->requirements()->exists()) {
+                            $newTask->requirements()->sync($template->requirements->pluck('id'));
+                        }
+
                         $planning->planningTasks()->create([
                             'location_id' => $location_id,
+                            'task_id' => $newTask->id,
                             'default_task_id' => $template->id,
                             'title' => $template->title,
                             // Ensure non-null description for NOT NULL column
@@ -1072,6 +1092,29 @@ class PlanningController extends Controller
 
         $tasks_to_add_data = $desired_default_task_state->diffKeys($current_default_planning_tasks);
         foreach ($tasks_to_add_data as $data) {
+            $template = DefaultTask::find($data['default_task_id']);
+            if ($template) {
+                // Duplicate DefaultTask to a normal Task
+                $newTask = Task::create([
+                    'location_id' => $data['location_id'],
+                    'title' => $template->title,
+                    'description' => $template->description ?? '',
+                    'feedback_information' => $template->feedback_information,
+                    'estimated_time_minutes' => $template->estimated_time_minutes,
+                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'priority' => \App\Enums\TaskPriority::NORMAL,
+                    'end_day_action_title' => $template->end_day_action_title,
+                    'end_day_action_description' => $template->end_day_action_description,
+                    'created_by' => Auth::id(),
+                ]);
+
+                // Sync requirements from template to new task
+                if ($template->requirements()->exists()) {
+                    $newTask->requirements()->sync($template->requirements->pluck('id'));
+                }
+
+                $data['task_id'] = $newTask->id;
+            }
             $planning->planningTasks()->create($data);
         }
 

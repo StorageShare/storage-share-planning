@@ -156,6 +156,18 @@ class PlanningControllerTest extends TestCase
             'default_task_id' => $dt1->id,
             'location_id' => $l1->id,
         ]);
+
+        $ptDefault = PlanningTask::where('planning_id', $planning->id)
+            ->where('default_task_id', $dt1->id)
+            ->first();
+
+        $this->assertNotNull($ptDefault->task_id, 'PlanningTask for default task should have a linked task_id');
+        $this->assertDatabaseHas('tasks', [
+            'id' => $ptDefault->task_id,
+            'title' => $dt1->title,
+            'location_id' => $l1->id,
+        ]);
+
         $this->assertDatabaseHas('planning_tasks', [
             'planning_id' => $planning->id,
             'task_id' => $t1->id,
