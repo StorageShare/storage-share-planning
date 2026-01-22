@@ -228,7 +228,7 @@
             </div>
         @endif
 
-        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6" onpaste="handlePaste(event)">
             <div class="text-center">
                 <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                     <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -239,7 +239,7 @@
                             Foto's toevoegen
                         </span>
                         <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                            PNG, JPG, GIF tot 20MB (meerdere bestanden mogelijk)
+                            PNG, JPG, GIF tot 20MB (meerdere bestanden mogelijk) of plak een afbeelding
                         </span>
                     </label>
                     <input id="new-photos" type="file" name="photos[]" multiple accept="image/*" class="sr-only" onchange="previewNewPhotos(event)">
@@ -369,6 +369,33 @@ function previewNewPhotos(event) {
         });
     } else {
         previewContainer.classList.add('hidden');
+    }
+}
+
+function handlePaste(event) {
+    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;
+    if (!items) return;
+
+    const input = document.getElementById('new-photos');
+    const dt = new DataTransfer();
+
+    // Add existing files
+    Array.from(input.files).forEach(file => dt.items.add(file));
+
+    let added = false;
+    for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+            const blob = item.getAsFile();
+            if (blob) {
+                dt.items.add(blob);
+                added = true;
+            }
+        }
+    }
+
+    if (added) {
+        input.files = dt.files;
+        previewNewPhotos({ target: input });
     }
 }
 

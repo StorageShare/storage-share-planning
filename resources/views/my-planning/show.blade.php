@@ -986,6 +986,7 @@
                                                             @dragover.prevent="draggingTaskId = task.task_id"
                                                             @dragleave.prevent="draggingTaskId = null"
                                                             @drop.prevent="onTaskDrop($event, task.task_id)"
+                                                            @paste="onTaskPaste($event, task.task_id)"
                                                         >
                                                             <div class="text-center">
                                                                 <svg class="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
@@ -1099,7 +1100,7 @@
                                         </div>
 
                                         {{-- Extra Task Form --}}
-                                        <div x-show="showExtraForm" x-transition class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-900 mb-6">
+                                        <div x-show="showExtraForm" x-transition class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-900 mb-6" @paste="onExtraPaste($event)">
                                             <div class="space-y-4">
                                                 <div x-show="false">
                                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel / Onderwerp</label>
@@ -1424,6 +1425,38 @@
                     if (!dt || !dt.files) return;
                     this.queueTaskPhotoFiles({ target: { files: dt.files } }, taskId);
                     this.draggingTaskId = null;
+                },
+
+                onTaskPaste(event, taskId) {
+                    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;
+                    if (!items) return;
+
+                    const files = [];
+                    for (const item of items) {
+                        if (item.type.indexOf('image') !== -1) {
+                            const blob = item.getAsFile();
+                            if (blob) files.push(blob);
+                        }
+                    }
+                    if (files.length > 0) {
+                        this.queueTaskPhotoFiles({ files: files }, taskId);
+                    }
+                },
+
+                onExtraPaste(event) {
+                    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;
+                    if (!items) return;
+
+                    const files = [];
+                    for (const item of items) {
+                        if (item.type.indexOf('image') !== -1) {
+                            const blob = item.getAsFile();
+                            if (blob) files.push(blob);
+                        }
+                    }
+                    if (files.length > 0) {
+                        this.queueExtraPhotoFiles({ files: files });
+                    }
                 },
 
                 clearTaskQueuedFiles(taskId) {
