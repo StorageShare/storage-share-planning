@@ -31,12 +31,10 @@ class LocationObserver
     public function created(Location $location): void
     {
         // Zoek alle default tasks die van toepassing zijn op alle locaties
-        $defaultTasksForAllLocations = DefaultTask::where('applies_to_all_locations', true)->get();
+        $defaultTasksForAllLocations = DefaultTask::where('applies_to_all_locations', true)->pluck('id');
 
         // Koppel de nieuwe locatie aan deze default tasks
-        foreach ($defaultTasksForAllLocations as $defaultTask) {
-            $defaultTask->locations()->attach($location->id);
-        }
+        $location->defaultTasks()->syncWithoutDetaching($defaultTasksForAllLocations);
 
         // Zoek default tasks die van toepassing zijn op het deur type van deze locatie
         if (!empty($location->type_deur)) {
@@ -45,14 +43,11 @@ class LocationObserver
                 ->get()
                 ->filter(function ($defaultTask) use ($location) {
                     return $defaultTask->appliesToLocationByDoorType($location);
-                });
+                })
+                ->pluck('id');
 
             // Koppel de nieuwe locatie aan deze default tasks (vermijd duplicaten)
-            foreach ($defaultTasksForDoorType as $defaultTask) {
-                if (!$defaultTask->locations()->where('location_id', $location->id)->exists()) {
-                    $defaultTask->locations()->attach($location->id);
-                }
-            }
+            $location->defaultTasks()->syncWithoutDetaching($defaultTasksForDoorType);
         }
 
         // Maak automatisch Schoonmaken en Controleronde taken aan
@@ -116,9 +111,9 @@ class LocationObserver
                 if ($currentlyLinked && !$shouldBeLinked) {
                     // Remove the link
                     $defaultTask->locations()->detach($location->id);
-                } elseif (!$currentlyLinked && $shouldBeLinked) {
-                    // Add the link
-                    $defaultTask->locations()->attach($location->id);
+                } elseif ($shouldBeLinked) {
+                    // Add the link (use syncWithoutDetaching to be safe)
+                    $defaultTask->locations()->syncWithoutDetaching([$location->id]);
                 }
             }
         }
