@@ -239,7 +239,7 @@
                             Foto's toevoegen
                         </span>
                         <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                            PNG, JPG, GIF tot 20MB (meerdere bestanden mogelijk) of plak een afbeelding
+                            PNG, JPG, GIF tot 20MB (meerdere bestanden mogelijk) of plak een afbeelding (click eerst in het vak)
                         </span>
                     </label>
                     <input id="new-photos" type="file" name="photos[]" multiple accept="image/*" class="sr-only" onchange="previewNewPhotos(event)">
