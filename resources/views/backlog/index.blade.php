@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-4 lg:px-6">
+        <div class="mx-auto sm:px-4 lg:px-6">
 
             {{-- Case 1: Backlog is genuinely empty, and no search/filters are active. --}}
             @if ($tasks->isEmpty() && empty($searchTerm) && empty($filters['location_id']) && empty($filters['priority']) && empty($filters['status']) && empty($filters['only_concept']))
@@ -186,18 +186,18 @@
                                         <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
                                             @foreach ($tasks as $task)
                                             <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
-                                                <td class="px-4 py-4 text-sm font-medium whitespace-nowrap">
+                                                <td class="px-4 py-4 text-sm font-medium">
                                                     <div>
                                                         <a href="{{ route('tasks.show', $task) }}" class="font-medium text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">{{ $task->title }}</a>
-                                                        <p class="text-sm font-normal text-gray-600 dark:text-gray-400">{{ Str::limit($task->description, 40) }}</p>
+                                                        <p class="text-sm font-normal text-gray-600 dark:text-gray-400">{{ Str::limit($task->description, 60) }}</p>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-4 text-sm whitespace-nowrap text-gray-700 dark:text-gray-200">
+                                                <td class="px-4 py-4 text-sm">
                                                     @if($task->location)
                                                         @php
                                                             $location_name_parts = explode(',', $task->location->name, 2);
                                                         @endphp
-                                                        <span>{{ trim($location_name_parts[0]) }}</span>
+                                                        <span class="font-medium">{{ trim($location_name_parts[0]) }}</span>
                                                         @if(isset($location_name_parts[1]))
                                                             <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ trim($location_name_parts[1]) }}</span>
                                                         @endif
@@ -206,7 +206,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                    <a href="{{ route('tasks.edit', $task) }}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full hover:opacity-75 transition-opacity duration-200
                                                         @switch($task->priority->value)
                                                             @case(App\Enums\TaskPriority::HIGH->value) bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 @break
                                                             @case(App\Enums\TaskPriority::NORMAL->value) bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
@@ -214,10 +214,10 @@
                                                         @endswitch
                                                     ">
                                                         {{ $task->priority->label() }}
-                                                    </span>
+                                                    </a>
                                                 </td>
                                                 <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                     <a href="{{ route('tasks.edit', $task) }}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full hover:opacity-75 transition-opacity duration-200
                                                         @switch($task->status->value)
                                                             @case('concept') bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 @break
                                                             @case('open') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
@@ -227,9 +227,9 @@
                                                         @endswitch
                                                     ">
                                                         {{ $task->status->label() }}
-                                                    </span>
+                                                    </a>
                                                 </td>
-                                                <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                                <td class="px-4 py-4 text-sm whitespace-nowrap text-gray-700 dark:text-gray-200">
                                                     @if($task->planningTasks->isNotEmpty())
                                                         @foreach($task->planningTasks as $planningTask)
                                                             @if($planningTask->planning)
