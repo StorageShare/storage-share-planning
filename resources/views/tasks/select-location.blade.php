@@ -11,7 +11,15 @@ De daadwerkelijke content wordt door de volgende tool call geplaatst.
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-            <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">{{ __('Kies een Locatie') }}</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-200">{{ __('Kies een Locatie') }}</h1>
+                <a href="{{ route('tasks.bulk-create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+                    <svg class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    {{ __('Voor meerdere locaties...') }}
+                </a>
+            </div>
 
             {{-- Search Form for Select Location Page --}}
             <div class="mb-4">
@@ -77,15 +85,15 @@ De daadwerkelijke content wordt door de volgende tool call geplaatst.
         if (searchInput && searchForm) {
             if (sessionStorage.getItem('selectLocationSearchSubmitted') === 'true') {
                 searchInput.focus();
-                const val = searchInput.value; 
-                searchInput.value = ''; 
-                searchInput.value = val; 
+                const val = searchInput.value;
+                searchInput.value = '';
+                searchInput.value = val;
                 sessionStorage.removeItem('selectLocationSearchSubmitted');
             } else if (searchTermFromServer && searchTermFromServer.length > 0) {
                 searchInput.focus();
-                const val = searchInput.value; 
-                searchInput.value = ''; 
-                searchInput.value = val; 
+                const val = searchInput.value;
+                searchInput.value = '';
+                searchInput.value = val;
             }
 
             searchInput.addEventListener('input', function () {
@@ -95,8 +103,8 @@ De daadwerkelijke content wordt door de volgende tool call geplaatst.
                     searchForm.submit();
                 }, 500);
             });
-        } 
+        }
     });
 </script>
 
-</x-app-layout> 
+</x-app-layout>

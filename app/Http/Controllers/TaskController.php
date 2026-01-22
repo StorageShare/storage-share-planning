@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Enums\Role;
 use App\Events\LocationCompleted;
 use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\StoreBulkTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Location;
 use App\Models\Requirement;
@@ -192,6 +193,70 @@ class TaskController extends Controller
         $locations = $locationsQuery->orderBy('name')->get();
 
         return view('tasks.select-location', compact('locations', 'searchTerm'));
+    }
+
+    /**
+     * Show form for bulk creating tasks.
+     */
+    public function bulkCreate(): View
+    {
+        $locations = Location::orderBy('name')->get();
+        $requirements = Requirement::orderBy('name')->get();
+        $availableDoorTypes = \App\Models\DefaultTask::getAvailableDoorTypes();
+
+        return view('tasks.bulk-create', compact('locations', 'requirements', 'availableDoorTypes'));
+    }
+
+    /**
+     * Store bulk created tasks.
+     */
+    public function bulkStore(StoreBulkTaskRequest $request): RedirectResponse
+    {
+        $validatedData = $request->validated();
+        $validatedData['created_by'] = auth()->id();
+
+        // If the creator is a customer_service user, default the status to concept
+        if (auth()->check() && auth()->user()->role === Role::CUSTOMER_SERVICE) {
+            $validatedData['status'] = TaskStatus::CONCEPT;
+        }
+
+        // Determine locations
+        $locationIds = [];
+        if ($request->boolean('applies_to_all_locations')) {
+            $locationIds = Location::pluck('id')->toArray();
+        } elseif ($request->boolean('applies_to_lift_locations')) {
+            $locationIds = Location::where('lift', "Ja")->pluck('id')->toArray();
+        } elseif ($request->boolean('applies_to_door_types') && !empty($validatedData['door_types'])) {
+            $doorTypes = array_map('trim', array_map('strtolower', $validatedData['door_types']));
+            $locationIds = Location::whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(type_deur)'), $doorTypes)->pluck('id')->toArray();
+        } elseif (!empty($validatedData['locations'])) {
+            $locationIds = $validatedData['locations'];
+        }
+
+        if (empty($locationIds)) {
+            return redirect()->back()->withInput()->with('error', 'Geen locaties geselecteerd of gevonden voor de opgegeven criteria.');
+        }
+
+        $createdCount = 0;
+        foreach ($locationIds as $locationId) {
+            $taskData = $validatedData;
+            $taskData['location_id'] = $locationId;
+
+            $task = Task::create($taskData);
+
+            // Sync requirements
+            if (!empty($validatedData['requirements'])) {
+                $task->requirements()->sync($validatedData['requirements']);
+            }
+
+            // Note: Photos are not supported for bulk create for now as it would complicate storage
+            // and might not be what's expected (same photo for all locations?).
+            // If needed, we could implement it, but standard tasks also don't usually have photos on creation.
+
+            $createdCount++;
+        }
+
+        return redirect()->route('backlog.index')->with('success', "{$createdCount} taken succesvol aangemaakt.");
     }
 
     /**

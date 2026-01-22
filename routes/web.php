@@ -134,6 +134,8 @@ Route::middleware('auth')->group(function () {
     // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
     Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
     Route::get('tasks/select-location', [TaskController::class, 'selectLocationForTask'])->name('tasks.select-location');
+    Route::get('tasks/bulk-create', [TaskController::class, 'bulkCreate'])->name('tasks.bulk-create');
+    Route::post('tasks/bulk-store', [TaskController::class, 'bulkStore'])->name('tasks.bulk-store');
     Route::resource('locations.tasks', TaskController::class)->shallow();
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
