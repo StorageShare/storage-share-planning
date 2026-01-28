@@ -42,11 +42,25 @@
                     </div>
                 </div>
 
+                @php
+                    $perPage = (string) request('per_page', '20');
+                @endphp
+                <form action="{{ route('requirements.index') }}" method="GET" class="mt-4 flex items-center gap-x-2">
+                    <label for="requirements-per-page" class="text-xs text-gray-500 dark:text-gray-300">Items per pagina</label>
+                    <select id="requirements-per-page" name="per_page" class="py-1.5 pl-2 pr-8 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40" onchange="this.form.submit()">
+                        <option value="20" {{ $perPage === '20' ? 'selected' : '' }}>20</option>
+                        <option value="30" {{ $perPage === '30' ? 'selected' : '' }}>30</option>
+                        <option value="50" {{ $perPage === '50' ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ $perPage === '100' ? 'selected' : '' }}>100</option>
+                        <option value="all" {{ $perPage === 'all' ? 'selected' : '' }}>Alles</option>
+                    </select>
+                </form>
+
                 @if ($requirements->isEmpty())
                     <div class="mt-6 py-6 px-4 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 md:rounded-lg">
                         <p>Geen benodigdheden gevonden.</p>
                          <div class="mt-4">
-                            <a href="{{ route('requirements.index') }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Terug naar overzicht</a>
+                            <a href="{{ route('requirements.index', array_filter(['per_page' => request('per_page')])) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Terug naar overzicht</a>
                         </div>
                     </div>
                 @else
@@ -103,14 +117,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 sm:flex sm:items-center sm:justify-between">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $requirements->currentPage() }} van {{ $requirements->lastPage() }}</span>
+                    @if($requirements->hasPages())
+                        <div class="mt-6 sm:flex sm:items-center sm:justify-between">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $requirements->currentPage() }} van {{ $requirements->lastPage() }}</span>
+                            </div>
+                            <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
+                                {{ $requirements->links('vendor.pagination.tailwind') }}
+                            </div>
                         </div>
-                        <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
-                            {{ $requirements->links('vendor.pagination.tailwind') }}
-                        </div>
-                    </div>
+                    @endif
                 @endif {{-- Closes the @if ($requirements->isEmpty()) for table/no-results display --}}
             </section>
             @endif {{-- Closes the main @if for genuinely empty list vs. active view --}}

@@ -56,32 +56,48 @@
                 </div>
 
                 <form action="{{ route('locations.index') }}" method="GET" id="locationSearchForm">
+                    @php
+                        $perPage = (string) request('per_page', '15');
+                    @endphp
                     <div class="mt-6 md:flex md:items-center md:justify-between">
                         <div class="inline-flex overflow-hidden bg-white border border-gray-100 divide-x divide-gray-100 rounded-lg dark:bg-gray-900 rtl:flex-row-reverse dark:border-gray-700 dark:divide-gray-700">
-                            <a href="{{ route('locations.index', array_filter(['search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection])) }}"
+                            <a href="{{ route('locations.index', array_filter(['search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection, 'per_page' => request('per_page')])) }}"
                                class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ !$activeFilter ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                                 Bekijk alle
                             </a>
-                            <a href="{{ route('locations.index', array_filter(['filter' => 'with_open_tasks', 'search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection])) }}"
+                            <a href="{{ route('locations.index', array_filter(['filter' => 'with_open_tasks', 'search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection, 'per_page' => request('per_page')])) }}"
                                class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ $activeFilter === 'with_open_tasks' ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                                 Alleen locaties met openstaande taken
                             </a>
                         </div>
 
-                        <div class="relative flex items-center mt-4 md:mt-0">
-                            <span class="absolute">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400 dark:text-gray-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                                </svg>
-                            </span>
-                            <input type="text" name="search_term" id="locationSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek locatie..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
+                        <div class="flex items-center mt-4 md:mt-0 gap-x-3">
+                            <div class="flex items-center gap-x-2">
+                                <label for="locations-per-page" class="text-xs text-gray-500 dark:text-gray-300">Items per pagina</label>
+                                <select id="locations-per-page" name="per_page" class="py-1.5 pl-2 pr-8 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40" onchange="this.form.submit()">
+                                    <option value="15" {{ $perPage === '15' ? 'selected' : '' }}>15</option>
+                                    <option value="30" {{ $perPage === '30' ? 'selected' : '' }}>30</option>
+                                    <option value="50" {{ $perPage === '50' ? 'selected' : '' }}>50</option>
+                                    <option value="100" {{ $perPage === '100' ? 'selected' : '' }}>100</option>
+                                    <option value="all" {{ $perPage === 'all' ? 'selected' : '' }}>Alles</option>
+                                </select>
+                            </div>
 
-                            {{-- Hidden inputs to preserve sort order and filter if active --}}
-                            <input type="hidden" name="sort_by" value="{{ $sortBy }}">
-                            <input type="hidden" name="sort_direction" value="{{ $sortDirection }}">
-                            @if($activeFilter)
-                                <input type="hidden" name="filter" value="{{ $activeFilter }}">
-                            @endif
+                            <div class="relative flex items-center">
+                                <span class="absolute">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400 dark:text-gray-600">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </svg>
+                                </span>
+                                <input type="text" name="search_term" id="locationSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek locatie..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
+
+                                {{-- Hidden inputs to preserve sort order and filter if active --}}
+                                <input type="hidden" name="sort_by" value="{{ $sortBy }}">
+                                <input type="hidden" name="sort_direction" value="{{ $sortDirection }}">
+                                @if($activeFilter)
+                                    <input type="hidden" name="filter" value="{{ $activeFilter }}">
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -91,7 +107,7 @@
                     <div class="mt-6 py-6 px-4 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 md:rounded-lg">
                         <p>Geen locaties gevonden voor de huidige selectie.</p>
                         <div class="mt-4">
-                            <a href="{{ route('locations.index') }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Wis filters en zoekopdracht</a>
+                            <a href="{{ route('locations.index', array_filter(['per_page' => request('per_page')])) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Wis filters en zoekopdracht</a>
                         </div>
                     </div>
                 @else
@@ -103,25 +119,25 @@
                                         <thead class="bg-gray-50 dark:bg-gray-800">
                                             <tr>
                                                 <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                                                    <a href="{{ route('locations.index', ['sort_by' => 'name', 'sort_direction' => ($sortBy == 'name' && $sortDirection == 'asc') ? 'desc' : 'asc', 'search_term' => $searchTerm, 'filter' => $activeFilter]) }}" class="flex items-center gap-x-3 focus:outline-none hover:text-gray-700">
+                                                    <a href="{{ route('locations.index', ['sort_by' => 'name', 'sort_direction' => ($sortBy == 'name' && $sortDirection == 'asc') ? 'desc' : 'asc', 'search_term' => $searchTerm, 'filter' => $activeFilter, 'per_page' => request('per_page')]) }}" class="flex items-center gap-x-3 focus:outline-none hover:text-gray-700">
                                                         <span>Locatie</span>
                                                         @if ($sortBy == 'name') <x-sort-icon :direction="$sortDirection" /> @endif
                                                     </a>
                                                 </th>
                                                 <th scope="col" class="px-4 py-3.5 text-sm font-normal text-center rtl:text-right text-gray-500 dark:text-gray-400">
-                                                    <a href="{{ route('locations.index', ['sort_by' => 'open_tasks_high_count', 'sort_direction' => ($sortBy == 'open_tasks_high_count') ? (($sortDirection == 'desc') ? 'asc' : 'desc') : 'desc', 'search_term' => $searchTerm, 'filter' => $activeFilter]) }}" class="hover:text-gray-700">
+                                                    <a href="{{ route('locations.index', ['sort_by' => 'open_tasks_high_count', 'sort_direction' => ($sortBy == 'open_tasks_high_count') ? (($sortDirection == 'desc') ? 'asc' : 'desc') : 'desc', 'search_term' => $searchTerm, 'filter' => $activeFilter, 'per_page' => request('per_page')]) }}" class="hover:text-gray-700">
                                                         Open Taken (Hoog)
                                                         @if ($sortBy == 'open_tasks_high_count') <span>{{ $sortDirection == 'asc' ? '▲' : '▼' }}</span> @endif
                                                     </a>
                                                 </th>
                                                 <th scope="col" class="px-4 py-3.5 text-sm font-normal text-center rtl:text-right text-gray-500 dark:text-gray-400">
-                                                    <a href="{{ route('locations.index', ['sort_by' => 'open_tasks_normal_count', 'sort_direction' => ($sortBy == 'open_tasks_normal_count') ? (($sortDirection == 'desc') ? 'asc' : 'desc') : 'desc', 'search_term' => $searchTerm, 'filter' => $activeFilter]) }}" class="hover:text-gray-700">
+                                                    <a href="{{ route('locations.index', ['sort_by' => 'open_tasks_normal_count', 'sort_direction' => ($sortBy == 'open_tasks_normal_count') ? (($sortDirection == 'desc') ? 'asc' : 'desc') : 'desc', 'search_term' => $searchTerm, 'filter' => $activeFilter, 'per_page' => request('per_page')]) }}" class="hover:text-gray-700">
                                                         Open Taken (Normaal)
                                                         @if ($sortBy == 'open_tasks_normal_count') <span>{{ $sortDirection == 'asc' ? '▲' : '▼' }}</span> @endif
                                                     </a>
                                                 </th>
                                                 <th scope="col" class="px-4 py-3.5 text-sm font-normal text-center rtl:text-right text-gray-500 dark:text-gray-400">
-                                                    <a href="{{ route('locations.index', ['sort_by' => 'open_tasks_low_count', 'sort_direction' => ($sortBy == 'open_tasks_low_count') ? (($sortDirection == 'desc') ? 'asc' : 'desc') : 'desc', 'search_term' => $searchTerm, 'filter' => $activeFilter]) }}" class="hover:text-gray-700">
+                                                    <a href="{{ route('locations.index', ['sort_by' => 'open_tasks_low_count', 'sort_direction' => ($sortBy == 'open_tasks_low_count') ? (($sortDirection == 'desc') ? 'asc' : 'desc') : 'desc', 'search_term' => $searchTerm, 'filter' => $activeFilter, 'per_page' => request('per_page')]) }}" class="hover:text-gray-700">
                                                         Open Taken (Laag)
                                                         @if ($sortBy == 'open_tasks_low_count') <span>{{ $sortDirection == 'asc' ? '▲' : '▼' }}</span> @endif
                                                     </a>
@@ -191,14 +207,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $locations->currentPage() }} van {{ $locations->lastPage() }}</span>
+                    @if($locations->hasPages())
+                        <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $locations->currentPage() }} van {{ $locations->lastPage() }}</span>
+                            </div>
+                            <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
+                                {{ $locations->appends(request()->query())->links('vendor.pagination.tailwind') }}
+                            </div>
                         </div>
-                        <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
-                            {{ $locations->appends(request()->query())->links('vendor.pagination.tailwind') }}
-                        </div>
-                    </div>
+                    @endif
                 @endif {{-- Closes the @if ($locations->isEmpty()) after the form --}}
             </section>
             @endif {{-- Closes the main @if for genuinely empty list vs. active view --}}

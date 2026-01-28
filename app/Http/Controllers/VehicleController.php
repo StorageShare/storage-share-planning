@@ -15,9 +15,11 @@ class VehicleController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $vehicles = Vehicle::orderBy('name')->paginate(15);
+        $query = Vehicle::orderBy('name');
+        $perPage = $this->resolvePerPage($request, $query);
+        $vehicles = $query->paginate($perPage)->withQueryString();
 
         return view('vehicles.index', compact('vehicles'));
     }

@@ -60,7 +60,8 @@ class LocationController extends Controller
 
         $locationsQuery->orderBy($sortBy, $sortDirection);
 
-        $locations = $locationsQuery->paginate(15)->appends($request->query()); // appends query string to pagination links
+        $perPage = $this->resolvePerPage($request, $locationsQuery);
+        $locations = $locationsQuery->paginate($perPage)->appends($request->query()); // appends query string to pagination links
 
         return view('locations.index', compact('locations', 'sortBy', 'sortDirection', 'searchTerm', 'activeFilter'));
     }
@@ -72,12 +73,13 @@ class LocationController extends Controller
     public function show(Location $location): View
     {
         // Fetch open tasks for the location
-        $open_tasks = $location->tasks()
+        $openTasksQuery = $location->tasks()
             ->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
             ->orderByRaw('ISNULL(deadline) ASC, deadline ASC') // Tasks with deadlines first, then by date
             ->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ASC")
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->orderBy('created_at', 'desc');
+        $openTasksPerPage = $this->resolvePerPage($request, $openTasksQuery, 10);
+        $open_tasks = $openTasksQuery->paginate($openTasksPerPage)->withQueryString();
 
         return view('locations.show', compact('location', 'open_tasks'));
     }

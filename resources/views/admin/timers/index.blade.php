@@ -35,8 +35,11 @@
                 </div>
 
                 {{-- Filters --}}
+                @php
+                    $perPage = (string) request('per_page', '20');
+                @endphp
                 <form method="GET" action="{{ route('admin.timers.index') }}" class="mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div>
                             <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Van datum</label>
                             <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
@@ -58,6 +61,17 @@
                                         {{ $user->name }}
                                     </option>
                                 @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="timers-per-page" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Items per pagina</label>
+                            <select name="per_page" id="timers-per-page" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm" onchange="this.form.submit()">
+                                <option value="20" {{ $perPage === '20' ? 'selected' : '' }}>20</option>
+                                <option value="30" {{ $perPage === '30' ? 'selected' : '' }}>30</option>
+                                <option value="50" {{ $perPage === '50' ? 'selected' : '' }}>50</option>
+                                <option value="100" {{ $perPage === '100' ? 'selected' : '' }}>100</option>
+                                <option value="all" {{ $perPage === 'all' ? 'selected' : '' }}>Alles</option>
                             </select>
                         </div>
 
@@ -169,9 +183,11 @@
                     </div>
 
                     {{-- Paginering --}}
-                    <div class="mt-6">
-                        {{ $plannings->withQueryString()->links() }}
-                    </div>
+                    @if($plannings->hasPages())
+                        <div class="mt-6">
+                            {{ $plannings->withQueryString()->links() }}
+                        </div>
+                    @endif
                 @else
                     <div class="text-center py-8">
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

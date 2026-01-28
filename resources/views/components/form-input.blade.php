@@ -18,15 +18,15 @@ $inputClasses = $baseClasses . ' ' . $errorClasses . ' ' . $class;
 
 <div class="space-y-1">
     @if($label)
-        <label for="{{ $name }}" class="block text-sm font-medium leading-6 text-gray-900">
+        <label for="{{ $name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">
             {{ $label }}
             @if($required)
                 <span class="text-red-500">*</span>
             @endif
         </label>
     @endif
-    
-    <input 
+
+    <input
         type="{{ $type }}"
         name="{{ $name }}"
         id="{{ $name }}"
@@ -34,11 +34,11 @@ $inputClasses = $baseClasses . ' ' . $errorClasses . ' ' . $class;
         placeholder="{{ $placeholder }}"
         @if($required) required @endif
         @if($disabled) disabled @endif
-        class="{{ $inputClasses }}"
+        class="{{ $inputClasses }} dark:bg-gray-800  dark:border-gray-600"
         {{ $attributes }}
     />
-    
+
     @if($hasError)
         <p class="text-xs text-red-600 mt-1">{{ $errors->first($name) }}</p>
     @endif
-</div> 
+</div>

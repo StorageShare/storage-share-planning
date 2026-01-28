@@ -44,7 +44,8 @@ class TimerController extends Controller
             });
         }
 
-        $plannings = $query->orderBy('planned_date', 'desc')->paginate(20);
+        $perPage = $this->resolvePerPage($request, $query, 20);
+        $plannings = $query->orderBy('planned_date', 'desc')->paginate($perPage)->withQueryString();
 
         // Get all users for filter dropdown
         $users = User::orderBy('name')->get();

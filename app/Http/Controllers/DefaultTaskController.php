@@ -42,7 +42,8 @@ class DefaultTaskController extends Controller
 
         $defaultTasksQuery->orderBy($sortBy, $sortDirection);
 
-        $defaultTasks = $defaultTasksQuery->paginate(15)->appends($request->query());
+        $perPage = $this->resolvePerPage($request, $defaultTasksQuery);
+        $defaultTasks = $defaultTasksQuery->paginate($perPage)->appends($request->query());
 
         return view('default-tasks.index', compact(
             'defaultTasks',

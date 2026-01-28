@@ -18,26 +18,26 @@ $textareaClasses = $baseClasses . ' ' . $errorClasses . ' ' . $class;
 
 <div class="space-y-1">
     @if($label)
-        <label for="{{ $name }}" class="block text-sm font-medium leading-6 text-gray-900">
+        <label for="{{ $name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">
             {{ $label }}
             @if($required)
                 <span class="text-red-500">*</span>
             @endif
         </label>
     @endif
-    
-    <textarea 
+
+    <textarea
         name="{{ $name }}"
         id="{{ $name }}"
         rows="{{ $rows }}"
         placeholder="{{ $placeholder }}"
         @if($required) required @endif
         @if($disabled) disabled @endif
-        class="{{ $textareaClasses }}"
+        class="{{ $textareaClasses }}  dark:bg-gray-800  dark:border-gray-600 dark:text-gray-300"
         {{ $attributes }}
     >{{ old($name, $value) }}</textarea>
-    
+
     @if($hasError)
         <p class="text-xs text-red-600 mt-1">{{ $errors->first($name) }}</p>
     @endif
-</div> 
+</div>

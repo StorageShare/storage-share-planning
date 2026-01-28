@@ -35,7 +35,8 @@ class DefaultVehicleTaskController extends Controller
         }
         $query->orderBy($sortBy, $sortDirection);
 
-        $defaults = $query->paginate(15)->appends($request->query());
+        $perPage = $this->resolvePerPage($request, $query);
+        $defaults = $query->paginate($perPage)->appends($request->query());
 
         return view('default-vehicle-tasks.index', compact('defaults', 'search', 'sortBy', 'sortDirection'));
     }

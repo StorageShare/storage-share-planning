@@ -11,9 +11,11 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::paginate();
+        $query = User::query();
+        $perPage = $this->resolvePerPage($request, $query);
+        $users = $query->paginate($perPage)->withQueryString();
 
         return view('users.index', compact('users'));
     }

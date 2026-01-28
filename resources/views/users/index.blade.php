@@ -21,6 +21,20 @@
                     </div>
                 </div>
 
+                @php
+                    $perPage = (string) request('per_page', '15');
+                @endphp
+                <form action="{{ route('users.index') }}" method="GET" class="mt-4 flex items-center gap-x-2">
+                    <label for="users-per-page" class="text-xs text-gray-500 dark:text-gray-300">Items per pagina</label>
+                    <select id="users-per-page" name="per_page" class="py-1.5 pl-2 pr-8 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40" onchange="this.form.submit()">
+                        <option value="15" {{ $perPage === '15' ? 'selected' : '' }}>15</option>
+                        <option value="30" {{ $perPage === '30' ? 'selected' : '' }}>30</option>
+                        <option value="50" {{ $perPage === '50' ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ $perPage === '100' ? 'selected' : '' }}>100</option>
+                        <option value="all" {{ $perPage === 'all' ? 'selected' : '' }}>Alles</option>
+                    </select>
+                </form>
+
                 <div class="flex flex-col mt-6">
                     <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                         <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -72,14 +86,16 @@
                     </div>
                 </div>
 
-                <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
-                    <div class="text-sm text-gray-500 dark:text-gray-400">
-                        Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $users->currentPage() }} van {{ $users->lastPage() }}</span>
+                @if($users->hasPages())
+                    <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $users->currentPage() }} van {{ $users->lastPage() }}</span>
+                        </div>
+                        <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
+                            {{ $users->links('vendor.pagination.tailwind') }}
+                        </div>
                     </div>
-                    <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
-                        {{ $users->links('vendor.pagination.tailwind') }}
-                    </div>
-                </div>
+                @endif
             </section>
         </div>
     </div>

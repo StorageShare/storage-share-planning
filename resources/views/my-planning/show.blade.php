@@ -1103,17 +1103,22 @@
                                         <div x-show="showExtraForm" x-transition class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-blue-100 dark:border-blue-900 mb-6" @paste="onExtraPaste($event)">
                                             <div class="space-y-4">
                                                 <div x-show="false">
-                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel / Onderwerp</label>
-                                                    <input type="text" x-model="extraTaskTitle"
-                                                        class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                                        placeholder="Bijv. Extra lamp vervangen of Opmerking over deur">
+                                                    <x-form-input
+                                                        name="extraTaskTitle"
+                                                        label="Titel / Onderwerp"
+                                                        placeholder="Bijv. Extra lamp vervangen of Opmerking over deur"
+                                                        required
+                                                    />
                                                 </div>
 
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opmerking</label>
-                                                    <textarea x-model="extraTaskNotes" rows="3"
-                                                        class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                                        placeholder="Typ hier je extra opmerking..."></textarea>
+                                                    <x-form-textarea
+                                                        x-model="extraTaskNotes"
+                                                        name="description"
+                                                        label="Opmerking"
+                                                        placeholder="Typ hier je extra opmerking..."
+                                                        rows="3"
+                                                    />
                                                     <template x-if="extraTaskErrors.notes">
                                                         <p class="mt-1 text-sm text-red-600" x-text="extraTaskErrors.notes[0]"></p>
                                                     </template>

@@ -43,6 +43,9 @@
                 </div>
 
                 <form action="{{ route('default-tasks.index') }}" method="GET" id="defaultTaskSearchForm">
+                    @php
+                        $perPage = (string) request('per_page', '15');
+                    @endphp
                     <div class="mt-6 md:flex md:items-center md:justify-between">
                         <div class="inline-flex overflow-hidden bg-white border border-gray-100 divide-x divide-gray-100 rounded-lg dark:bg-gray-900 rtl:flex-row-reverse dark:border-gray-700 dark:divide-gray-700">
                             {{-- No explicit filter buttons for default-tasks yet, but structure is here if needed --}}
@@ -52,20 +55,33 @@
 
                         <div class="relative flex items-center w-full md:w-auto {{ $activeFilter ? 'md:justify-between' : 'md:justify-end' }}">
                             {{-- If filter controls were present, they'd go before this search div or this div would need to adjust alignment --}}
-                            <div class="relative flex items-center mt-4 md:mt-0">
-                                <span class="absolute">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400 dark:text-gray-600">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                                    </svg>
-                                </span>
-                                <input type="text" name="search_term" id="defaultTaskSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek standaardtaak..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
-    
-                                {{-- Hidden inputs to preserve sort order and filter if active --}}
-                                <input type="hidden" name="sort_by" value="{{ $sortBy }}">
-                                <input type="hidden" name="sort_direction" value="{{ $sortDirection }}">
-                                @if($activeFilter)
-                                    <input type="hidden" name="filter" value="{{ $activeFilter }}">
-                                @endif
+                            <div class="flex items-center mt-4 md:mt-0 gap-x-3">
+                                <div class="flex items-center gap-x-2">
+                                    <label for="default-tasks-per-page" class="text-xs text-gray-500 dark:text-gray-300">Items per pagina</label>
+                                    <select id="default-tasks-per-page" name="per_page" class="py-1.5 pl-2 pr-8 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40" onchange="this.form.submit()">
+                                        <option value="15" {{ $perPage === '15' ? 'selected' : '' }}>15</option>
+                                        <option value="30" {{ $perPage === '30' ? 'selected' : '' }}>30</option>
+                                        <option value="50" {{ $perPage === '50' ? 'selected' : '' }}>50</option>
+                                        <option value="100" {{ $perPage === '100' ? 'selected' : '' }}>100</option>
+                                        <option value="all" {{ $perPage === 'all' ? 'selected' : '' }}>Alles</option>
+                                    </select>
+                                </div>
+
+                                <div class="relative flex items-center">
+                                    <span class="absolute">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400 dark:text-gray-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                        </svg>
+                                    </span>
+                                    <input type="text" name="search_term" id="defaultTaskSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek standaardtaak..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
+        
+                                    {{-- Hidden inputs to preserve sort order and filter if active --}}
+                                    <input type="hidden" name="sort_by" value="{{ $sortBy }}">
+                                    <input type="hidden" name="sort_direction" value="{{ $sortDirection }}">
+                                    @if($activeFilter)
+                                        <input type="hidden" name="filter" value="{{ $activeFilter }}">
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -76,7 +92,7 @@
                     <div class="mt-6 py-6 px-4 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 md:rounded-lg">
                         <p>Geen standaard taken gevonden voor "{{ $searchTerm }}".</p>
                          <div class="mt-4">
-                            <a href="{{ route('default-tasks.index') }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Wis zoekopdracht</a>
+                            <a href="{{ route('default-tasks.index', array_filter(['per_page' => request('per_page')])) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Wis zoekopdracht</a>
                         </div>
                     </div>
                 @else 
@@ -88,7 +104,7 @@
                                         <thead class="bg-gray-50 dark:bg-gray-800">
                                             <tr>
                                                 @php 
-                                                    $routeParams = array_filter(['search_term' => $searchTerm, 'filter' => $activeFilter]);
+                                                    $routeParams = array_filter(['search_term' => $searchTerm, 'filter' => $activeFilter, 'per_page' => request('per_page')]);
                                                 @endphp
                                                 <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                                     <a href="{{ route('default-tasks.index', array_merge($routeParams, ['sort_by' => 'title', 'sort_direction' => ($sortBy == 'title' && $sortDirection == 'asc') ? 'desc' : 'asc'])) }}" class="flex items-center gap-x-3 focus:outline-none hover:text-gray-700">
@@ -150,14 +166,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $defaultTasks->currentPage() }} van {{ $defaultTasks->lastPage() }}</span>
+                    @if($defaultTasks->hasPages())
+                        <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $defaultTasks->currentPage() }} van {{ $defaultTasks->lastPage() }}</span>
+                            </div>
+                            <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
+                                {{ $defaultTasks->appends(request()->query())->links('vendor.pagination.tailwind') }}
+                            </div>
                         </div>
-                        <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
-                            {{ $defaultTasks->appends(request()->query())->links('vendor.pagination.tailwind') }}
-                        </div>
-                    </div>
+                    @endif
                 @endif {{-- Closes the @if ($defaultTasks->isEmpty() && !empty($searchTerm)) for table/no-results display --}}
             </section>
             @endif {{-- Closes the main @if for genuinely empty list vs. active view --}}

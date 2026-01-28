@@ -4,6 +4,6 @@
             Geen planning beschikbaar.
         </h2>
         <br>
-        <p>Op dit moment staat er voor jou geen planning klaar.</p>
+        <p class="text-black dark:text-white">Op dit moment staat er voor jou geen planning klaar.</p>
     </x-slot>
 </x-app-layout>

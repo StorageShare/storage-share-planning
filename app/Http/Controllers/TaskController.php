@@ -150,7 +150,8 @@ class TaskController extends Controller
             ]);
         }
 
-        $tasks = $query->paginate(15);
+        $perPage = $this->resolvePerPage($request, $query);
+        $tasks = $query->paginate($perPage);
         // Ensure pagination URLs preserve the current view state (even when defaults are used)
         $appendParams = [
             'sort_by' => $sortBy,
@@ -158,6 +159,10 @@ class TaskController extends Controller
             'filter' => $activeFilter,
             'planned_filter' => $plannedFilter,
         ];
+        $perPageParam = $request->query('per_page');
+        if ($perPageParam !== null) {
+            $appendParams['per_page'] = $perPageParam;
+        }
         if ($searchTerm !== null && $searchTerm !== '') {
             $appendParams['search_term'] = $searchTerm;
         }

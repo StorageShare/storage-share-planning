@@ -50,6 +50,9 @@
                 </div>
 
                 <form action="{{ route('backlog.index') }}" method="GET" id="backlogSearchForm">
+                    @php
+                        $perPage = (string) request('per_page', '30');
+                    @endphp
                     <div class="mt-6 md:flex md:items-center md:justify-between">
                          <div class="flex-1 md:flex md:items-center md:gap-x-4">
                              @anyrole('admin', 'facilities_coordinator')
@@ -97,25 +100,37 @@
                                 </select>
 
                                 @if(!empty($filters['location_id']) || !empty($filters['priority']) || !empty($filters['status']) || !empty($filters['only_concept']))
-                                    <a href="{{ route('backlog.index', ['show_completed' => $filters['show_completed'] ? 'true' : 'false']) }}" class="px-4 py-2 inline-flex items-center text-xs font-medium text-gray-600 transition-colors duration-200 border border-gray-200 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800">
+                                    <a href="{{ route('backlog.index', array_filter(['show_completed' => $filters['show_completed'] ? 'true' : 'false', 'per_page' => request('per_page')])) }}" class="px-4 py-2 inline-flex items-center text-xs font-medium text-gray-600 transition-colors duration-200 border border-gray-200 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800">
                                         Wis Filters
                                     </a>
                                 @endif
                             </div>
                         </div>
 
-                        <div class="relative flex items-center mt-4 md:mt-0">
-                            <span class="absolute">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400 dark:text-gray-600">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                                </svg>
-                            </span>
-                            <input type="text" name="search_term" id="backlogSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek in backlog..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
+                        <div class="flex items-center mt-4 md:mt-0 gap-x-3">
+                            <div class="flex items-center gap-x-2">
+                                <label for="backlog-per-page" class="text-xs text-gray-500 dark:text-gray-300">Items per pagina</label>
+                                <select id="backlog-per-page" name="per_page" class="py-1.5 pl-2 pr-8 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40" onchange="this.form.submit()">
+                                    <option value="30" {{ $perPage === '30' ? 'selected' : '' }}>30</option>
+                                    <option value="50" {{ $perPage === '50' ? 'selected' : '' }}>50</option>
+                                    <option value="100" {{ $perPage === '100' ? 'selected' : '' }}>100</option>
+                                    <option value="all" {{ $perPage === 'all' ? 'selected' : '' }}>Alles</option>
+                                </select>
+                            </div>
 
-                            {{-- Hidden inputs to carry over state --}}
-                            <input type="hidden" name="sort_by" value="{{ $sortBy }}">
-                            <input type="hidden" name="sort_direction" value="{{ $sortDirection }}">
-                            <input type="hidden" name="show_completed" value="{{ $filters['show_completed'] ? 'true' : 'false' }}">
+                            <div class="relative flex items-center">
+                                <span class="absolute">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400 dark:text-gray-600">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </svg>
+                                </span>
+                                <input type="text" name="search_term" id="backlogSearchInput" value="{{ $searchTerm ?? '' }}" placeholder="Zoek in backlog..." class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-blue-300 focus:outline-none focus:ring focus:ring-opacity-40">
+
+                                {{-- Hidden inputs to carry over state --}}
+                                <input type="hidden" name="sort_by" value="{{ $sortBy }}">
+                                <input type="hidden" name="sort_direction" value="{{ $sortDirection }}">
+                                <input type="hidden" name="show_completed" value="{{ $filters['show_completed'] ? 'true' : 'false' }}">
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -197,7 +212,7 @@
                                                         @php
                                                             $location_name_parts = explode(',', $task->location->name, 2);
                                                         @endphp
-                                                        <span class="font-medium">{{ trim($location_name_parts[0]) }}</span>
+                                                        <span class="font-medium text-black dark:text-white">{{ trim($location_name_parts[0]) }}</span>
                                                         @if(isset($location_name_parts[1]))
                                                             <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ trim($location_name_parts[1]) }}</span>
                                                         @endif
@@ -275,14 +290,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $tasks->currentPage() }} van {{ $tasks->lastPage() }}</span>
+                    @if($tasks->hasPages())
+                        <div class="mt-6 sm:flex sm:items-center sm:justify-between ">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                Pagina <span class="font-medium text-gray-700 dark:text-gray-100">{{ $tasks->currentPage() }} van {{ $tasks->lastPage() }}</span>
+                            </div>
+                            <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
+                                {{ $tasks->links() }}
+                            </div>
                         </div>
-                        <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
-                            {{ $tasks->links() }}
-                        </div>
-                    </div>
+                    @endif
                 @endif {{-- Closes the @if ($tasks->isEmpty()) after the form --}}
             </section>
             @endif {{-- Closes the main @if for genuinely empty backlog vs. active view --}}

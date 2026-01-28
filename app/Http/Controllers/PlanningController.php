@@ -37,7 +37,7 @@ class PlanningController extends Controller
      */
     public function review(Request $request): View
     {
-        $plannings = Planning::with(['locations', 'users'])
+        $planningsQuery = Planning::with(['locations', 'users'])
             ->withCount([
                 'planningTasks as review_tasks_count' => function ($q) {
                     $q->where('status', TaskStatus::REVIEW->value);
@@ -50,9 +50,9 @@ class PlanningController extends Controller
                 })
                 ->orWhere('status', 'pending_end_checklist');
             })
-            ->orderByDesc('planned_date')
-            ->paginate(15)
-            ->withQueryString();
+            ->orderByDesc('planned_date');
+        $perPage = $this->resolvePerPage($request, $planningsQuery);
+        $plannings = $planningsQuery->paginate($perPage)->withQueryString();
 
         return view('plannings.review', compact('plannings'));
     }
@@ -232,7 +232,8 @@ class PlanningController extends Controller
             $query->orderBy('created_at', 'desc');
         }
 
-        $plannings = $query->paginate(15)->withQueryString();
+        $perPage = $this->resolvePerPage($request, $query);
+        $plannings = $query->paginate($perPage)->withQueryString();
 
         return view('plannings.index', compact(
             'plannings',

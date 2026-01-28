@@ -16,11 +16,12 @@ class RequirementController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $requirements = Requirement::with(['creator', 'requiredForLocations'])
-            ->orderBy('name')
-            ->paginate(20);
+        $query = Requirement::with(['creator', 'requiredForLocations'])
+            ->orderBy('name');
+        $perPage = $this->resolvePerPage($request, $query, 20);
+        $requirements = $query->paginate($perPage)->withQueryString();
 
         return view('requirements.index', compact('requirements'));
     }
