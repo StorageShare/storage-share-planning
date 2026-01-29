@@ -165,6 +165,19 @@
                         @endif
                     </div>
 
+                    @if(auth()->user()?->canManagePlannings() && strtolower($planning->status ?? '') !== 'completed')
+                        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end">
+                            <form method="POST" action="{{ route('plannings.complete', $planning) }}">
+                                @csrf
+                                <button type="submit"
+                                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-sm font-medium"
+                                        onclick="return confirm('Weet je zeker dat je deze planning wilt afronden?')">
+                                    Planning afronden
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+
                     {{-- Vehicle Tasks section --}}
                     @php
                         $vehiclePlanningTasks = $planning->planningTasks->filter(function($pt){ return (bool)($pt->is_vehicle_task ?? false); });

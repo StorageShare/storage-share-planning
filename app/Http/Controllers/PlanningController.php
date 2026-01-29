@@ -717,6 +717,18 @@ class PlanningController extends Controller
     }
 
     /**
+     * Mark a planning as completed, regardless of task status.
+     */
+    public function complete(Planning $planning): RedirectResponse
+    {
+        $planning->update([
+            'status' => 'completed',
+        ]);
+
+        return redirect()->back()->with('success', 'Planning is afgerond.');
+    }
+
+    /**
      * Get timer data for a specific location in a planning.
      */
     public function getLocationTimer(Planning $planning, $locationId)

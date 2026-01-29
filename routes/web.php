@@ -74,6 +74,7 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
     Route::patch('plannings/{planning}', [PlanningController::class, 'update']);
     Route::delete('plannings/{planning}', [PlanningController::class, 'destroy'])->name('plannings.destroy');
     Route::post('plannings/{planning}/send-notifications', [PlanningController::class, 'sendNotifications'])->name('plannings.send-notifications');
+    Route::post('plannings/{planning}/complete', [PlanningController::class, 'complete'])->name('plannings.complete');
 
     // Update actual timers (admins + can_manage_plannings)
     Route::patch('plannings/{planning}/timers/location/{location}', [PlanningController::class, 'updateLocationActualTime'])->name('plannings.timers.location.update');
