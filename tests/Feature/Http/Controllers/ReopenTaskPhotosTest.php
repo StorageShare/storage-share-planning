@@ -16,6 +16,7 @@ class ReopenTaskPhotosTest extends TestCase
 
     public function test_reopen_returns_photos_from_latest_completion()
     {
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
         $user = User::factory()->create(['role' => Role::ALGEMEEN_MEDEWERKER->value]);
         $planning = Planning::factory()->create();
         $pt = PlanningTask::factory()->create([

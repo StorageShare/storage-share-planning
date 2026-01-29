@@ -165,6 +165,10 @@ class EndChecklistController extends Controller
                 $photo->delete();
             }
 
+            if ($item->photo_path && Storage::disk('public')->exists($item->photo_path)) {
+                Storage::disk('public')->delete($item->photo_path);
+            }
+
             // Clear legacy columns
             $item->update([
                 'photo_path' => null,

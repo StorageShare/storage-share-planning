@@ -70,7 +70,7 @@ class LocationController extends Controller
      * Display the specified resource.
      * Route model binding will automatically fail with 404 if a soft-deleted location is requested.
      */
-    public function show(Location $location): View
+    public function show(Request $request, Location $location): View
     {
         // Fetch open tasks for the location
         $openTasksQuery = $location->tasks()
@@ -110,6 +110,11 @@ class LocationController extends Controller
      */
     public function edit(Location $location, \App\Services\ExternalLocationService $externalLocationService): View|RedirectResponse
     {
+        if (! is_null($location->external_id)) {
+            return redirect()->route('locations.index')
+                ->with('error', 'Gesynchroniseerde locaties kunnen niet worden gewijzigd.');
+        }
+
         $externalLocations = $externalLocationService->fetchExternalLocations() ?? [];
 
         return view('locations.edit', compact('location', 'externalLocations'));
@@ -120,6 +125,11 @@ class LocationController extends Controller
      */
     public function update(UpdateLocationRequest $request, Location $location): RedirectResponse
     {
+        if (! is_null($location->external_id)) {
+            return redirect()->route('locations.index')
+                ->with('error', 'Gesynchroniseerde locaties kunnen niet worden gewijzigd.');
+        }
+
         $location->update($request->validated());
 
         return redirect()->route('locations.index')
@@ -131,6 +141,11 @@ class LocationController extends Controller
      */
     public function destroy(Location $location): RedirectResponse
     {
+        if (! is_null($location->external_id)) {
+            return redirect()->route('locations.index')
+                ->with('error', 'Gesynchroniseerde locaties kunnen niet worden verwijderd.');
+        }
+
         $location->delete();
 
         return redirect()->route('locations.index')

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Planning;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,9 +19,11 @@ class PlanningFactory extends Factory
             'planned_date' => $this->faker->dateTimeBetween('-1 week', '+1 week'),
             'notes' => $this->faker->sentence(),
             'status' => 'open',
-            'created_by' => null,
+            'created_by' => User::factory(),
             'start_address' => $this->faker->address(),
             'start_time' => null,
+            'travel_time_distributed_at' => null,
+            'vehicle_id' => null,
         ];
     }
 }

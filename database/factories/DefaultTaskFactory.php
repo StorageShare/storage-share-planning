@@ -18,7 +18,9 @@ class DefaultTaskFactory extends Factory
         return [
             'title' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph(),
+            'feedback_information' => $this->faker->optional()->paragraph(),
             'estimated_time_minutes' => $this->faker->numberBetween(10, 240),
+            'is_always_included' => false,
             'applies_to_all_locations' => false,
             'applies_to_lift_locations' => false,
             'applies_to_door_types' => false,

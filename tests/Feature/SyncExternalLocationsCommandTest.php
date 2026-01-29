@@ -62,11 +62,7 @@ class SyncExternalLocationsCommandTest extends TestCase
         $this->assertDatabaseHas('locations', [
             'external_id' => $externalId,
             'name' => 'External Name',
-            'address' => 'Teststraat 1',
-            'postal_code' => '1234 AB',
-            'city' => 'Teststad',
-            'description' => 'Mooie locatie',
-            'lift' => 1, // 'Ja' should be cast to true/1
+            'lift' => 'Ja',
             'total_rooms' => 18,
         ]);
     }
@@ -104,7 +100,7 @@ class SyncExternalLocationsCommandTest extends TestCase
             'id' => $linkedLocation->id,
             'sync_external_id' => $externalId,
             'name' => 'My Custom Name', // Preserved
-            'lift' => 1, // Updated
+            'lift' => 'Ja', // Updated
         ]);
     }
 

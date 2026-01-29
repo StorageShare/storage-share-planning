@@ -154,7 +154,11 @@ class EndChecklistControllerTest extends TestCase
             'planning_id' => $planning->id,
             'type' => 'end_action',
             'title' => 'B',
-            'photo_path' => 'some/path.jpg',
+        ]);
+        $i2->photos()->create([
+            'file_path' => 'some/path.jpg',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
         ]);
 
         // Should fail because one item has no photo
@@ -165,7 +169,11 @@ class EndChecklistControllerTest extends TestCase
         $response->assertJson(['success' => false]);
 
         // Fix: add photo for the missing one
-        $i1->update(['photo_path' => 'another/path.jpg']);
+        $i1->photos()->create([
+            'file_path' => 'another/path.jpg',
+            'uploaded_by' => $user->id,
+            'uploaded_at' => now(),
+        ]);
 
         $response2 = $this->actingAs($user)
             ->withHeader('X-CSRF-TOKEN', $this->token)
@@ -259,7 +267,11 @@ class EndChecklistControllerTest extends TestCase
             'type' => 'end_action',
             'title' => 'X',
             'status' => 'pending',
-            'photo_path' => 'f.jpg',
+        ]);
+        EndChecklistItem::where('planning_id', $p1->id)->first()->photos()->create([
+            'file_path' => 'f.jpg',
+            'uploaded_by' => $admin->id,
+            'uploaded_at' => now(),
         ]);
         // p2 has pending without photo => should be excluded
         EndChecklistItem::create([
@@ -267,7 +279,6 @@ class EndChecklistControllerTest extends TestCase
             'type' => 'end_action',
             'title' => 'Y',
             'status' => 'pending',
-            'photo_path' => null,
         ]);
 
         $response = $this->actingAs($admin)
@@ -346,6 +357,8 @@ class EndChecklistControllerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => Role::ADMIN->value]);
         $planning = Planning::factory()->create();
+        $location = \App\Models\Location::factory()->create();
+        $planning->locations()->attach($location->id, ['sort_order' => 0]);
         $item = EndChecklistItem::create([
             'planning_id' => $planning->id,
             'type' => 'end_action',

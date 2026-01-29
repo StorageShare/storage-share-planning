@@ -49,5 +49,13 @@ class StoreBulkTaskRequest extends FormRequest
         if (! $this->input('priority')) {
             $this->merge(['priority' => TaskPriority::NORMAL->value]);
         }
+
+        if (is_array($this->input('locations'))) {
+            $locations = array_values(array_filter(
+                $this->input('locations'),
+                fn ($locationId) => $locationId !== null && $locationId !== ''
+            ));
+            $this->merge(['locations' => $locations]);
+        }
     }
 }

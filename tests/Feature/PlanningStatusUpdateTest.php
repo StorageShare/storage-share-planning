@@ -15,6 +15,15 @@ class PlanningStatusUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected string $token;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->token = \Illuminate\Support\Str::random(40);
+        $this->withSession(['_token' => $this->token]);
+    }
+
     public function test_planning_status_updates_to_completed_when_last_checklist_item_approved(): void
     {
         $admin = User::factory()->create(['role' => Role::ADMIN->value]);
@@ -24,6 +33,7 @@ class PlanningStatusUpdateTest extends TestCase
         PlanningTask::create([
             'planning_id' => $planning->id,
             'title' => 'Test Task',
+            'description' => 'Test description',
             'status' => TaskStatus::COMPLETED,
         ]);
 
@@ -42,6 +52,7 @@ class PlanningStatusUpdateTest extends TestCase
 
         // Act: Approve the checklist item
         $response = $this->actingAs($admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
             ->post(route('admin.end-checklist.approve', $item));
 
         $response->assertRedirect();

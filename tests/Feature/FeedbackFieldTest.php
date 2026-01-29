@@ -69,6 +69,7 @@ class FeedbackFieldTest extends TestCase
             'title' => 'Default Taak',
             'description' => 'Test Omschrijving',
             'feedback_information' => 'Jaap',
+            'time_calculation_type' => 'simplified',
         ]);
 
         $response->assertRedirect();
@@ -82,6 +83,7 @@ class FeedbackFieldTest extends TestCase
             'title' => 'Updated Default',
             'description' => 'Test Omschrijving',
             'feedback_information' => 'Kees',
+            'time_calculation_type' => 'simplified',
         ]);
 
         if ($response->status() !== 302) {

@@ -2,11 +2,11 @@
 
 namespace Database\Factories;
 
-use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -24,10 +24,19 @@ TaskFactory extends Factory
             'location_id' => Location::factory(),
             'title' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph(),
+            'feedback_information' => $this->faker->optional()->paragraph(),
             'deadline' => null,
             'estimated_time_minutes' => null,
             'priority' => TaskPriority::NORMAL->value,
             'status' => TaskStatus::OPEN->value,
+            'review_notes' => null,
+            'created_by' => User::factory(),
+            'end_day_action_title' => null,
+            'end_day_action_description' => null,
+            'is_recurring' => false,
+            'recurring_interval_type' => null,
+            'recurring_interval_value' => null,
+            'parent_recurring_task_id' => null,
         ];
     }
 

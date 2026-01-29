@@ -998,7 +998,7 @@ class PlanningController extends Controller
                 if (!$location) continue;
 
                 foreach ($default_task_templates as $template) {
-                    if ($template->locations->contains($location_id)) {
+                    if ($template->locations->contains('id', $location_id)) {
                         $estimatedTime = $template->calculateEstimatedTime($location);
 
                         // Duplicate DefaultTask to a normal Task
@@ -1097,7 +1097,7 @@ class PlanningController extends Controller
                 if (!$location) continue;
 
                 foreach ($default_task_templates as $default_task_template) {
-                    if ($default_task_template->locations->contains($location_id_for_planning)) {
+                    if ($default_task_template->locations->contains('id', $location_id_for_planning)) {
                         $estimatedTime = $default_task_template->calculateEstimatedTime($location);
                         $desired_default_task_state->put($location_id_for_planning.'-'.$default_task_template->id, [
                             'location_id' => $location_id_for_planning,
@@ -1147,7 +1147,11 @@ class PlanningController extends Controller
 
         // Logic for adding/removing backlog tasks
         $selected_backlog_task_ids = collect($validatedData['selected_backlog_tasks'] ?? [])->map(fn ($id) => (int) $id);
-        $current_planning_tasks_from_backlog = $planning->planningTasks()->whereNotNull('task_id')->get();
+        $current_planning_tasks_from_backlog = $planning->planningTasks()
+            ->whereNotNull('task_id')
+            ->whereNull('default_task_id')
+            ->whereNull('vehicle_task_id')
+            ->get();
 
         $backlog_task_ids_to_delete_from_planning = $current_planning_tasks_from_backlog
             ->filter(fn ($pt) => ! $selected_backlog_task_ids->contains($pt->task_id))

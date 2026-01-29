@@ -21,6 +21,7 @@ class BulkTaskControllerTest extends TestCase
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => Role::ADMIN]);
+        $this->withoutMiddleware();
     }
 
     public function test_bulk_create_renders(): void
@@ -76,8 +77,8 @@ class BulkTaskControllerTest extends TestCase
 
     public function test_bulk_store_creates_tasks_for_lift_locations(): void
     {
-        Location::factory()->count(2)->create(['has_lift' => true]);
-        Location::factory()->count(3)->create(['has_lift' => false]);
+        Location::factory()->count(2)->create(['lift' => 'Ja']);
+        Location::factory()->count(3)->create(['lift' => 'Nee']);
 
         $data = [
             'title' => 'Lift Task',

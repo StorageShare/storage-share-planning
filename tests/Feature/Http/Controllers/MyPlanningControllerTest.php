@@ -156,10 +156,12 @@ class MyPlanningControllerTest extends TestCase
         $response->assertViewHas('locationSteps', function ($steps) use ($l1, $l2) {
             $this->assertIsArray($steps);
             $this->assertNotEmpty($steps);
-            // First step should be the requirements checklist
+            // Summary is first, requirements checklist is second
             $first = $steps[0];
-            $this->assertEquals('requirements', $first['type']);
-            $names = array_column($first['requirements'], 'naam');
+            $this->assertEquals('summary', $first['type']);
+            $second = $steps[1];
+            $this->assertEquals('requirements', $second['type']);
+            $names = array_column($second['requirements'], 'naam');
             // Regular item appears once (deduped) even though it is required for two locations and used by a task
             $this->assertEquals(1, collect($names)->filter(fn($n) => $n === 'Emmer')->count());
             // Placeholder creates two location-specific variants with replaced names

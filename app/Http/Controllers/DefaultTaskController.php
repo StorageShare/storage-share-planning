@@ -140,6 +140,9 @@ class DefaultTaskController extends Controller
     public function update(UpdateDefaultTaskRequest $request, DefaultTask $defaultTask): RedirectResponse
     {
         $validatedData = $request->validated();
+        if ($request->exists('feedback_information')) {
+            $validatedData['feedback_information'] = $request->input('feedback_information');
+        }
 
         // Ensure boolean fields are set correctly if not present in the request
         $validatedData['is_always_included'] = $request->has('is_always_included');

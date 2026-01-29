@@ -12,11 +12,14 @@ class LocationCRUDTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected string $token;
     protected User $admin;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->token = \Illuminate\Support\Str::random(40);
+        $this->withSession(['_token' => $this->token]);
         $this->admin = User::factory()->create(['role' => Role::ADMIN->value]);
     }
 
@@ -30,6 +33,7 @@ class LocationCRUDTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
             ->post(route('locations.store'), $locationData);
 
         $response->assertRedirect(route('locations.index'));
@@ -64,6 +68,7 @@ class LocationCRUDTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
             ->put(route('locations.update', $location), $updateData);
 
         $response->assertRedirect(route('locations.index'));
@@ -80,6 +85,7 @@ class LocationCRUDTest extends TestCase
         $location = Location::factory()->create(['external_id' => null]);
 
         $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
             ->delete(route('locations.destroy', $location));
 
         $response->assertRedirect(route('locations.index'));
@@ -90,7 +96,7 @@ class LocationCRUDTest extends TestCase
 
     public function test_cannot_edit_synced_location(): void
     {
-        $location = Location::factory()->create(['external_id' => 'EXT-123']);
+        $location = Location::factory()->create(['external_id' => 123]);
 
         $response = $this->actingAs($this->admin)
             ->get(route('locations.edit', $location));
@@ -101,7 +107,7 @@ class LocationCRUDTest extends TestCase
 
     public function test_cannot_update_synced_location(): void
     {
-        $location = Location::factory()->create(['external_id' => 'EXT-123', 'name' => 'Synced Location']);
+        $location = Location::factory()->create(['external_id' => 123, 'name' => 'Synced Location']);
 
         $updateData = [
             'name' => 'Attempted Update',
@@ -111,6 +117,7 @@ class LocationCRUDTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
             ->put(route('locations.update', $location), $updateData);
 
         $response->assertRedirect(route('locations.index'));
@@ -124,9 +131,10 @@ class LocationCRUDTest extends TestCase
 
     public function test_cannot_delete_synced_location(): void
     {
-        $location = Location::factory()->create(['external_id' => 'EXT-123']);
+        $location = Location::factory()->create(['external_id' => 123]);
 
         $response = $this->actingAs($this->admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
             ->delete(route('locations.destroy', $location));
 
         $response->assertRedirect(route('locations.index'));

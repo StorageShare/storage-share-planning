@@ -87,6 +87,7 @@ class DefaultTaskControllerTest extends TestCase
             'description' => 'Sweep all floors',
             'applies_to_all_locations' => true,
             'requirements' => [$b1->id, $b2->id],
+            'time_calculation_type' => 'simplified',
         ];
 
         $response = $this->actingAs($this->admin)
@@ -115,6 +116,7 @@ class DefaultTaskControllerTest extends TestCase
             'description' => 'Clean doors',
             'applies_to_door_types' => true,
             'door_types' => ['  houten deur ', 'glazen deur'],
+            'time_calculation_type' => 'simplified',
         ];
 
         $response = $this->actingAs($this->admin)
@@ -141,6 +143,7 @@ class DefaultTaskControllerTest extends TestCase
             'title' => 'Spot Clean',
             'description' => 'Clean spots',
             'locations' => [$l1->id, $l3->id],
+            'time_calculation_type' => 'simplified',
         ];
 
         $response = $this->actingAs($this->admin)
@@ -159,6 +162,7 @@ class DefaultTaskControllerTest extends TestCase
             'title' => 'Always Task',
             'description' => 'Should be always included',
             'is_always_included' => true,
+            'time_calculation_type' => 'simplified',
         ];
 
         $response = $this->actingAs($this->admin)
