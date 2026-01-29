@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ExternalTaskController;
 use App\Http\Controllers\Api\V1\DefaultTaskController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\LocationDistanceController;
@@ -36,6 +37,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/location-distances/sort', [LocationDistanceController::class, 'sortLocationsByDistance']);
     Route::get('/location-distances/{fromLocationId}/to/{toLocationId}', [LocationDistanceController::class, 'getDistanceBetween']);
     Route::post('/location-distances/{fromLocationId}/to/{toLocationId}/recalculate', [LocationDistanceController::class, 'recalculateDistance']);
+});
+
+Route::prefix('v1/external')->middleware(['external_api'])->group(function () {
+    Route::post('/tasks', [ExternalTaskController::class, 'store']);
 });
 
 // Offline API endpoints - using web auth for session-based authentication

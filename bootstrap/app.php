@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
             'can_execute_plannings' => \App\Http\Middleware\CanExecutePlannings::class,
             'can_manage_plannings' => \App\Http\Middleware\CanManagePlannings::class,
+            'external_api' => \App\Http\Middleware\VerifyExternalApiSignature::class,
         ]);
 
     })

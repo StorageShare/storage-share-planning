@@ -50,4 +50,8 @@ return [
         'api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'external_api' => [
+        'secret' => env('EXTERNAL_API_SECRET'),
+    ],
+
 ];
