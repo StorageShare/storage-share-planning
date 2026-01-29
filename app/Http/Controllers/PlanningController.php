@@ -274,9 +274,10 @@ class PlanningController extends Controller
 
         // Haal alle backlog taken op die beschikbaar zijn voor planning.
         $all_backlog_tasks = Task::query()
+            ->whereIn('status', ['open', 'in_progress', 'rejected'])
             ->where(function ($query) {
-                $query->whereIn('status', ['open', 'in_progress', 'rejected'])
-                      ->whereDoesntHave('planningTasks');
+                $query->where('status', \App\Enums\TaskStatus::OPEN->value)
+                      ->orWhereDoesntHave('planningTasks');
             })
             ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
             ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
@@ -517,14 +518,15 @@ class PlanningController extends Controller
 
         // Haal alle backlog taken op die beschikbaar zijn voor planning.
         $availableBacklogTasks = Task::query()
+            ->whereIn('status', ['open', 'in_progress', 'rejected'])
             ->where(function ($query) use ($planning) {
-                // Taak is 'open', 'in_progress', of 'rejected' EN is nog niet aan een planning gekoppeld
-                $query->whereIn('status', ['open', 'in_progress', 'rejected'])
-                      ->whereDoesntHave('planningTasks');
-            })
-            ->orWhereHas('planningTasks', function ($query) use ($planning) {
-                // OF de taak is gekoppeld aan de HUIDIGE planning
-                $query->where('planning_id', $planning->id);
+                // Open taken mogen ook al aan andere planningen gekoppeld zijn
+                $query->where('status', \App\Enums\TaskStatus::OPEN->value)
+                      ->orWhereDoesntHave('planningTasks')
+                      ->orWhereHas('planningTasks', function ($planningQuery) use ($planning) {
+                          // OF de taak is gekoppeld aan de HUIDIGE planning
+                          $planningQuery->where('planning_id', $planning->id);
+                      });
             })
             ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
             ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [

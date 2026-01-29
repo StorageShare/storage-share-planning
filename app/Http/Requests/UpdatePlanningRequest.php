@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TaskStatus;
 use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\Task;
@@ -115,14 +116,17 @@ class UpdatePlanningRequest extends FormRequest
                         return;
                     }
                     // Check of de taak al aan een *andere* actieve planning is gekoppeld
-                    $query = $task->planningTasks()->whereHas('planning', function ($q) use ($planning_id) {
-                        if ($planning_id) {
-                            $q->where('id', '!=', $planning_id);
+                    // Open taken mogen aan meerdere planningen gekoppeld worden.
+                    if ($task->status !== TaskStatus::OPEN) {
+                        $query = $task->planningTasks()->whereHas('planning', function ($q) use ($planning_id) {
+                            if ($planning_id) {
+                                $q->where('id', '!=', $planning_id);
+                            }
+                            // Hier zou je nog kunnen filteren op actieve planningen, b.v. niet 'completed' status
+                        });
+                        if ($query->exists()) {
+                            $fail("De backlog taak '{$task->title}' is al aan een andere planning toegewezen.");
                         }
-                        // Hier zou je nog kunnen filteren op actieve planningen, b.v. niet 'completed' status
-                    });
-                    if ($query->exists()) {
-                        $fail("De backlog taak '{$task->title}' is al aan een andere planning toegewezen.");
                     }
                 },
             ],

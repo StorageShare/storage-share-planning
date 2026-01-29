@@ -537,12 +537,18 @@
 
             tasks.forEach(task => {
                 const div = document.createElement('div');
+                const taskStatusValue = task.status && typeof task.status === 'object' && 'value' in task.status
+                    ? task.status.value
+                    : task.status;
+                const isOpenStatus = String(taskStatusValue).toLowerCase() === 'open';
+                let hasPlanningInfo = false;
                 let isPlannedElsewhere = false;
                 let plannedInfo = null;
 
                 if (taskType === 'backlog_tasks') {
                     plannedInfo = plannedBacklogTasks[task.id];
-                    isPlannedElsewhere = !!plannedInfo;
+                    hasPlanningInfo = !!plannedInfo;
+                    isPlannedElsewhere = hasPlanningInfo && !isOpenStatus;
                 }
 
                 div.className = `flex items-start ps-2 py-1.5 border-b border-gray-100 last:border-b-0 ${isPlannedElsewhere ? 'opacity-60' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} rounded-sm dark:border-gray-800`;
@@ -586,13 +592,14 @@
                 // Status en deadline informatie voor backlog taken
                 let statusAndDeadlineHtml = '';
                 if (taskType === 'backlog_tasks') {
-                    const statusHtml = task.status ? `<span class="ms-2 text-xs font-medium px-1.5 py-0.5 rounded-full ${getStatusClass(task.status.value)}">${escapeHtml(getStatusLabel(task.status.value))}</span>` : '';
+                    const statusValue = taskStatusValue;
+                    const statusHtml = statusValue ? `<span class="ms-2 text-xs font-medium px-1.5 py-0.5 rounded-full ${getStatusClass(statusValue)}">${escapeHtml(getStatusLabel(statusValue))}</span>` : '';
                     const deadlineHtml = task.deadline ? `<span class="ms-2 text-xs text-gray-600 dark:text-gray-400">📅 ${escapeHtml(formatDeadline(task.deadline))}</span>` : '';
                     statusAndDeadlineHtml = `${statusHtml}${deadlineHtml}`;
                 }
 
                 let plannedElsewhereHtml = '';
-                if (isPlannedElsewhere) {
+                if (hasPlanningInfo) {
                     const url = planningShowRouteTemplate.replace('REPLACE_ID', plannedInfo.planning_id);
                     plannedElsewhereHtml = `
                         <span class="block text-xs text-orange-600 dark:text-orange-400 font-semibold ps-0 mt-1">
@@ -601,8 +608,8 @@
                 }
 
                 // If this task is planned elsewhere, ensure it's not kept in the live selected set
-                if (isPlannedElsewhere && selectedTaskIdsSet.has(taskIdStr)) {
-                    selectedTaskIdsSet.delete(taskIdStr);
+                if (isPlannedElsewhere && selectedTaskIdsSet.has(taskIdIdStr)) {
+                    selectedTaskIdsSet.delete(taskIdIdStr);
                     isChecked = false;
                 }
 
