@@ -34,7 +34,7 @@ $inputClasses = $baseClasses . ' ' . $errorClasses . ' ' . $class;
         placeholder="{{ $placeholder }}"
         @if($required) required @endif
         @if($disabled) disabled @endif
-        class="{{ $inputClasses }} dark:bg-gray-800  dark:border-gray-600"
+        class="{{ $inputClasses }} dark:bg-gray-800  dark:border-gray-600 dark:text-gray-300"
         {{ $attributes }}
     />
 

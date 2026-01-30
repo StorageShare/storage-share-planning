@@ -17,15 +17,19 @@
                             </p>
                         </div>
                         <div>
-                            @if(Auth::user()->isAdmin() && $task->status === App\Enums\TaskStatus::REVIEW)
+                            @if(Auth::user()->isAdmin() && ($task->status === App\Enums\TaskStatus::REVIEW || $task->status === App\Enums\TaskStatus::IN_REVIEW))
                                 <form action="{{ route('tasks.approve', $task) }}" method="POST" class="inline-block">
                                     @csrf
-                                    <x-primary-button type="submit">Goedkeuren</x-primary-button>
+                                    <x-primary-button type="submit">
+                                        {{ $task->status === App\Enums\TaskStatus::IN_REVIEW ? 'Accepteren' : 'Goedkeuren' }}
+                                    </x-primary-button>
                                 </form>
+                                @if($task->status === App\Enums\TaskStatus::REVIEW)
                                 <form action="{{ route('tasks.reject', $task) }}" method="POST" class="inline-block">
                                     @csrf
                                     <x-danger-button type="submit">Afkeuren</x-danger-button>
                                 </form>
+                                @endif
                             @endif
                             @if(Auth::user()->isAdmin())
                             <a href="{{ route('tasks.edit', $task) }}" class="inline-flex items-center px-4 py-2 bg-yellow-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-600 active:bg-yellow-700 focus:outline-none focus:border-yellow-700 focus:ring ring-yellow-300 disabled:opacity-25 transition ease-in-out duration-150 mr-2">
@@ -84,12 +88,13 @@
                                                 @case(App\Enums\TaskStatus::CONCEPT) bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 @break
                                                 @case(App\Enums\TaskStatus::OPEN) bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
                                                 @case(App\Enums\TaskStatus::IN_PROGRESS) bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 @break
+                                                @case(App\Enums\TaskStatus::IN_REVIEW) bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 @break
                                                 @case(App\Enums\TaskStatus::REVIEW) bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 @break
                                                 @case(App\Enums\TaskStatus::COMPLETED) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
                                                 @case(App\Enums\TaskStatus::CLOSED) bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 @break
                                             @endswitch
                                         ">
-                                            {{ $task->status->name }}
+                                            {{ $task->status->label() }}
                                         </span>
                                     </dd>
                                 </div>

@@ -28,7 +28,7 @@ class ExternalTaskController extends Controller
                 'feedback_information' => $data['feedback_information'] ?? null,
                 'deadline' => $data['deadline'] ?? null,
                 'estimated_time_minutes' => $data['estimated_time_minutes'] ?? null,
-                'status' => TaskStatus::OPEN,
+                'status' => TaskStatus::IN_REVIEW,
                 'priority' => $data['priority'] ?? TaskPriority::NORMAL->value,
                 'created_by' => null,
             ]);

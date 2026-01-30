@@ -35,7 +35,7 @@ class LocationDuplicateTaskTest extends TestCase
             'postal_code' => '1234 AB',
             'city' => 'Teststad',
             'type_deur' => 'overhead',
-            'lift' => false,
+            'lift' => 'Nee',
         ]);
 
         $response->assertRedirect(route('locations.index'));

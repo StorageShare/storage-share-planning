@@ -110,8 +110,8 @@ class UpdatePlanningRequest extends FormRequest
                         return;
                     }
                     // Valideer status
-                    if (! in_array($task->status->value, ['open', 'in_progress'])) {
-                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->value);
+                    if (! in_array($task->status, [TaskStatus::OPEN, TaskStatus::IN_PROGRESS])) {
+                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->label());
 
                         return;
                     }

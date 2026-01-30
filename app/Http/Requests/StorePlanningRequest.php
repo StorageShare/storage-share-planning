@@ -108,8 +108,8 @@ class StorePlanningRequest extends FormRequest
 
                         return;
                     }
-                    if (! in_array($task->status->value, [TaskStatus::OPEN->value, TaskStatus::IN_PROGRESS->value])) {
-                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->value);
+                    if (! in_array($task->status, [TaskStatus::OPEN, TaskStatus::IN_PROGRESS])) {
+                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->label());
 
                         return;
                     }

@@ -274,15 +274,15 @@ class PlanningController extends Controller
 
         // Haal alle backlog taken op die beschikbaar zijn voor planning.
         $all_backlog_tasks = Task::query()
-            ->whereIn('status', ['open', 'in_progress', 'rejected'])
+            ->whereIn('status', ['open', 'in_progress', 'rejected', 'in_review'])
             ->where(function ($query) {
-                $query->where('status', \App\Enums\TaskStatus::OPEN->value)
+                $query->whereIn('status', [\App\Enums\TaskStatus::OPEN->value, \App\Enums\TaskStatus::IN_REVIEW->value])
                       ->orWhereDoesntHave('planningTasks');
             })
             ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
-            ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
-                'open', 'in_progress', 'rejected'
-            ]) // Daarna op status: open, in_progress, rejected
+            ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 WHEN ? THEN 4 ELSE 5 END ASC', [
+                'open', 'in_review', 'in_progress', 'rejected'
+            ]) // Daarna op status: open, in_review, in_progress, rejected
             ->orderBy('priority', 'asc') // Als tie-breaker: priority
             ->orderBy('created_at', 'asc') // Als laatste tie-breaker: created_at
             ->get();
@@ -518,10 +518,10 @@ class PlanningController extends Controller
 
         // Haal alle backlog taken op die beschikbaar zijn voor planning.
         $availableBacklogTasks = Task::query()
-            ->whereIn('status', ['open', 'in_progress', 'rejected'])
+            ->whereIn('status', ['open', 'in_progress', 'rejected', 'in_review'])
             ->where(function ($query) use ($planning) {
-                // Open taken mogen ook al aan andere planningen gekoppeld zijn
-                $query->where('status', \App\Enums\TaskStatus::OPEN->value)
+                // Open en In Review taken mogen ook al aan andere planningen gekoppeld zijn
+                $query->whereIn('status', [\App\Enums\TaskStatus::OPEN->value, \App\Enums\TaskStatus::IN_REVIEW->value])
                       ->orWhereDoesntHave('planningTasks')
                       ->orWhereHas('planningTasks', function ($planningQuery) use ($planning) {
                           // OF de taak is gekoppeld aan de HUIDIGE planning
@@ -529,9 +529,9 @@ class PlanningController extends Controller
                       });
             })
             ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
-            ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
-                'open', 'in_progress', 'rejected'
-            ]) // Daarna op status: open, in_progress, rejected
+            ->orderByRaw('CASE status WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 WHEN ? THEN 4 ELSE 5 END ASC', [
+                'open', 'in_review', 'in_progress', 'rejected'
+            ]) // Daarna op status: open, in_review, in_progress, rejected
             ->orderBy('priority', 'asc') // Als tie-breaker: priority
             ->orderBy('created_at', 'asc') // Als laatste tie-breaker: created_at
             ->get();

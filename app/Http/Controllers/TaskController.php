@@ -472,6 +472,12 @@ class TaskController extends Controller
 
     public function approve(Request $request, Task $task): RedirectResponse
     {
+        if ($task->status === TaskStatus::IN_REVIEW) {
+            $task->update(['status' => TaskStatus::OPEN]);
+
+            return redirect()->route('tasks.show', $task)->with('success', 'Taak goedgekeurd en status aangepast naar open.');
+        }
+
         $task->update(['status' => TaskStatus::COMPLETED]);
 
         // Find the planning task that triggered the review and update its completion record

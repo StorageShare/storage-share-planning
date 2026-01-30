@@ -14,6 +14,15 @@ class ReopenTaskPhotosTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected string $token;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->token = \Illuminate\Support\Str::random(40);
+        $this->withSession(['_token' => $this->token]);
+    }
+
     public function test_reopen_returns_photos_from_latest_completion()
     {
         $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);

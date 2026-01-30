@@ -7,6 +7,7 @@ enum TaskStatus: string
     case CONCEPT = 'concept';
     case OPEN = 'open';
     case IN_PROGRESS = 'in_progress';
+    case IN_REVIEW = 'in_review';
     case REVIEW = 'review';
     case COMPLETED = 'completed';
     case REJECTED = 'rejected';
@@ -19,6 +20,7 @@ enum TaskStatus: string
             self::CONCEPT => 'Concept',
             self::OPEN => 'Open',
             self::IN_PROGRESS => 'In uitvoering',
+            self::IN_REVIEW => 'In afwachting',
             self::REVIEW => 'Ter beoordeling',
             self::COMPLETED => 'Voltooid',
             self::REJECTED => 'Afgekeurd',

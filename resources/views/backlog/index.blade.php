@@ -34,7 +34,7 @@
                             @if($filters['show_completed'])
                                 Overzicht van alle taken, inclusief voltooide.
                             @else
-                                Overzicht van alle openstaande en in uitvoering zijnde taken.
+                                Overzicht van alle openstaande, in uitvoering zijnde en ter beoordeling staande taken.
                             @endif
                         </p>
                     </div>

@@ -41,7 +41,7 @@ class TaskBacklogController extends Controller
                 $query->where('status', TaskStatus::CONCEPT->value);
             } else {
                 if (! $showCompleted) {
-                    $query->whereIn('status', ['concept', 'open', 'in_progress']);
+                    $query->whereIn('status', ['concept', 'open', 'in_progress', 'in_review']);
                 }
             }
         }
