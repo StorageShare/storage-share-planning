@@ -35,6 +35,7 @@
                         <a class="font-medium {{ request()->routeIs('default-tasks.*') ? 'text-blue-600 sm:py-6' : 'text-gray-500 hover:text-gray-400 sm:py-6' }}" href="{{ route('default-tasks.index') }}">Standaard Taken</a>
                         <a class="font-medium {{ request()->routeIs('plannings.*') ? 'text-blue-600 sm:py-6' : 'text-gray-500 hover:text-gray-400 sm:py-6' }}" href="{{ route('plannings.index') }}">Planningen</a>
                         <a class="font-medium {{ request()->routeIs('backlog.index') ? 'text-blue-600 sm:py-6' : 'text-gray-500 hover:text-gray-400 sm:py-6' }}" href="{{ route('backlog.index') }}">Taken</a>
+                        <a class="font-medium {{ request()->routeIs('external-backlog.*') ? 'text-blue-600 sm:py-6' : 'text-gray-500 hover:text-gray-400 sm:py-6' }}" href="{{ route('external-backlog.index') }}">Externe taken</a>
                     </div>
                 </div>
             </nav>

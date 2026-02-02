@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Enums\Role;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -54,6 +55,11 @@ class User extends Authenticatable
     public function plannings(): BelongsToMany
     {
         return $this->belongsToMany(Planning::class);
+    }
+
+    public function externalTaskComments(): HasMany
+    {
+        return $this->hasMany(ExternalTaskComment::class);
     }
 
     public function isAdmin(): bool

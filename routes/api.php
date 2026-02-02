@@ -40,7 +40,8 @@ Route::prefix('v1')->group(function () {
 });
 
 Route::prefix('v1/external')->middleware(['external_api'])->group(function () {
-    Route::post('/tasks', [ExternalTaskController::class, 'store']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::post('/external-tasks', [ExternalTaskController::class, 'store']);
 });
 
 // Offline API endpoints - using web auth for session-based authentication

@@ -7,6 +7,7 @@ use App\Http\Controllers\CsvImportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DefaultTaskController;
 use App\Http\Controllers\EndChecklistController;
+use App\Http\Controllers\ExternalTaskBacklogController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LocationSyncController;
 use App\Http\Controllers\PlanningController;
@@ -134,6 +135,15 @@ Route::middleware('auth')->group(function () {
 
     // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
     Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
+    Route::get('external-backlog', [ExternalTaskBacklogController::class, 'index'])->name('external-backlog.index');
+    Route::get('external-backlog/create', [ExternalTaskBacklogController::class, 'create'])->name('external-backlog.create');
+    Route::post('external-backlog', [ExternalTaskBacklogController::class, 'store'])->name('external-backlog.store');
+    Route::get('external-backlog/{external_task}', [ExternalTaskBacklogController::class, 'show'])->name('external-backlog.show');
+    Route::get('external-backlog/{external_task}/edit', [ExternalTaskBacklogController::class, 'edit'])->name('external-backlog.edit');
+    Route::put('external-backlog/{external_task}', [ExternalTaskBacklogController::class, 'update'])->name('external-backlog.update');
+    Route::delete('external-backlog/{external_task}', [ExternalTaskBacklogController::class, 'destroy'])->name('external-backlog.destroy');
+    Route::patch('external-backlog/{external_task}/status', [ExternalTaskBacklogController::class, 'updateStatus'])->name('external-backlog.status.update');
+    Route::post('external-backlog/{external_task}/comments', [ExternalTaskBacklogController::class, 'storeComment'])->name('external-backlog.comments.store');
     Route::get('tasks/select-location', [TaskController::class, 'selectLocationForTask'])->name('tasks.select-location');
     Route::get('tasks/bulk-create', [TaskController::class, 'bulkCreate'])->name('tasks.bulk-create');
     Route::post('tasks/bulk-store', [TaskController::class, 'bulkStore'])->name('tasks.bulk-store');

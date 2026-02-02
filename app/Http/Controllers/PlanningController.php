@@ -1037,7 +1037,9 @@ class PlanningController extends Controller
 
         // Logic for adding backlog tasks
         if (! empty($validatedData['selected_backlog_tasks'])) {
-            $backlogTasks = Task::findMany($validatedData['selected_backlog_tasks']);
+            $backlogTasks = Task::query()
+                ->whereIn('id', $validatedData['selected_backlog_tasks'])
+                ->get();
             foreach ($backlogTasks as $backlogTask) {
                 $planning->planningTasks()->create([
                     'task_id' => $backlogTask->id,
@@ -1163,7 +1165,9 @@ class PlanningController extends Controller
         $current_linked_backlog_task_ids = $current_planning_tasks_from_backlog->pluck('task_id');
         $new_backlog_task_ids_to_add = $selected_backlog_task_ids->diff($current_linked_backlog_task_ids);
         if ($new_backlog_task_ids_to_add->isNotEmpty()) {
-            $backlogTasksToAdd = Task::findMany($new_backlog_task_ids_to_add);
+            $backlogTasksToAdd = Task::query()
+                ->whereIn('id', $new_backlog_task_ids_to_add)
+                ->get();
             foreach ($backlogTasksToAdd as $backlogTask) {
                 $planning->planningTasks()->create([
                     'task_id' => $backlogTask->id,

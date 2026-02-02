@@ -15,18 +15,30 @@ Notes:
 
 ## Authentication
 
-Every request must include:
+Every request to the task endpoints must include:
 - `X-Api-Signature`: HMAC SHA256 signature of the raw request body using `EXTERNAL_API_SECRET`.
 
 The server rejects requests if the signature is missing or invalid.
 
-## Endpoint
+## Endpoints
+
+### External Tasks (Restricted)
 
 ```
 POST /api/v1/external/tasks
 ```
 
-### Required headers
+This endpoint is intended for tasks coming from external automated systems. It requires signature verification and creates tasks in the `external_tasks` table with `in_review` status.
+
+### Normal Tasks
+
+```
+POST /api/v1/tasks
+```
+
+This endpoint is for creating standard tasks in the main backlog (`tasks` table). It also requires signature verification.
+
+#### Required headers (Both endpoints)
 
 ```
 Content-Type: application/json
@@ -43,6 +55,7 @@ X-Api-Signature: <hmac>
   "location_id": 123,
   "location_external_id": 456,
   "deadline": "2025-03-05",
+  "external_deadline_at": "2025-03-05 12:00:00",
   "estimated_time_minutes": 120,
   "priority": "high"
 }
@@ -53,6 +66,8 @@ Rules:
 - You must provide either `location_id` or `location_external_id`.
 - `description` is optional; when omitted, it defaults to an empty string.
 - `priority` must be one of the configured task priorities (for example: `high`, `normal`, `low`).
+- `external_deadline_at` is an optional date/time field (you can also use `deadline` for backward compatibility).
+- Newly created external tasks will have the status `in_review`.
 
 ## Response
 

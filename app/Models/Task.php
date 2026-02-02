@@ -119,6 +119,7 @@ class Task extends Model
         return $this->hasMany(Task::class, 'parent_recurring_task_id');
     }
 
+
     /**
      * Calculate the next recurring date based on completion date.
      */

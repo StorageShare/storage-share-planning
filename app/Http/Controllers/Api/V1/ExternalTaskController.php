@@ -6,8 +6,8 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreExternalTaskRequest;
+use App\Models\ExternalTask;
 use App\Models\Location;
-use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,21 +19,19 @@ class ExternalTaskController extends Controller
         $data = $request->validated();
 
         $location = $this->resolveLocation($data);
+        $externalDeadlineAt = $data['external_deadline_at'] ?? ($data['deadline'] ?? null);
 
-        $task = DB::transaction(function () use ($data, $location) {
-            $task = Task::create([
+        $task = DB::transaction(function () use ($data, $location, $externalDeadlineAt) {
+            return ExternalTask::create([
                 'location_id' => $location->id,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? '',
                 'feedback_information' => $data['feedback_information'] ?? null,
-                'deadline' => $data['deadline'] ?? null,
+                'external_deadline_at' => $externalDeadlineAt,
                 'estimated_time_minutes' => $data['estimated_time_minutes'] ?? null,
                 'status' => TaskStatus::IN_REVIEW,
                 'priority' => $data['priority'] ?? TaskPriority::NORMAL->value,
-                'created_by' => null,
             ]);
-
-            return $task;
         });
 
         return response()->json([
