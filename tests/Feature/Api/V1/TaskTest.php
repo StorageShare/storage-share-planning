@@ -5,8 +5,10 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\User;
+use App\Mail\NewApiTaskReceivedMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class TaskTest extends TestCase
@@ -17,6 +19,7 @@ class TaskTest extends TestCase
     {
         parent::setUp();
         Config::set('services.external_api.secret', 'test-secret');
+        Mail::fake();
     }
 
     public function test_can_create_normal_task_via_api(): void
@@ -45,8 +48,12 @@ class TaskTest extends TestCase
         $this->assertDatabaseHas('tasks', [
             'title' => 'Normal API Task',
             'location_id' => $location->id,
-            'status' => TaskStatus::OPEN->value,
+            'status' => TaskStatus::REVIEW->value,
         ]);
+
+        Mail::assertSent(NewApiTaskReceivedMail::class, function ($mail) {
+            return $mail->hasTo('planning@storage-share.nl');
+        });
     }
 
     public function test_cannot_create_normal_task_without_signature(): void

@@ -54,6 +54,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
 
     Route::post('tasks/{task}/approve', [TaskController::class, 'approve'])->name('tasks.approve');
     Route::post('tasks/{task}/reject', [TaskController::class, 'reject'])->name('tasks.reject');
+    Route::post('tasks/{task}/convert-to-external', [TaskController::class, 'convertToExternal'])->name('tasks.convert-to-external');
 
     Route::post('plannings/tasks/{planning_task}/approve', [PlanningTaskController::class, 'approve'])->name('plannings.tasks.approve');
     Route::post('plannings/tasks/{planning_task}/reject', [PlanningTaskController::class, 'reject'])->name('plannings.tasks.reject');

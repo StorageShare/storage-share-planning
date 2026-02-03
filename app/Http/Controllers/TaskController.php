@@ -12,9 +12,11 @@ use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Location;
 use App\Models\Requirement;
 use App\Models\Task;
+use App\Models\ExternalTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -517,6 +519,27 @@ class TaskController extends Controller
         }
 
         return redirect()->route('admin.tasks.review')->with('success', $message);
+    }
+
+    public function convertToExternal(Task $task): RedirectResponse
+    {
+        return DB::transaction(function () use ($task) {
+            $externalTask = ExternalTask::create([
+                'location_id' => $task->location_id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'feedback_information' => $task->feedback_information,
+                'external_deadline_at' => $task->deadline,
+                'estimated_time_minutes' => $task->estimated_time_minutes,
+                'status' => TaskStatus::REVIEW,
+                'priority' => $task->priority,
+            ]);
+
+            $task->delete();
+
+            return redirect()->route('external-backlog.show', $externalTask)
+                ->with('success', 'Taak is succesvol omgezet naar een externe taak.');
+        });
     }
 
     public function reject(Request $request, Task $task): RedirectResponse

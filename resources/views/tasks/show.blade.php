@@ -30,6 +30,12 @@
                                     <x-danger-button type="submit">Afkeuren</x-danger-button>
                                 </form>
                                 @endif
+                                <form action="{{ route('tasks.convert-to-external', $task) }}" method="POST" class="inline-block" onsubmit="return confirm('Weet je zeker dat je deze taak wilt omzetten naar een externe taak? De huidige taak wordt verwijderd.')">
+                                    @csrf
+                                    <x-secondary-button type="submit">
+                                        Omzetten naar extern
+                                    </x-secondary-button>
+                                </form>
                             @endif
                             @if(Auth::user()->isAdmin())
                             <a href="{{ route('tasks.edit', $task) }}" class="inline-flex items-center px-4 py-2 bg-yellow-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-600 active:bg-yellow-700 focus:outline-none focus:border-yellow-700 focus:ring ring-yellow-300 disabled:opacity-25 transition ease-in-out duration-150 mr-2">

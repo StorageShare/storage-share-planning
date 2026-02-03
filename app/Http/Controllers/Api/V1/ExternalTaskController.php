@@ -8,8 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreExternalTaskRequest;
 use App\Models\ExternalTask;
 use App\Models\Location;
+use App\Mail\NewApiTaskReceivedMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class ExternalTaskController extends Controller
@@ -29,10 +31,15 @@ class ExternalTaskController extends Controller
                 'feedback_information' => $data['feedback_information'] ?? null,
                 'external_deadline_at' => $externalDeadlineAt,
                 'estimated_time_minutes' => $data['estimated_time_minutes'] ?? null,
-                'status' => TaskStatus::IN_REVIEW,
+                'status' => TaskStatus::REVIEW, // Consistently use REVIEW status
                 'priority' => $data['priority'] ?? TaskPriority::NORMAL->value,
             ]);
         });
+
+        // Although ExternalTask is a different model, we might want to notify about it as well
+        // For now, let's keep it consistent with TaskController if the goal is centralized review
+        // Note: NewApiTaskReceivedMail expects App\Models\Task, so we'd need a separate mail or adjust the model type hint if ExternalTask is still used.
+        // Given the feedback, it's likely they want to move towards the main Task model.
 
         return response()->json([
             'success' => true,

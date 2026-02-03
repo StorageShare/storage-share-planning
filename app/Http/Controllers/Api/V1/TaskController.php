@@ -8,8 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
 use App\Models\Location;
 use App\Models\Task;
+use App\Mail\NewApiTaskReceivedMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class TaskController extends Controller
 {
@@ -31,8 +33,10 @@ class TaskController extends Controller
             $validatedData['priority'] = TaskPriority::NORMAL->value;
         }
 
-        // Default status to OPEN for API created tasks, unless they are CUSTOMER_SERVICE then CONCEPT
-        $status = TaskStatus::OPEN;
+        // Default status to REVIEW for API created tasks so they can be reviewed by Jaap
+        $status = TaskStatus::REVIEW;
+
+        // If it's CUSTOMER_SERVICE, it can also stay CONCEPT or also go to REVIEW
         if (Auth::check() && Auth::user()->role === \App\Enums\Role::CUSTOMER_SERVICE) {
             $status = TaskStatus::CONCEPT;
         }
@@ -44,6 +48,9 @@ class TaskController extends Controller
         if (!empty($validatedData['requirements'])) {
             $task->requirements()->sync($validatedData['requirements']);
         }
+
+        // Send email notification to planning
+        Mail::to('planning@storage-share.nl')->send(new NewApiTaskReceivedMail($task));
 
         return response()->json([
             'success' => true,
