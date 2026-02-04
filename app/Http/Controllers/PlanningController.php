@@ -723,11 +723,16 @@ class PlanningController extends Controller
      */
     public function complete(Planning $planning): RedirectResponse
     {
-        $planning->update([
-            'status' => 'completed',
-        ]);
+        DB::transaction(function () use ($planning) {
+            // Delete all uncompleted tasks that were created from default tasks
+            $planning->cleanupUncompletedDefaultTasks();
 
-        return redirect()->back()->with('success', 'Planning is afgerond.');
+            $planning->update([
+                'status' => 'completed',
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Planning is afgerond. Niet-afgeronde standaardtaken zijn verwijderd.');
     }
 
     /**

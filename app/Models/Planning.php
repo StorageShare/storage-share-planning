@@ -167,8 +167,13 @@ class Planning extends Model
             // Tasks are completed, check if end checklist is also approved
             if ($this->hasApprovedEndChecklist()) {
                 if ($this->status !== 'completed') {
-                    $this->status = 'completed';
-                    $this->save();
+                    DB::transaction(function () {
+                        // Cleanup uncompleted default tasks when automatically completing
+                        $this->cleanupUncompletedDefaultTasks();
+
+                        $this->status = 'completed';
+                        $this->save();
+                    });
                 }
                 // Travel time distribution among locations removed; no action needed here
             } else {
@@ -184,6 +189,24 @@ class Planning extends Model
                 $this->status = 'in_progress'; // Or 'open', depending on your states
                 $this->save();
             }
+        }
+    }
+
+    /**
+     * Cleanup uncompleted default tasks when the planning is marked as completed.
+     */
+    public function cleanupUncompletedDefaultTasks(): void
+    {
+        $uncompletedDefaultPlanningTasks = $this->planningTasks()
+            ->whereNotNull('default_task_id')
+            ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
+            ->get();
+
+        foreach ($uncompletedDefaultPlanningTasks as $planningTask) {
+            if ($planningTask->task_id) {
+                Task::where('id', $planningTask->task_id)->delete();
+            }
+            $planningTask->delete();
         }
     }
     /**
