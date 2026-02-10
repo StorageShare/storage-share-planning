@@ -174,6 +174,16 @@
                                                 <div x-show="benodigdheid.beschrijving" class="mt-1">
                                                     <p class="text-sm text-gray-500 dark:text-gray-400" x-text="benodigdheid.beschrijving"></p>
                                                 </div>
+                                                <template x-if="benodigdheid.locaties && benodigdheid.locaties.length">
+                                                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 flex-wrap">
+                                                        <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 111.314 0z"></path>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        </svg>
+                                                        <span class="text-gray-600 dark:text-gray-300">Locaties:</span>
+                                                        <span x-text="benodigdheid.locaties.join(', ')"></span>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </div>
                                     </template>
@@ -1073,14 +1083,75 @@
                                             <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
                                                 <div class="flex items-start justify-between">
                                                     <div class="flex-1">
-                                                        <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
-                                                        <div x-show="comment.photos && comment.photos.length > 0" class="mt-3 flex flex-wrap gap-2">
-                                                            <template x-for="(photo, pIdx) in comment.photos" :key="pIdx">
-                                                                <button @click="openImageModal(comment.photos, pIdx)">
-                                                                    <img :src="photo" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
-                                                                </button>
-                                                            </template>
+                                                        <div x-show="editingCommentId !== comment.id">
+                                                            <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
+                                                            <div x-show="comment.photos && comment.photos.length > 0" class="mt-3 flex flex-wrap gap-2">
+                                                                <template x-for="(photo, pIdx) in comment.photos" :key="pIdx">
+                                                                    <button @click="openImageModal(comment.photos, pIdx)">
+                                                                        <img :src="photo" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
+                                                                    </button>
+                                                                </template>
+                                                            </div>
                                                         </div>
+
+                                                        {{-- Edit Comment Form --}}
+                                                        <div x-show="editingCommentId === comment.id" class="space-y-3">
+                                                            <textarea
+                                                                x-model="editCommentNotes"
+                                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 sm:text-sm"
+                                                                rows="3"
+                                                            ></textarea>
+
+                                                            <div>
+                                                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Extra foto's toevoegen</label>
+                                                                <div class="flex items-center gap-2">
+                                                                    <label class="cursor-pointer inline-flex items-center px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 transition">
+                                                                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                                        </svg>
+                                                                        Kies bestanden
+                                                                        <input type="file" multiple accept="image/*" class="hidden" @change="queueEditCommentPhotoFiles">
+                                                                    </label>
+                                                                    <span class="text-xs text-gray-500" x-text="`${editCommentPhotos.length} geselecteerd`"></span>
+                                                                </div>
+
+                                                                <div x-show="editCommentPhotos.length > 0" class="mt-2 flex flex-wrap gap-2">
+                                                                    <template x-for="(file, fIndex) in editCommentPhotos" :key="'edit-photo-' + fIndex">
+                                                                        <div class="relative group">
+                                                                            <img :src="URL.createObjectURL(file)" class="w-12 h-12 object-cover rounded shadow-sm">
+                                                                            <button @click="removeEditCommentQueuedFile(fIndex)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 transition">
+                                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                                </svg>
+                                                                            </button>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="flex justify-end gap-2">
+                                                                <button @click="cancelEditingComment()" class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                                                                    Annuleren
+                                                                </button>
+                                                                <button @click="updateComment(comment)" :disabled="isUpdatingComment" class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                                                    <svg x-show="isUpdatingComment" class="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                    </svg>
+                                                                    Opslaan
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {{-- Edit Button (only for owner or admin) --}}
+                                                    <div class="ml-4" x-show="editingCommentId !== comment.id && (comment.user_id == {{ Auth::id() }} || {{ Auth::user()->isAdmin() ? 'true' : 'false' }})">
+                                                        <button @click="startEditingComment(comment)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1312,6 +1383,12 @@
                 selectedVehicleTasks: [], // items: { default_id } or { title, description, estimated_time_minutes }
                 customVehicleTask: { title: '', description: '', estimated_time_minutes: null },
                 submittingVehicleTasks: false,
+
+                // Comment editing state
+                editingCommentId: null,
+                editCommentNotes: '',
+                editCommentPhotos: [],
+                isUpdatingComment: false,
 
                 async init() {
                     this.locationSteps = JSON.parse(this.$root.dataset.locationSteps);
@@ -1559,6 +1636,77 @@
                                 alert('Er is een fout opgetreden bij het toevoegen van de extra taak.');
                             }
                         });
+                },
+
+                startEditingComment(comment) {
+                    this.editingCommentId = comment.id;
+                    this.editCommentNotes = comment.comment;
+                    this.editCommentPhotos = [];
+                },
+
+                cancelEditingComment() {
+                    this.editingCommentId = null;
+                    this.editCommentNotes = '';
+                    this.editCommentPhotos = [];
+                },
+
+                queueEditCommentPhotoFiles(event) {
+                    const files = Array.from(event.target?.files || event.files || []);
+                    if (!files.length) return;
+
+                    for (const file of files) {
+                        if (file.size > 10 * 1024 * 1024) {
+                            alert('Bestand is te groot. Maximum 10MB per bestand.');
+                            continue;
+                        }
+                        if (!file.type || !file.type.startsWith('image/')) {
+                            alert('Alleen afbeeldingen zijn toegestaan.');
+                            continue;
+                        }
+                        this.editCommentPhotos.push(file);
+                    }
+
+                    if (event.target) {
+                        event.target.value = '';
+                    }
+                },
+
+                removeEditCommentQueuedFile(index) {
+                    this.editCommentPhotos.splice(index, 1);
+                },
+
+                updateComment(comment) {
+                    if (!this.editCommentNotes.trim()) {
+                        alert('Opmerking is verplicht');
+                        return;
+                    }
+
+                    this.isUpdatingComment = true;
+
+                    const formData = new FormData();
+                    formData.append('_method', 'PUT');
+                    formData.append('notes', this.editCommentNotes);
+                    this.editCommentPhotos.forEach(photo => {
+                        formData.append('photos[]', photo);
+                    });
+
+                    axios.post(`/planning-comments/${comment.id}`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    })
+                    .then(response => {
+                        comment.comment = response.data.comment.comment;
+                        comment.photos = response.data.comment.photos;
+                        this.editingCommentId = null;
+                        this.editCommentNotes = '';
+                        this.editCommentPhotos = [];
+                        this.isUpdatingComment = false;
+                    })
+                    .catch(error => {
+                        this.isUpdatingComment = false;
+                        alert('Er is een fout opgetreden bij het bijwerken van de opmerking.');
+                    });
                 },
 
                 submitTaskCompletion(task) {

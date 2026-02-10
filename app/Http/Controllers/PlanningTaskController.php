@@ -734,6 +734,61 @@ class PlanningTaskController extends Controller
                 'comment' => $comment->comment,
                 'photos' => $comment->photos->pluck('url'),
                 'location_id' => $comment->location_id,
+                'user_id' => $comment->user_id,
+                'created_at' => $comment->created_at->format('H:i'),
+            ]
+        ]);
+    }
+
+    /**
+     * Update a planning comment.
+     */
+    public function updateComment(Request $request, PlanningComment $comment, ImageService $imageService)
+    {
+        $user = Auth::user();
+
+        // Check if user is the owner of the comment or an admin
+        if (!$user->isAdmin() && $comment->user_id !== $user->id) {
+            abort(403, 'Je hebt geen toestemming om deze opmerking te wijzigen.');
+        }
+
+        $validated = $request->validate([
+            'notes' => 'required|string',
+            'photos.*' => 'nullable|image|max:10240',
+        ]);
+
+        $comment->update([
+            'comment' => $validated['notes'],
+        ]);
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                try {
+                    $filename = uniqid('pc_'.$comment->id.'_', true).'.'.$photo->getClientOriginalExtension();
+                    $path = $imageService->saveCompressedImage(
+                        $photo,
+                        'planning-comment-photos/'.$comment->id,
+                        $filename,
+                        'public'
+                    );
+                    $comment->photos()->create(['file_path' => $path]);
+                } catch (\Exception $e) {
+                    Log::error('Error compressing image: '.$e->getMessage());
+                    $path = $photo->store('planning-comment-photos/'.$comment->id, 'public');
+                    $comment->photos()->create(['file_path' => $path]);
+                }
+            }
+        }
+
+        $comment->load('photos');
+
+        return response()->json([
+            'comment' => [
+                'id' => $comment->id,
+                'comment' => $comment->comment,
+                'photos' => $comment->photos->pluck('url'),
+                'location_id' => $comment->location_id,
+                'user_id' => $comment->user_id,
                 'created_at' => $comment->created_at->format('H:i'),
             ]
         ]);

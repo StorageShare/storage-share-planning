@@ -37,6 +37,23 @@
             </div>
         </div>
 
+        {{-- Team info --}}
+        <div class="flex items-center text-sm">
+            <div class="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <span class="font-medium text-gray-900 dark:text-gray-100">Team:</span>
+                @if($planning->users->count() > 0)
+                    <span class="text-gray-900 dark:text-gray-100">{{ $planning->users->pluck('name')->join(', ', ' en ') }}</span>
+                @else
+                    <span class="text-gray-500 dark:text-gray-400">Geen medewerkers gekoppeld</span>
+                @endif
+            </div>
+        </div>
+
         @foreach($planning->locations as $locationIndex => $location)
             @php
                 // Get tasks for this location

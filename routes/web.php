@@ -108,6 +108,9 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     // Route for reopening a task
     Route::post('plannings/{planning}/tasks/{planning_task}/reopen', [PlanningTaskController::class, 'reopen'])->name('plannings.tasks.reopen');
 
+    // Routes for planning comments (extra remarks)
+    Route::put('planning-comments/{comment}', [PlanningTaskController::class, 'updateComment'])->name('planning-comments.update');
+
     Route::get('plannings/tasks/{planning_task}', [PlanningTaskController::class, 'show'])->name('plannings.tasks.show');
 
     // End checklist routes

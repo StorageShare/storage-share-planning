@@ -55,16 +55,36 @@ class MyPlanningController extends Controller
         // Collect all requirements from tasks AND automatically required ones for locations
         $allRequirements = collect();
         $locationSpecificRequirements = collect(); // Track location-specific variants
+        // Track for which locations each requirement applies (by requirement id or composite id for location-specific)
+        $requirementLocations = [];
 
         // Get requirements from tasks (these don't get location replacement)
         foreach ($planning->planningTasks as $planningTask) {
+            // Determine the location context for this planning task
+            $taskLocationName = null;
+            if ($planningTask->task && $planningTask->task->location) {
+                $taskLocationName = $planningTask->task->location->name;
+            } elseif ($planningTask->specificLocation) {
+                $taskLocationName = $planningTask->specificLocation->name;
+            }
+
             // Get requirements from backlog tasks
             if ($planningTask->task && $planningTask->task->requirements) {
                 $allRequirements = $allRequirements->merge($planningTask->task->requirements);
+                if ($taskLocationName) {
+                    foreach ($planningTask->task->requirements as $req) {
+                        $requirementLocations[$req->id] = array_values(array_unique(array_merge($requirementLocations[$req->id] ?? [], [$taskLocationName])));
+                    }
+                }
             }
             // Get requirements from default tasks
             if ($planningTask->defaultTask && $planningTask->defaultTask->requirements) {
                 $allRequirements = $allRequirements->merge($planningTask->defaultTask->requirements);
+                if ($taskLocationName) {
+                    foreach ($planningTask->defaultTask->requirements as $req) {
+                        $requirementLocations[$req->id] = array_values(array_unique(array_merge($requirementLocations[$req->id] ?? [], [$taskLocationName])));
+                    }
+                }
             }
         }
 
@@ -78,17 +98,22 @@ class MyPlanningController extends Controller
                 foreach ($automaticRequirements as $requirement) {
                     if (str_contains($requirement->name, '[locatie]')) {
                         // Create location-specific variant
+                        $compositeId = $requirement->id . '_' . $location->id;
                         $locationSpecificRequirements->push((object)[
-                            'id' => $requirement->id . '_' . $location->id, // Unique ID for this variant
+                            'id' => $compositeId, // Unique ID for this variant
                             'original_id' => $requirement->id,
                             'naam' => str_replace('[locatie]', $location->name, $requirement->name),
                             'beschrijving' => $requirement->description,
                             'location_name' => $location->name,
                             'is_location_specific' => true,
                         ]);
+                        // Track the location for this variant
+                        $requirementLocations[$compositeId] = array_values(array_unique(array_merge($requirementLocations[$compositeId] ?? [], [$location->name])));
                     } else {
                         // Add as regular requirement (no location replacement needed)
                         $allRequirements->push($requirement);
+                        // Track that this requirement applies to this planning location
+                        $requirementLocations[$requirement->id] = array_values(array_unique(array_merge($requirementLocations[$requirement->id] ?? [], [$location->name])));
                     }
                 }
             }
@@ -122,11 +147,13 @@ class MyPlanningController extends Controller
                 'type' => 'requirements',
                 'title' => 'Benodigdheden checklist',
                 'details' => 'Controleer of je alle benodigde materialen hebt voordat je begint',
-                'requirements' => $uniqueRequirements->map(function ($requirement) {
+                'requirements' => $uniqueRequirements->map(function ($requirement) use ($requirementLocations) {
+                    $id = $requirement->id;
                     return [
-                        'id' => $requirement->id,
+                        'id' => $id,
                         'naam' => $requirement->naam ?? $requirement->name,
                         'beschrijving' => $requirement->beschrijving ?? $requirement->description,
+                        'locaties' => $requirementLocations[$id] ?? [],
                     ];
                 })->values()->all(),
             ];
