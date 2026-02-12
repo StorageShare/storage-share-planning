@@ -1060,7 +1060,6 @@ class PlanningController extends Controller
                         $planning->planningTasks()->create([
                             'location_id' => $location_id,
                             'task_id' => $newTask->id,
-                            'default_task_id' => $template->id,
                             'title' => $template->title,
                             // Ensure non-null description for NOT NULL column
                             'description' => $template->description ?? '',
@@ -1179,9 +1178,15 @@ class PlanningController extends Controller
                     $newTask->requirements()->sync($template->requirements->pluck('id'));
                 }
 
-                $data['task_id'] = $newTask->id;
+                $planning->planningTasks()->create([
+                    'location_id' => $data['location_id'],
+                    'task_id' => $newTask->id,
+                    'title' => $data['title'],
+                    'description' => $data['description'] ?? '',
+                    'feedback_information' => $data['feedback_information'],
+                    'estimated_time_minutes' => $data['estimated_time_minutes'],
+                ]);
             }
-            $planning->planningTasks()->create($data);
         }
 
         // Logic for adding/removing backlog tasks

@@ -81,6 +81,21 @@ class PlanningTaskController extends Controller
             'is_fully_completed' => $isFullyCompleted,
         ]);
 
+        // Copy photos from the previous completion if it exists, so they are not lost
+        $previousCompletion = $planning_task->completions()
+            ->where('id', '!=', $completion->id)
+            ->where('review_outcome', '!=', 'reopened')
+            ->latest()
+            ->first();
+
+        if ($previousCompletion) {
+            foreach ($previousCompletion->photos as $oldPhoto) {
+                $completion->photos()->create([
+                    'file_path' => $oldPhoto->file_path,
+                ]);
+            }
+        }
+
         // Store photos for the completion, if any were uploaded
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
@@ -530,6 +545,21 @@ class PlanningTaskController extends Controller
             'task_duration_seconds' => $request->input('task_duration_seconds', 0),
         ]);
 
+        // Copy photos from the previous completion if it exists, so they are not lost
+        $previousCompletion = $planning_task->completions()
+            ->where('id', '!=', $completion->id)
+            ->where('review_outcome', '!=', 'reopened')
+            ->latest()
+            ->first();
+
+        if ($previousCompletion) {
+            foreach ($previousCompletion->photos as $oldPhoto) {
+                $completion->photos()->create([
+                    'file_path' => $oldPhoto->file_path,
+                ]);
+            }
+        }
+
         // Check if we have new photos
         if ($request->hasFile('photos')) {
             // Store photos for the completion
@@ -549,21 +579,6 @@ class PlanningTaskController extends Controller
                     // Fallback to original method if compression fails
                     $path = $photo->store('planning-task-completion-photos/'.$completion->id, 'public');
                     $completion->photos()->create(['file_path' => $path]);
-                }
-            }
-        } else {
-            // No new photos provided, copy photos from the previous completion if it exists
-            $previousCompletion = $planning_task->completions()
-                ->where('id', '!=', $completion->id)
-                ->where('review_outcome', '!=', 'reopened')
-                ->latest()
-                ->first();
-
-            if ($previousCompletion) {
-                foreach ($previousCompletion->photos as $oldPhoto) {
-                    $completion->photos()->create([
-                        'file_path' => $oldPhoto->file_path,
-                    ]);
                 }
             }
         }
