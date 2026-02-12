@@ -31,6 +31,7 @@ class PlanningCompletionTaskCleanupTest extends TestCase
         // 1. Setup data
         $location = Location::factory()->create();
         $planning = Planning::factory()->create(['status' => 'open']);
+        $planning->locations()->attach($location->id); // BELANGRIJK: locatie koppelen aan planning
 
         $defaultTask = DefaultTask::create([
             'title' => 'Standaard Taak',
@@ -109,9 +110,79 @@ class PlanningCompletionTaskCleanupTest extends TestCase
 
         // The uncompleted backlog task should stay (as it's not from a default task)
         $this->assertDatabaseHas('tasks', ['id' => $backlogTask->id]);
-        $this->assertDatabaseHas('planning_tasks', ['id' => $backlogPlanningTask->id]);
+        // Note: in PlanningController@complete, uncompleted backlog planning tasks are DELETED
+        // but the underlying Task status is set back to OPEN.
+        $this->assertDatabaseMissing('planning_tasks', ['id' => $backlogPlanningTask->id]);
+        $this->assertEquals(TaskStatus::OPEN, $backlogTask->fresh()->status);
 
         $this->assertCount(2, Task::all());
-        $this->assertCount(2, PlanningTask::all());
+        $this->assertCount(1, PlanningTask::all());
+    }
+
+    /** @test */
+    public function it_removes_floating_uncompleted_default_tasks_in_backlog_for_locations_in_planning()
+    {
+        $location = Location::factory()->create();
+        $otherLocation = Location::factory()->create();
+        $planning = Planning::factory()->create(['status' => 'open']);
+        $planning->locations()->attach($location->id);
+
+        $defaultTask = DefaultTask::create([
+            'title' => 'Standaard Taak',
+            'description' => 'Test',
+            'applies_to_all_locations' => true
+        ]);
+
+        // Task gekoppeld aan planning (wordt al opgeruimd)
+        $linkedTask = Task::create([
+            'location_id' => $location->id,
+            'title' => $defaultTask->title,
+            'description' => $defaultTask->description,
+            'status' => TaskStatus::OPEN,
+            'created_by' => $this->admin->id,
+        ]);
+        $planning->planningTasks()->create([
+            'location_id' => $location->id,
+            'task_id' => $linkedTask->id,
+            'default_task_id' => $defaultTask->id,
+            'title' => $defaultTask->title,
+            'description' => $defaultTask->description,
+            'status' => TaskStatus::OPEN,
+        ]);
+
+        // 'Zwevende' standaardtaak in backlog voor dezelfde locatie (zou ook opgeruimd moeten worden)
+        $floatingTask = Task::create([
+            'location_id' => $location->id,
+            'title' => $defaultTask->title,
+            'description' => $defaultTask->description,
+            'status' => TaskStatus::OPEN,
+            'created_by' => $this->admin->id,
+        ]);
+        // We simuleren dat dit een standaardtaak is door titel en locatie match,
+        // maar in de echte database hebben we geen directe link van Task naar DefaultTask
+        // Behalve via de planning_tasks tabel of we moeten matchen op titel/locatie.
+
+        // Zwevende standaardtaak voor een ANDERE locatie (mag NIET opgeruimd worden)
+        $otherLocationTask = Task::create([
+            'location_id' => $otherLocation->id,
+            'title' => $defaultTask->title,
+            'description' => $defaultTask->description,
+            'status' => TaskStatus::OPEN,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $this->assertCount(3, Task::all());
+
+        // Complete planning
+        $this->actingAs($this->admin)->post(route('plannings.complete', $planning));
+
+        // Linked task moet weg zijn
+        $this->assertDatabaseMissing('tasks', ['id' => $linkedTask->id]);
+
+        // Floating task voor dezelfde locatie zou ook weg moeten zijn volgens de wens van de gebruiker
+        $this->assertDatabaseMissing('tasks', ['id' => $floatingTask->id]);
+
+        // Floating task voor andere locatie moet blijven
+        $this->assertDatabaseHas('tasks', ['id' => $otherLocationTask->id]);
     }
 }

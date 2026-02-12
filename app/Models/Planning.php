@@ -194,9 +194,11 @@ class Planning extends Model
 
     /**
      * Cleanup uncompleted default tasks when the planning is marked as completed.
+     * This also removes "floating" default tasks from the backlog for the locations in this planning.
      */
     public function cleanupUncompletedDefaultTasks(): void
     {
+        // 1. Cleanup tasks directly linked to this planning
         $uncompletedDefaultPlanningTasks = $this->planningTasks()
             ->whereNotNull('default_task_id')
             ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
@@ -207,6 +209,28 @@ class Planning extends Model
                 Task::where('id', $planningTask->task_id)->delete();
             }
             $planningTask->delete();
+        }
+
+        // 2. Cleanup "floating" default tasks in the backlog for the locations in this planning.
+        // We identify these by matching titles of active DefaultTasks for the locations of this planning.
+        $locationIds = $this->locations()->pluck('locations.id');
+
+        if ($locationIds->isNotEmpty()) {
+            // Get all default task titles that could apply to these locations
+            $defaultTaskTitles = DefaultTask::where(function ($query) use ($locationIds) {
+                $query->where('applies_to_all_locations', true)
+                    ->orWhereHas('locations', function ($q) use ($locationIds) {
+                        $q->whereIn('locations.id', $locationIds);
+                    });
+            })->pluck('title')->unique();
+
+            if ($defaultTaskTitles->isNotEmpty()) {
+                Task::whereIn('location_id', $locationIds)
+                    ->where('status', \App\Enums\TaskStatus::OPEN->value)
+                    ->whereIn('title', $defaultTaskTitles)
+                    ->whereDoesntHave('planningTasks') // Only tasks NOT currently in any planning (backlog)
+                    ->delete();
+            }
         }
     }
     /**

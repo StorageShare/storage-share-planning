@@ -561,7 +561,8 @@
                 // We only do this for default_tasks and only if it's not already explicitly in the set (meaning user hasn't unchecked it yet)
                 // However, the set might be empty because we just started.
                 // Better approach: if it's a default task AND is_always_included is true AND it's NOT in our list of explicitly unchecked tasks
-                if (taskType === 'default_tasks' && task.is_always_included && !isChecked) {
+                // If it's edit mode, we don't auto-check by default, the user must explicitly check them if they want them added again.
+                if (taskType === 'default_tasks' && task.is_always_included && !isChecked && !isEditMode) {
                     // Check if it was previously unchecked by the user in this session
                     if (typeof uncheckedDefaultTaskIds !== 'undefined' && !uncheckedDefaultTaskIds.has(taskIdIdStr)) {
                         isChecked = true;

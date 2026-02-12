@@ -737,9 +737,25 @@ class PlanningController extends Controller
 
             foreach ($uncompletedBacklogPlanningTasks as $pt) {
                 if ($pt->task) {
-                    $pt->task->update(['status' => \App\Enums\TaskStatus::OPEN]);
+                    // Check if this task is a default task (by title match for the location)
+                    // If it is, we might want to delete it instead of freeing it,
+                    // but cleanupUncompletedDefaultTasks already handles "floating" ones.
+                    // However, this task IS currently linked, so it's not "floating" yet.
+
+                    $isDefaultTask = DefaultTask::where(function ($query) use ($pt) {
+                        $query->where('applies_to_all_locations', true)
+                            ->orWhereHas('locations', function ($q) use ($pt) {
+                                $q->where('locations.id', $pt->location_id);
+                            });
+                    })->where('title', $pt->title)->exists();
+
+                    if ($isDefaultTask) {
+                        $pt->task->delete();
+                    } else {
+                        $pt->task->update(['status' => \App\Enums\TaskStatus::OPEN]);
+                    }
                 }
-                // Remove the link from this completed planning so it appears back in backlog selection
+                // Remove the link from this completed planning
                 $pt->delete();
             }
 
