@@ -727,12 +727,28 @@ class PlanningController extends Controller
             // Delete all uncompleted tasks that were created from default tasks
             $planning->cleanupUncompletedDefaultTasks();
 
+            // For backlog-linked planning tasks that are not completed yet, make them re-plannable again:
+            // - Set the original backlog task status back to OPEN
+            // - Detach the uncompleted planning task from this (now completed) planning
+            $uncompletedBacklogPlanningTasks = $planning->planningTasks()
+                ->whereNotNull('task_id')
+                ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
+                ->get();
+
+            foreach ($uncompletedBacklogPlanningTasks as $pt) {
+                if ($pt->task) {
+                    $pt->task->update(['status' => \App\Enums\TaskStatus::OPEN]);
+                }
+                // Remove the link from this completed planning so it appears back in backlog selection
+                $pt->delete();
+            }
+
             $planning->update([
                 'status' => 'completed',
             ]);
         });
 
-        return redirect()->back()->with('success', 'Planning is afgerond. Niet-afgeronde standaardtaken zijn verwijderd.');
+        return redirect()->back()->with('success', 'Planning is afgerond. Niet-afgeronde standaardtaken zijn vrijgegeven voor herplanning.');
     }
 
     /**
