@@ -203,6 +203,7 @@ class MyPlanningController extends Controller
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
+                    'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
                 ];
             }
 
@@ -272,6 +273,7 @@ class MyPlanningController extends Controller
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
+                    'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
                 ];
             }
 

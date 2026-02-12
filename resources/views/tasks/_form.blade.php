@@ -34,6 +34,15 @@
         placeholder="Aan wie moet terugkoppeling gegeven worden?"
     />
 
+    <div class="flex items-center">
+        <input id="is_photo_required" name="is_photo_required" type="checkbox" value="1"
+               class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500"
+               {{ old('is_photo_required', $currentTask->is_photo_required ?? false) ? 'checked' : '' }}>
+        <label for="is_photo_required" class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Foto toevoegen is verplicht voor deze taak
+        </label>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
             <x-input-label for="priority" class="block text-sm font-medium mb-2">Prioriteit</x-input-label>

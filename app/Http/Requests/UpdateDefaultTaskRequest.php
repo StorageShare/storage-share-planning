@@ -27,6 +27,7 @@ class UpdateDefaultTaskRequest extends FormRequest
             'description' => 'sometimes|required|string',
             'feedback_information' => 'nullable|string|max:255',
             'estimated_time_minutes' => 'sometimes|nullable|integer|min:0',
+            'is_photo_required' => 'nullable|boolean',
             'time_calculation_type' => 'sometimes|required|string|in:simplified,advanced',
             'time_per_m2_minutes' => 'nullable|numeric|min:0',
             'base_time_minutes' => 'nullable|integer|min:0',

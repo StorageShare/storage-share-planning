@@ -42,6 +42,7 @@ class UpdateTaskRequest extends FormRequest
                 Rule::in(['open', 'in_progress', 'completed']), // Pas aan met je daadwerkelijke statussen
             ],
             'priority' => ['sometimes', 'required', Rule::in(TaskPriority::values())],
+            'is_photo_required' => 'nullable|boolean',
             'photos' => 'nullable|array|max:10',
             'photos.*' => 'image|mimes:jpg,jpeg,png,gif,webp|max:20480',
             'requirements' => 'nullable|array',

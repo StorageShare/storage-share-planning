@@ -227,6 +227,8 @@ class TaskController extends Controller
             $validatedData['status'] = TaskStatus::CONCEPT;
         }
 
+        $validatedData['is_photo_required'] = $request->has('is_photo_required');
+
         // Determine locations
         $locationIds = [];
         if ($request->boolean('applies_to_all_locations')) {
@@ -294,6 +296,8 @@ class TaskController extends Controller
         if (auth()->check() && auth()->user()->role === Role::CUSTOMER_SERVICE) {
             $validatedData['status'] = TaskStatus::CONCEPT;
         }
+
+        $validatedData['is_photo_required'] = $request->has('is_photo_required');
 
         $new_task = $location->tasks()->create($validatedData); // Assign to variable to use in message if needed
 
@@ -404,6 +408,8 @@ class TaskController extends Controller
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validatedData = $request->validated();
+
+        $validatedData['is_photo_required'] = $request->has('is_photo_required');
 
         // Set default status to 'open' if no status is provided
         if (!isset($validatedData['status']) || empty($validatedData['status'])) {

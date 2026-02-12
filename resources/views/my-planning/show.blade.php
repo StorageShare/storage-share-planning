@@ -987,12 +987,21 @@
                                                     </div>
 
                                                     <div>
-                                                        <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Foto's</label>
+                                                        <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                                                            Foto's
+                                                            <template x-if="task.is_photo_required">
+                                                                <span class="text-red-500 font-normal ml-1">(verplicht)</span>
+                                                            </template>
+                                                        </label>
 
                                                         <!-- Drag & Drop Zone for Task Photos -->
                                                         <div
                                                             class="border-2 border-dashed rounded-lg p-4 sm:p-5 transition"
-                                                            :class="draggingTaskId === task.task_id ? 'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-900/10' : 'border-gray-300 dark:border-gray-600'"
+                                                            :class="{
+                                                                'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-900/10': draggingTaskId === task.task_id,
+                                                                'border-red-300 bg-red-50/30 dark:border-red-900/20': getTaskErrors(task.task_id).photos,
+                                                                'border-gray-300 dark:border-gray-600': draggingTaskId !== task.task_id && !getTaskErrors(task.task_id).photos
+                                                            }"
                                                             @dragover.prevent="draggingTaskId = task.task_id"
                                                             @dragleave.prevent="draggingTaskId = null"
                                                             @drop.prevent="onTaskDrop($event, task.task_id)"
@@ -1059,12 +1068,6 @@
                                                             Taak overslaan...
                                                         </button>
                                                         <div class="text-right">
-                                                            <div class="mb-2">
-                                                                <label class="flex items-center">
-                                                                    <input type="checkbox" x-model="getTaskCompletion(task.task_id).isFullyCompleted" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Taak is volledig afgerond</span>
-                                                                </label>
-                                                            </div>
                                                             <button @click="submitTaskCompletion(task)" :disabled="isSubmitting" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
                                                                 <span x-show="!isSubmitting">Voltooien</span>
                                                                 <span x-show="isSubmitting">Bezig...</span>
@@ -1400,8 +1403,7 @@
                             location.tasks.forEach(task => {
                                 this.taskCompletions[task.task_id] = {
                                     notes: task.completed_notes || '',
-                                    photos: [],
-                                    isFullyCompleted: false
+                                    photos: []
                                 };
                                 this.taskErrors[task.task_id] = {};
                             });
@@ -1466,8 +1468,7 @@
                 getTaskCompletion(taskId) {
                     return this.taskCompletions[taskId] || {
                         notes: '',
-                        photos: [],
-                        isFullyCompleted: true
+                        photos: []
                     };
                 },
 
@@ -1715,8 +1716,14 @@
 
                     const formData = new FormData();
                     const completion = this.taskCompletions[task.task_id];
+                    // Client-side validatie: foto verplicht indien taak dit vereist
+                    if (task.is_photo_required && (!completion.photos || completion.photos.length === 0)) {
+                        this.taskErrors[task.task_id] = { photos: 'Foto is verplicht voor deze taak.' };
+                        this.isSubmitting = false;
+                        return;
+                    }
+
                     formData.append('completed_notes', completion.notes);
-                    formData.append('is_fully_completed', completion.isFullyCompleted ? 1 : 0);
                     formData.append('task_duration_seconds', this.getLocationDuration());
                     completion.photos.forEach(photo => {
                         formData.append('photos[]', photo);
@@ -1745,8 +1752,7 @@
                             // Clear form
                             this.taskCompletions[task.task_id] = {
                                 notes: '',
-                                photos: [],
-                                isFullyCompleted: true
+                                photos: []
                             };
                             this.updateTaskPhotoPreviews(task.task_id);
                         })

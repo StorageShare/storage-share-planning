@@ -21,6 +21,7 @@ class DefaultTask extends Model
         'title',
         'description',
         'feedback_information',
+        'is_photo_required',
         'estimated_time_minutes',
         'is_always_included',
         'applies_to_all_locations',
@@ -39,6 +40,7 @@ class DefaultTask extends Model
 
     protected $casts = [
         'is_always_included' => 'boolean',
+        'is_photo_required' => 'boolean',
         'applies_to_all_locations' => 'boolean',
         'applies_to_lift_locations' => 'boolean',
         'applies_to_door_types' => 'boolean',

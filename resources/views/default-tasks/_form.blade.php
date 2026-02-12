@@ -23,6 +23,15 @@
         placeholder="Aan wie moet terugkoppeling gegeven worden?"
     />
 
+    <div class="flex items-center">
+        <input id="is_photo_required" name="is_photo_required" type="checkbox" value="1"
+               class="shrink-0 mt-0.5 border-gray-200 rounded text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:checked:bg-blue-500"
+               {{ old('is_photo_required', $defaultTask->is_photo_required ?? false) ? 'checked' : '' }}>
+        <label for="is_photo_required" class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Foto toevoegen is verplicht voor deze standaardtaak
+        </label>
+    </div>
+
     <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
         <h3 class="text-md font-medium text-blue-900 dark:text-blue-100 mb-4">Tijdsinschatting</h3>
 

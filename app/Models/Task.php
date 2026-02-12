@@ -27,6 +27,7 @@ class Task extends Model
         'title',
         'description',
         'feedback_information',
+        'is_photo_required',
         'deadline',
         'estimated_time_minutes',
         'status',
@@ -52,6 +53,7 @@ class Task extends Model
         'priority' => TaskPriority::class,
         'status' => TaskStatus::class,
         'is_recurring' => 'boolean',
+        'is_photo_required' => 'boolean',
         'recurring_interval_value' => 'integer',
     ];
 

@@ -499,12 +499,28 @@ class PlanningTaskController extends Controller
 
         $request->validate([
             'completed_notes' => 'required|string|max:65535',
-            'is_fully_completed' => 'required|boolean',
             'photos' => 'nullable|array',
             'photos.*' => 'image|mimes:jpeg,png,jpg,webp,gif|max:20480', // Max 20MB - will be compressed to 2MB
         ]);
 
-        $isFullyCompleted = $request->boolean('is_fully_completed');
+        // Backend validation for is_photo_required
+        $isPhotoRequired = (bool) ($planning_task->task?->is_photo_required ?? $planning_task->defaultTask?->is_photo_required ?? false);
+        if ($isPhotoRequired && !$request->hasFile('photos')) {
+            // Check if there are existing photos (if it's being updated/re-submitted)
+            $existingPhotosCount = $planning_task->completions()
+                ->where('review_outcome', '!=', 'reopened')
+                ->latest()
+                ->first()?->photos()->count() ?? 0;
+
+            if ($existingPhotosCount === 0) {
+                return response()->json([
+                    'message' => 'The given data was invalid.',
+                    'errors' => ['photos' => ['Foto is verplicht voor deze taak.']]
+                ], 422);
+            }
+        }
+
+        $isFullyCompleted = true; // Default to true now that the checkbox is removed
 
         // Create the completion record
         $completion = $planning_task->completions()->create([

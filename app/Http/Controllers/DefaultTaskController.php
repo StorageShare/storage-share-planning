@@ -75,6 +75,7 @@ class DefaultTaskController extends Controller
         $validatedData['created_by'] = auth()->id();
 
         // Ensure boolean fields are set correctly if not present in the request
+        $validatedData['is_photo_required'] = $request->has('is_photo_required');
         $validatedData['is_always_included'] = $request->has('is_always_included');
         $validatedData['applies_to_all_locations'] = $request->has('applies_to_all_locations');
         $validatedData['applies_to_lift_locations'] = $request->has('applies_to_lift_locations');
@@ -145,6 +146,7 @@ class DefaultTaskController extends Controller
         }
 
         // Ensure boolean fields are set correctly if not present in the request
+        $validatedData['is_photo_required'] = $request->has('is_photo_required');
         $validatedData['is_always_included'] = $request->has('is_always_included');
         $validatedData['applies_to_all_locations'] = $request->has('applies_to_all_locations');
         $validatedData['applies_to_lift_locations'] = $request->has('applies_to_lift_locations');
