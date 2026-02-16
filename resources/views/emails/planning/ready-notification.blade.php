@@ -4,14 +4,19 @@
 Er staat een nieuwe planning voor je klaar!
 
 **Datum:** {{ $planning->planned_date->format('d-m-Y') }}
+
+**Collega\'s:** {{ $planning->users->pluck('name')->join(', ') }}
+
 **Locaties:** {{ $planning->locations->pluck('name')->join(', ') ?: 'Nog geen locatie(s)' }}
+
 @if($planning->start_time)
 **Starttijd:** {{ $planning->start_time }}
+
 @endif
 @if($planning->start_address)
 **Startadres:** {{ $planning->start_address }}
-@endif
 
+@endif
 **Aantal taken:** {{ $planning->planningTasks->count() }}
 
 @if($planning->notes)
@@ -26,4 +31,4 @@ Bekijk mijn planning
 
 Bedankt,<br>
 {{ config('app.name') }}
-@endcomponent 
+@endcomponent
