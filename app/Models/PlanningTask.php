@@ -25,6 +25,8 @@ class PlanningTask extends Model
         'title',
         'description',
         'feedback_information',
+        'feedback_owner_name',
+        'feedback_emails',
         'status',
         'review_notes',
         'completed_at',

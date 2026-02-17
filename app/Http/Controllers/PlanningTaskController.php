@@ -8,11 +8,13 @@ use App\Events\TaskReadyForReview;
 use App\Models\Planning;
 use App\Models\PlanningComment;
 use App\Models\PlanningTask;
+use App\Mail\TaskCompletedApprovedMail;
 use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 // For manual validation if needed
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -239,6 +241,22 @@ class PlanningTaskController extends Controller
                 'review_outcome' => 'approved',
                 'reviewed_by' => Auth::id(),
             ]);
+
+            // Verstuur mail als er feedback e-mails zijn ingesteld (komma of puntkomma gescheiden)
+            if ($planning_task->feedback_emails) {
+                // Split op komma of puntkomma, trim, naar lowercase en dedupliceer
+                $emails = preg_split('/[;,]+/', (string) $planning_task->feedback_emails) ?: [];
+                $emails = array_map(fn($e) => strtolower(trim($e)), $emails);
+                $emails = array_values(array_unique(array_filter($emails)));
+
+                // Filter op valide e-mails
+                $validEmails = array_values(array_filter($emails, fn($email) => filter_var($email, FILTER_VALIDATE_EMAIL)));
+
+                if (!empty($validEmails)) {
+                    $mail = new TaskCompletedApprovedMail($planning_task, $latest_completion);
+                    Mail::to($validEmails)->queue($mail);
+                }
+            }
         }
 
         // If it's a backlog task, also update the main task's status

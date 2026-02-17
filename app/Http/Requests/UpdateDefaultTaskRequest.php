@@ -25,7 +25,9 @@ class UpdateDefaultTaskRequest extends FormRequest
         return [
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
-            'feedback_information' => 'nullable|string|max:255',
+            'feedback_information' => 'nullable|string|max:1000',
+            'feedback_owner_name' => 'nullable|string|max:255',
+            'feedback_emails' => 'nullable|string|max:1000',
             'estimated_time_minutes' => 'sometimes|nullable|integer|min:0',
             'is_photo_required' => 'nullable|boolean',
             'time_calculation_type' => 'sometimes|required|string|in:simplified,advanced',

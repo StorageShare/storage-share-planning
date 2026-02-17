@@ -31,6 +31,8 @@ class UpdateTaskRequest extends FormRequest
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'feedback_information' => 'nullable|string|max:255',
+            'feedback_owner_name' => 'nullable|string|max:255',
+            'feedback_emails' => 'nullable|string|max:255',
             'deadline' => 'nullable|date',
             'estimated_time_minutes' => 'nullable|integer|min:0|max:99999',
             'status' => [

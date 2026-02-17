@@ -18,6 +18,8 @@ class ExternalTask extends Model
         'title',
         'description',
         'feedback_information',
+        'feedback_owner_name',
+        'feedback_emails',
         'external_deadline_at',
         'estimated_time_minutes',
         'status',

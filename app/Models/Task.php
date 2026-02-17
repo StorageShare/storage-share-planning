@@ -27,6 +27,8 @@ class Task extends Model
         'title',
         'description',
         'feedback_information',
+        'feedback_owner_name',
+        'feedback_emails',
         'is_photo_required',
         'deadline',
         'estimated_time_minutes',

@@ -21,6 +21,8 @@ class DefaultTask extends Model
         'title',
         'description',
         'feedback_information',
+        'feedback_owner_name',
+        'feedback_emails',
         'is_photo_required',
         'estimated_time_minutes',
         'is_always_included',

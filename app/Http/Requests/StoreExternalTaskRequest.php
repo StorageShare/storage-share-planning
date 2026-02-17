@@ -20,6 +20,8 @@ class StoreExternalTaskRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'feedback_information' => 'nullable|string|max:255',
+            'feedback_owner_name' => 'nullable|string|max:255',
+            'feedback_emails' => 'nullable|string|max:255',
             'location_id' => [
                 'required_without:location_external_id',
                 'integer',

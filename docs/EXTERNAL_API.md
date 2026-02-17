@@ -51,7 +51,9 @@ X-Api-Signature: <hmac>
 {
   "title": "Ontruiming unit 12",
   "description": "Unit leegmaken wegens wanbetaling",
-  "feedback_information": "Optioneel",
+  "feedback_information": "Wat moet er gebeuren na het uitvoeren van deze taak",
+  "feedback_owner_name": "Jan Janssen",
+  "feedback_emails": "jan@voorbeeld.nl; kees@voorbeeld.nl",
   "location_id": 123,
   "location_external_id": 456,
   "deadline": "2025-03-05",
@@ -68,6 +70,8 @@ Rules:
 - `priority` must be one of the configured task priorities (for example: `high`, `normal`, `low`).
 - `external_deadline_at` is an optional date/time field (you can also use `deadline` for backward compatibility).
 - Newly created external tasks will have the status `in_review`.
+ - `feedback_emails` is an optional comma or semicolon separated list of e‑mail addresses; max length 255 characters total.
+ - `feedback_information` and `feedback_owner_name` are optional strings; max length 255 characters.
 
 ## Response
 

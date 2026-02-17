@@ -43,10 +43,26 @@
 
     <x-form-input
         name="feedback_information"
-        label="Terugkoppeling informatie"
+        label="Wat moet er gebeuren na het uitvoeren van deze taak"
         :value="$task?->feedback_information ?? ''"
-        placeholder="Aan wie moet terugkoppeling gegeven worden?"
+        placeholder="Beschrijf de actie die moet volgen op de uitvoering"
     />
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <x-form-input
+            name="feedback_owner_name"
+            label="Naam ontvanger terugkoppeling"
+            :value="$task?->feedback_owner_name ?? ''"
+            placeholder="Bijv: Jan Janssen"
+        />
+
+        <x-form-input
+            name="feedback_emails"
+            label="E-mailadres(sen) terugkoppeling (komma of puntkomma gescheiden)"
+            :value="$task?->feedback_emails ?? ''"
+            placeholder="Bijv: jan@voorbeeld.nl, kees@voorbeeld.nl"
+        />
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
