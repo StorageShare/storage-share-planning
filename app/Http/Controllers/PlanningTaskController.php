@@ -10,6 +10,7 @@ use App\Models\PlanningComment;
 use App\Models\PlanningTask;
 use App\Mail\TaskCompletedApprovedMail;
 use App\Services\ImageService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 // For manual validation if needed
@@ -226,7 +227,7 @@ class PlanningTaskController extends Controller
     //     return redirect()->route('plannings.show', $planning)->with('error', 'Kon foto niet uploaden.');
     // }
 
-    public function approve(Request $request, PlanningTask $planning_task): RedirectResponse
+    public function approve(Request $request, PlanningTask $planning_task): RedirectResponse|JsonResponse
     {
         $planning_task->update(['status' => TaskStatus::COMPLETED]);
 
@@ -254,7 +255,8 @@ class PlanningTaskController extends Controller
 
                 if (!empty($validEmails)) {
                     $mail = new TaskCompletedApprovedMail($planning_task, $latest_completion);
-                    Mail::to($validEmails)->queue($mail);
+                    // Queue the mail to align with ShouldQueue and tests expecting queued mails
+                    Mail::to($validEmails)->send($mail);
                 }
             }
         }

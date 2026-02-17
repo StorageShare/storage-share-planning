@@ -24,7 +24,9 @@ class PlanningVehicleTaskController extends Controller
             'vehicle_tasks' => 'required|array|min:1',
             'vehicle_tasks.*.default_id' => 'nullable|exists:default_vehicle_tasks,id',
             'vehicle_tasks.*.title' => 'required_without:vehicle_tasks.*.default_id|string|max:255',
-            'vehicle_tasks.*.description' => 'nullable|string',
+            // Description is required for custom tasks to avoid later errors
+            // If a default is selected, we allow it to be omitted here because it will be filled from the default
+            'vehicle_tasks.*.description' => 'required_without:vehicle_tasks.*.default_id|string',
             'vehicle_tasks.*.estimated_time_minutes' => 'nullable|integer|min:0',
         ]);
 

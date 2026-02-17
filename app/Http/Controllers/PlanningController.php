@@ -1044,6 +1044,8 @@ class PlanningController extends Controller
                             'title' => $template->title,
                             'description' => $template->description ?? '',
                             'feedback_information' => $template->feedback_information,
+                            'feedback_owner_name' => $template->feedback_owner_name,
+                            'feedback_emails' => $template->feedback_emails,
                             'estimated_time_minutes' => $estimatedTime,
                             'status' => \App\Enums\TaskStatus::OPEN,
                             'priority' => \App\Enums\TaskPriority::NORMAL,
@@ -1064,6 +1066,8 @@ class PlanningController extends Controller
                             // Ensure non-null description for NOT NULL column
                             'description' => $template->description ?? '',
                             'feedback_information' => $template->feedback_information,
+                            'feedback_owner_name' => $template->feedback_owner_name,
+                            'feedback_emails' => $template->feedback_emails,
                             'estimated_time_minutes' => $estimatedTime,
                         ]);
                     }
@@ -1083,6 +1087,8 @@ class PlanningController extends Controller
                     // Ensure non-null description for NOT NULL column
                     'description' => $backlogTask->description ?? '',
                     'feedback_information' => $backlogTask->feedback_information,
+                    'feedback_owner_name' => $backlogTask->feedback_owner_name,
+                    'feedback_emails' => $backlogTask->feedback_emails,
                     'location_id' => $backlogTask->location_id,
                     'priority' => $backlogTask->priority,
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
@@ -1143,6 +1149,8 @@ class PlanningController extends Controller
                             'title' => $default_task_template->title,
                             'description' => $default_task_template->description,
                             'feedback_information' => $default_task_template->feedback_information,
+                            'feedback_owner_name' => $default_task_template->feedback_owner_name,
+                            'feedback_emails' => $default_task_template->feedback_emails,
                             'estimated_time_minutes' => $estimatedTime,
                         ]);
                     }
@@ -1165,6 +1173,8 @@ class PlanningController extends Controller
                     'title' => $template->title,
                     'description' => $template->description ?? '',
                     'feedback_information' => $template->feedback_information,
+                    'feedback_owner_name' => $template->feedback_owner_name,
+                    'feedback_emails' => $template->feedback_emails,
                     'estimated_time_minutes' => $data['estimated_time_minutes'],
                     'status' => \App\Enums\TaskStatus::OPEN,
                     'priority' => \App\Enums\TaskPriority::NORMAL,
@@ -1184,6 +1194,8 @@ class PlanningController extends Controller
                     'title' => $data['title'],
                     'description' => $data['description'] ?? '',
                     'feedback_information' => $data['feedback_information'],
+                    'feedback_owner_name' => $data['feedback_owner_name'] ?? null,
+                    'feedback_emails' => $data['feedback_emails'] ?? null,
                     'estimated_time_minutes' => $data['estimated_time_minutes'],
                 ]);
             }
@@ -1216,6 +1228,8 @@ class PlanningController extends Controller
                     'title' => $backlogTask->title,
                     'description' => $backlogTask->description,
                     'feedback_information' => $backlogTask->feedback_information,
+                    'feedback_owner_name' => $backlogTask->feedback_owner_name,
+                    'feedback_emails' => $backlogTask->feedback_emails,
                     'location_id' => $backlogTask->location_id,
                     'priority' => $backlogTask->priority,
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
