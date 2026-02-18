@@ -96,6 +96,7 @@ class PlanningControllerTest extends TestCase
             'selected_location_id',
             'users',
             'plannedBacklogTasks',
+            'availableVehicles',
         ]);
 
         // Ensure defaultTasksByLocation combines global+local for loc1
@@ -104,6 +105,36 @@ class PlanningControllerTest extends TestCase
         $taskTitles = collect($map[$loc1->id])->pluck('title')->all();
         $this->assertContains('Global', $taskTitles);
         $this->assertContains('Local', $taskTitles);
+    }
+
+    public function test_create_uses_tomorrow_as_default_for_available_vehicles(): void
+    {
+        // Freeze time to a known date
+        Carbon::setTestNow(Carbon::parse('2026-02-18 10:00:00'));
+
+        // Two vehicles
+        $v1 = Vehicle::factory()->create(['name' => 'V21']);
+        $v2 = Vehicle::factory()->create(['name' => 'V22']);
+
+        // Create a planning for TODAY for V22 (so it's busy today, but free tomorrow)
+        $todayPlanning = Planning::factory()->create([
+            'planned_date' => Carbon::now()->toDateString(),
+            'vehicle_id' => $v2->id,
+            'status' => 'open',
+        ]);
+
+        // Hit create without planned_date param; the form defaults to tomorrow
+        $resp = $this->actingAs($this->admin)->get(route('plannings.create'));
+        $resp->assertOk();
+        $resp->assertViewIs('plannings.create');
+
+        $available = $resp->viewData('availableVehicles');
+        // Both vehicles should be available for tomorrow
+        $this->assertTrue($available->pluck('id')->contains($v1->id));
+        $this->assertTrue($available->pluck('id')->contains($v2->id));
+
+        // Clean up frozen time
+        Carbon::setTestNow();
     }
 
     public function test_store_creates_planning_syncs_order_and_tasks_and_users(): void

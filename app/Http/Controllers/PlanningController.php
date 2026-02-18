@@ -350,8 +350,10 @@ class PlanningController extends Controller
                 ]];
             });
 
-        // Vehicles available for selected/planned date (default: today)
-        $selectedDate = $request->input('planned_date') ?? now()->toDateString();
+        // Vehicles available for selected/planned date (default should match UI: tomorrow)
+        // The create form defaults the planned_date input to tomorrow (now()->addDay()),
+        // so align the server-side default to avoid filtering vehicles on the wrong day.
+        $selectedDate = $request->input('planned_date') ?? now()->addDay()->toDateString();
         $availableVehicles = Vehicle::query()
             ->whereDoesntHave('plannings', function ($q) use ($selectedDate) {
                 // Exclude only vehicles that are assigned to a non-completed planning on the selected date
