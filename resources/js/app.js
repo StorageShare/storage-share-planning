@@ -45,6 +45,19 @@ document.addEventListener('DOMContentLoaded', function () {
             plugins: ['remove_button'],
             create: false,
             maxItems: 20,
+            onItemAdd: function () {
+                // Reset het zoekveld na het selecteren van een gebruiker,
+                // zodat de ingetypte tekst niet blijft staan.
+                try {
+                    this.setTextboxValue('');
+                } catch (e) {
+                    // Fallback voor oudere versies
+                    if (this.control_input) this.control_input.value = '';
+                }
+                // Sluit de dropdown om duidelijk te maken dat de selectie is gedaan
+                // en voorkom dat de filtertekst zichtbaar blijft.
+                this.close();
+            }
         });
     }
 
