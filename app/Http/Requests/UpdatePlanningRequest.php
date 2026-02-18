@@ -109,20 +109,15 @@ class UpdatePlanningRequest extends FormRequest
 
                         return;
                     }
-                    // Valideer status
-                    if (! in_array($task->status, [TaskStatus::OPEN, TaskStatus::IN_PROGRESS])) {
-                        $fail("De geselecteerde backlog taak '{$task->title}' heeft niet de status open of in uitvoering. Status is: ".$task->status->label());
-
-                        return;
-                    }
-                    // Check of de taak al aan een *andere* actieve planning is gekoppeld
-                    // Open taken mogen aan meerdere planningen gekoppeld worden.
+                    // STATUSVALIDATIE VERSOEPELD: status maakt niet meer uit bij bewerken
+                    // Behoud bestaand beleid: OPEN taken mogen aan meerdere planningen gekoppeld worden.
+                    // Alleen wanneer de taak NIET OPEN is, blokkeren we koppeling aan een ANDERE planning (niet deze).
                     if ($task->status !== TaskStatus::OPEN) {
                         $query = $task->planningTasks()->whereHas('planning', function ($q) use ($planning_id) {
                             if ($planning_id) {
                                 $q->where('id', '!=', $planning_id);
                             }
-                            // Hier zou je nog kunnen filteren op actieve planningen, b.v. niet 'completed' status
+                            // Eventueel kun je hier nog filteren op actieve planningen
                         });
                         if ($query->exists()) {
                             $fail("De backlog taak '{$task->title}' is al aan een andere planning toegewezen.");
