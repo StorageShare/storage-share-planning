@@ -724,10 +724,37 @@ class PlanningController extends Controller
     public function complete(Planning $planning): RedirectResponse
     {
         DB::transaction(function () use ($planning) {
+            // 0) Eerst: automatisch goedkeuren van ingediende taken (in review)
+            $submittedTasks = $planning->planningTasks()
+                ->whereIn('status', [
+                    \App\Enums\TaskStatus::REVIEW->value,
+                    \App\Enums\TaskStatus::IN_REVIEW->value,
+                ])->get();
+
+            if ($submittedTasks->isNotEmpty()) {
+                // Hergebruik de bestaande approve-flow (mailing, linked vehicle sync, etc.)
+                $ptController = new \App\Http\Controllers\PlanningTaskController();
+                foreach ($submittedTasks as $pt) {
+                    try {
+                        // Lege request; we willen alleen de statuswijziging en side-effects
+                        $req = new \Illuminate\Http\Request();
+                        // Geef planning_id mee zodat eventuele redirects binnen approve() consistent zijn
+                        $req->merge(['planning_id' => $planning->id]);
+                        $ptController->approve($req, $pt);
+                    } catch (\Throwable $e) {
+                        // Faal niet de gehele afronding op één taak; log en ga door
+                        Log::warning('Automatische goedkeuring bij afronden planning faalde', [
+                            'planning_id' => $planning->id,
+                            'planning_task_id' => $pt->id ?? null,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
             // Delete all uncompleted tasks that were created from default tasks
             $planning->cleanupUncompletedDefaultTasks();
 
-            // For backlog-linked planning tasks that are not completed yet, make them re-plannable again:
+            // 2) Voor backlog-gelinkte plannings-taken die nog niet voltooid zijn: maak ze opnieuw planbaar
             // - Set the original backlog task status back to OPEN
             // - Detach the uncompleted planning task from this (now completed) planning
             $uncompletedBacklogPlanningTasks = $planning->planningTasks()
@@ -755,7 +782,7 @@ class PlanningController extends Controller
                         $pt->task->update(['status' => \App\Enums\TaskStatus::OPEN]);
                     }
                 }
-                // Remove the link from this completed planning
+                // Remove the link from this completed planning (geplande taak verwijderen)
                 $pt->delete();
             }
 

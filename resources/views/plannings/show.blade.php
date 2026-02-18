@@ -166,15 +166,49 @@
                     </div>
 
                     @if(auth()->user()?->canManagePlannings() && strtolower($planning->status ?? '') !== 'completed')
-                        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end">
-                            <form method="POST" action="{{ route('plannings.complete', $planning) }}">
-                                @csrf
-                                <button type="submit"
-                                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-sm font-medium"
-                                        onclick="return confirm('Weet je zeker dat je deze planning wilt afronden?')">
-                                    Planning afronden
-                                </button>
-                            </form>
+                        @php
+                            $allTasks = $planning->planningTasks ?? collect();
+                            $statusValue = fn($t) => strtolower($t->status?->value ?? (string)($t->status ?? ''));
+                            $submittedCount = $allTasks->filter(function($t) use ($statusValue) {
+                                $s = $statusValue($t);
+                                return in_array($s, ['review','in_review']);
+                            })->count();
+                            $toDeleteCount = $allTasks->filter(function($t) use ($statusValue) {
+                                $s = $statusValue($t);
+                                return $s !== 'completed' && !in_array($s, ['review','in_review']);
+                            })->count();
+                        @endphp
+                        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                            @if(($submittedCount + $toDeleteCount) > 0)
+                                <div class="mb-3 text-sm text-gray-700 dark:text-gray-300">
+                                    Let op: bij het afronden van deze planning zullen
+                                    @if($submittedCount > 0)
+                                        <strong>{{ $submittedCount }}</strong> ingediende taak/ taken automatisch worden goedgekeurd
+                                        @if($toDeleteCount > 0) en @endif
+                                    @endif
+                                    @if($toDeleteCount > 0)
+                                        <strong>{{ $toDeleteCount }}</strong> openstaande taak/taken zonder ingediende terugkoppeling worden verwijderd of vrijgegeven.
+                                    @endif
+                                </div>
+                            @endif
+                            <div class="flex justify-end">
+                                <form method="POST" action="{{ route('plannings.complete', $planning) }}">
+                                    @csrf
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-sm font-medium"
+                                            onclick="
+                                                const submitted={{ $submittedCount }};
+                                                const del={{ $toDeleteCount }};
+                                                let msg='Weet je zeker dat je deze planning wilt afronden?';
+                                                if(submitted>0 || del>0){
+                                                    msg = `Deze actie zal ${submitted>0? submitted+ ' ingediende taak/taken automatisch goedkeuren':''}${(submitted>0 && del>0)? ' en ':''}${del>0? del+' openstaande taak/taken zonder ingediende terugkoppeling verwijderen of vrijgeven':''}.\n\nDoorgaan?`;
+                                                }
+                                                return confirm(msg);
+                                            ">
+                                        Planning afronden
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     @endif
 
