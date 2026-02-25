@@ -31,45 +31,77 @@
             }
         },
         async copyCurrent() {
-            try {
-                const url = this.imageUrls[this.currentIndex];
-                if (!url || !navigator.clipboard) throw new Error('Clipboard not available');
-                const res = await fetch(url, { credentials: 'include' });
-                const blob = await res.blob();
-                const type = blob.type || 'image/png';
-                if (window.ClipboardItem) {
-                    const item = new ClipboardItem({ [type]: blob });
-                    await navigator.clipboard.write([item]);
-                    this.$dispatch('notify', { type: 'success', message: 'Foto gekopieerd naar klembord.' });
-                    // Developer feedback in console: confirm binary image copied
-                    try {
-                        const sizeKb = (blob.size / 1024).toFixed(1);
-                        console.info('[Clipboard] Image copied as binary', { type, size: `${sizeKb} KB`, sourceUrl: url });
-                    } catch(_) { /* no-op */ }
-                } else {
-                    throw new Error('ClipboardItem not supported');
-                }
-            } catch (e) {
-                // Fallback: copy a public, absolute URL instead of the image binary
-                const url = this.imageUrls[this.currentIndex];
-                if (url && navigator.clipboard?.writeText) {
-                    // Ensure we copy a full absolute URL so it can be shared publicly
-                    let publicUrl;
-                    try {
-                        publicUrl = new URL(url, window.location.origin).href;
-                    } catch(_) {
-                        publicUrl = url; // best effort
-                    }
+            const url = this.imageUrls[this.currentIndex];
+            if (!url) return;
 
-                    await navigator.clipboard.writeText(publicUrl);
-                    this.$dispatch('notify', { type: 'success', message: 'Publieke link naar foto gekopieerd.' });
-                    // Developer feedback in console: only URL copied (absolute)
-                    console.warn('[Clipboard] Copied URL instead of image (browser limitation or permission)', { publicUrl, reason: e?.message || 'unknown' });
-                } else {
-                    alert('Kopiëren niet ondersteund door deze browser.');
-                    console.error('[Clipboard] Copy failed: no clipboard API available');
+            const notify = (type, message) => {
+                try { this.$dispatch('notify', { type, message }); } catch(_) { /* no-op */ }
+            };
+
+            // Fetch image blob first
+            let blob;
+            try {
+                const res = await fetch(url, { credentials: 'include' });
+                blob = await res.blob();
+            } catch (e) {
+                console.warn('[Clipboard] Fetch failed, falling back to URL copy', e);
+                return await this.copyUrlFallback(url, e?.message || 'fetch failed');
+            }
+
+            const originalType = blob.type || 'image/jpeg';
+            if (window.ClipboardItem && navigator.clipboard?.write) {
+                try {
+                    await navigator.clipboard.write([new ClipboardItem({ [originalType]: blob })]);
+                    notify('success', 'Foto gekopieerd naar klembord.');
+                    try { console.info('[Clipboard] Image copied as binary', { type: originalType, size: `${(blob.size/1024).toFixed(1)} KB`, sourceUrl: url }); } catch(_) {}
+                    return;
+                } catch (e) {
+                    console.warn('[Clipboard] JPEG/original write failed, trying PNG fallback…', { reason: e?.message });
+                    // Try PNG fallback via canvas
+                    try {
+                        const pngBlob = await (async () => {
+                            if (window.createImageBitmap) {
+                                const bmp = await createImageBitmap(blob);
+                                const canvas = document.createElement('canvas');
+                                canvas.width = bmp.width; canvas.height = bmp.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(bmp, 0, 0);
+                                return new Promise((resolve, reject) => {
+                                    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob returned null')), 'image/png');
+                                });
+                            } else {
+                                // Fallback to HTMLImageElement
+                                const img = await new Promise((resolve, reject) => {
+                                    const i = new Image();
+                                    i.crossOrigin = 'anonymous';
+                                    i.onload = () => resolve(i);
+                                    i.onerror = reject;
+                                    const objUrl = URL.createObjectURL(blob);
+                                    i.src = objUrl;
+                                });
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.naturalWidth || img.width; canvas.height = img.naturalHeight || img.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                return new Promise((resolve, reject) => {
+                                    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob returned null')), 'image/png');
+                                });
+                            }
+                        })();
+
+                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                        notify('success', 'Foto als PNG gekopieerd naar klembord.');
+                        try { console.info('[Clipboard] Image copied as PNG fallback', { type: 'image/png', size: `${(pngBlob.size/1024).toFixed(1)} KB`, sourceUrl: url }); } catch(_) {}
+                        return;
+                    } catch (e2) {
+                        console.warn('[Clipboard] PNG fallback failed, falling back to URL copy', { reason: e2?.message });
+                        return await this.copyUrlFallback(url, e2?.message || 'png write failed');
+                    }
                 }
             }
+
+            // If ClipboardItem API missing → fallback to URL
+            return await this.copyUrlFallback(url, 'ClipboardItem not supported');
         }
     }"
     x-on:open-image-modal.window="
