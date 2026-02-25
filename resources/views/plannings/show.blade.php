@@ -299,6 +299,13 @@
                                                                     </button>
                                                                 @endif
                                                             </div>
+                                                            <div class="mt-2">
+                                                                <a href="{{ route('plannings.tasks.photos.download', $vpt) }}"
+                                                                   class="inline-flex items-center text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                                                                    Download alle foto’s
+                                                                </a>
+                                                            </div>
                                                         </div>
                                                     @endif
                                                 @endif
@@ -903,6 +910,13 @@
                                                                                         <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
                                                                                     </button>
                                                                                 @endif
+                                                                            </div>
+                                                                            <div class="mt-2 text-right">
+                                                                                <a href="{{ route('plannings.tasks.photos.download', $planningTask) }}"
+                                                                                   class="inline-flex items-center text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                                                                                    Download alle foto’s
+                                                                                </a>
                                                                             </div>
                                                                         </div>
                                                                     @endif

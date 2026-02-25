@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use ZipArchive;
 
 class PlanningTaskController extends Controller
 {
@@ -874,5 +876,79 @@ class PlanningTaskController extends Controller
             // Trigger the LocationCompleted event
             LocationCompleted::dispatch($location, $planning);
         }
+    }
+
+    /**
+     * Download all photos related to a planning task in a single ZIP file.
+     */
+    public function downloadPhotos(PlanningTask $planning_task)
+    {
+        // Authorize via existing middleware (can_execute_plannings) and implicit binding
+
+        // Collect all file paths to include in the ZIP
+        $files = [];
+
+        // 1) Photos directly attached to the planning task (if used)
+        $planning_task->loadMissing('planningTaskPhotos');
+        foreach ($planning_task->planningTaskPhotos as $idx => $photo) {
+            if (!empty($photo->path) && Storage::disk('public')->exists($photo->path)) {
+                $files[] = [
+                    'disk_path' => Storage::disk('public')->path($photo->path),
+                    'name' => 'task-photos/'.($photo->original_name ?: basename($photo->path)),
+                ];
+            }
+        }
+
+        // 2) Completion photos (most common)
+        $planning_task->loadMissing(['completions.photos']);
+        foreach ($planning_task->completions as $completion) {
+            foreach ($completion->photos as $i => $photo) {
+                $path = $photo->file_path ?? null;
+                if ($path && Storage::disk('public')->exists($path)) {
+                    $baseName = basename($path);
+                    $files[] = [
+                        'disk_path' => Storage::disk('public')->path($path),
+                        'name' => 'completion-photos/'.$baseName,
+                    ];
+                }
+            }
+        }
+
+        if (empty($files)) {
+            return back()->with('status', 'Geen foto\'s gevonden voor deze taak.');
+        }
+
+        // Create a temporary ZIP archive
+        $tmp = tempnam(sys_get_temp_dir(), 'ptphotos_');
+        $zipPath = $tmp.'.zip';
+        // On some systems tempnam creates a file; ensure we target our .zip
+        if (file_exists($tmp) && !str_ends_with($tmp, '.zip')) {
+            @unlink($tmp);
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return back()->with('error', 'Kon ZIP-bestand niet aanmaken.');
+        }
+
+        foreach ($files as $f) {
+            // Ensure unique names in case of duplicates
+            $name = $f['name'];
+            $uniqueName = $name;
+            $counter = 1;
+            while ($zip->locateName($uniqueName) !== false) {
+                $pathInfo = pathinfo($name);
+                $uniqueName = $pathInfo['dirname'].'/'.$pathInfo['filename'].'('.$counter.').'.($pathInfo['extension'] ?? '');
+                $counter++;
+            }
+
+            $zip->addFile($f['disk_path'], $uniqueName);
+        }
+
+        $zip->close();
+
+        $downloadName = 'planning-task-'.$planning_task->id.'-photos.zip';
+
+        return response()->download($zipPath, $downloadName)->deleteFileAfterSend(true);
     }
 }

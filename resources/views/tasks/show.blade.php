@@ -9,6 +9,23 @@
         <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    @php
+                        // If this task is viewed in the context of a planning (/tasks/:id?planning=:planningid),
+                        // try to find the related PlanningTask so we can offer the ZIP download button
+                        $planningTaskForTask = null;
+                        $hasAnyPlanningPhotos = false;
+                        if (request()->has('planning')) {
+                            $planningTaskForTask = \App\Models\PlanningTask::with(['planningTaskPhotos', 'completions.photos'])
+                                ->where('planning_id', request()->integer('planning'))
+                                ->where('task_id', $task->id)
+                                ->first();
+
+                            if ($planningTaskForTask) {
+                                $hasAnyPlanningPhotos = ($planningTaskForTask->planningTaskPhotos->count() > 0)
+                                    || ($planningTaskForTask->completions && $planningTaskForTask->completions->pluck('photos')->flatten()->count() > 0);
+                            }
+                        }
+                    @endphp
                     <div class="mb-4 flex justify-between items-center">
                         <div>
                             <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Taak: <span class="font-normal">{{ $task->title }}</span></h1>
@@ -16,7 +33,7 @@
                                 Locatie: <a href="{{ route('locations.show', $task->location) }}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-600">{{ $task->location->name }}</a>
                             </p>
                         </div>
-                        <div>
+                        <div class="flex items-center gap-2">
                             @if(Auth::user()->isAdmin() && ($task->status === App\Enums\TaskStatus::REVIEW || $task->status === App\Enums\TaskStatus::IN_REVIEW))
                                 <form action="{{ route('tasks.approve', $task) }}" method="POST" class="inline-block">
                                     @csrf
@@ -169,7 +186,16 @@
 
                     @if($completion_history->isNotEmpty())
                     <div class="mt-8">
-                        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Voltooiingsgeschiedenis</h2>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Voltooiingsgeschiedenis</h2>
+                            @if($planningTaskForTask && $hasAnyPlanningPhotos)
+                                <a href="{{ route('plannings.tasks.photos.download', $planningTaskForTask) }}"
+                                   class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                                    Download alle foto’s
+                                </a>
+                            @endif
+                        </div>
                         <div class="space-y-6">
                             @foreach($completion_history as $completion)
                                 @if($completion->review_outcome === 'skipped')

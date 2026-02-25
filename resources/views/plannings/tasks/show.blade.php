@@ -9,6 +9,10 @@
         <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    @php
+                        $hasAnyPhotos = ($planning_task->planningTaskPhotos->count() > 0)
+                            || ($planning_task->completions && $planning_task->completions->pluck('photos')->flatten()->count() > 0);
+                    @endphp
                     <div class="mb-4 flex justify-between items-center">
                         <div>
                             <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ $planning_task->title }}</h1>
@@ -21,7 +25,7 @@
                             </p>
                             @endif
                         </div>
-                        <div>
+                        <div class="flex items-center gap-2">
                             <a href="{{ route('plannings.show', $planning_task->planning) }}" class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 active:bg-gray-700 focus:outline-none focus:border-gray-700 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
                                 Terug naar planning
                             </a>
@@ -80,7 +84,16 @@
 
                     @if($planning_task->completions->isNotEmpty())
                     <div class="mt-8">
-                        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Voltooiingsgeschiedenis</h2>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Voltooiingsgeschiedenis</h2>
+                            @if($hasAnyPhotos)
+                                <a href="{{ route('plannings.tasks.photos.download', $planning_task) }}"
+                                   class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                                    Download alle foto’s
+                                </a>
+                            @endif
+                        </div>
                         <div class="space-y-6">
                             @foreach($planning_task->completions as $completion)
                                 @if($completion->review_outcome === 'skipped')

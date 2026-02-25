@@ -498,11 +498,20 @@
                                                                         </div>
                                                                     </template>
                                                                 </div>
-                                                                <template x-if="item.status === 'pending'">
-                                                                    <button @click="removePhoto(item)" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                                                        Alles verwijderen
-                                                                    </button>
-                                                                </template>
+                                                                <div class="flex items-center gap-3">
+                                                                    <template x-if="item.photos && item.photos.length > 0">
+                                                                        <a :href="`/plannings/tasks/${item.id}/photos/download`"
+                                                                           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-1"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                                                                            Download alle foto’s
+                                                                        </a>
+                                                                    </template>
+                                                                    <template x-if="item.status === 'pending'">
+                                                                        <button @click="removePhoto(item)" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                                                            Alles verwijderen
+                                                                        </button>
+                                                                    </template>
+                                                                </div>
                                                             </div>
 
                                                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

@@ -108,6 +108,9 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     // Route for reopening a task
     Route::post('plannings/{planning}/tasks/{planning_task}/reopen', [PlanningTaskController::class, 'reopen'])->name('plannings.tasks.reopen');
 
+    // Download all photos for a planning task as ZIP
+    Route::get('plannings/tasks/{planning_task}/photos/download', [PlanningTaskController::class, 'downloadPhotos'])->name('plannings.tasks.photos.download');
+
     // Routes for planning comments (extra remarks)
     Route::put('planning-comments/{comment}', [PlanningTaskController::class, 'updateComment'])->name('planning-comments.update');
 
