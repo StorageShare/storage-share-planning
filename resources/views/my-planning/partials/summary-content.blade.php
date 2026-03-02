@@ -103,7 +103,7 @@
 
                     {{-- Tasks for this location --}}
                     @if($tasksForLocation->count() > 0)
-                        <div class="mt-2 ml-4 space-y-1">
+                        <div class="mt-2 ml-4 space-y-2">
                             @foreach($tasksForLocation as $planningTask)
                                 @php
                                     $estimatedMinutes = 0;
@@ -112,15 +112,70 @@
                                     } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) {
                                        $estimatedMinutes = (int)$planningTask->defaultTask->estimated_time_minutes;
                                     }
+
+                                    // Determine priority (only backlog tasks have priority)
+                                    $priority = $planningTask->task?->priority;
+                                    $priorityLabel = $priority ? $priority->label() : null;
+                                    $priorityClasses = match($priority?->value) {
+                                        'high' => 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700',
+                                        'low' => 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:border-amber-700',
+                                        default => 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700',
+                                    };
+
+                                    // Description from backlog or default task
+                                    $description = $planningTask->task?->description ?? $planningTask->defaultTask?->description;
+
+                                    // Photos only for backlog tasks
+                                    $photos = $planningTask->task?->taskPhotos ?? collect();
                                 @endphp
-                                <div class="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                                    <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                                    </svg>
-                                    <span class="flex-1">{{ $planningTask->title }}</span>
-                                    @if($estimatedMinutes > 0)
-                                        <span class="font-medium text-gray-500 dark:text-gray-500">{{ $estimatedMinutes }} min</span>
-                                    @endif
+
+                                <div x-data="{ open: false }" class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                    {{-- Task header (click to expand) --}}
+                                    <button type="button" @click="open = !open" class="w-full p-3 text-left bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                            </svg>
+                                            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $planningTask->title }}</span>
+                                            @if($planningTask->is_vehicle_task)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-700" title="Voertuig taak" aria-label="Voertuig taak">Voertuig</span>
+                                            @endif
+                                            @if($priorityLabel)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border {{ $priorityClasses }}" title="Prioriteit" aria-label="Prioriteit">{{ $priorityLabel }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            @if($estimatedMinutes > 0)
+                                                <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ $estimatedMinutes }} min</span>
+                                            @endif
+                                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300 transform transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </div>
+                                    </button>
+
+                                    {{-- Task details --}}
+                                    <div x-show="open" x-transition class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                                        @if(!empty($description))
+                                            <div class="mb-3">
+                                                <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Beschrijving</h5>
+                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ $description }}</p>
+                                            </div>
+                                        @endif
+
+                                        @if($photos->count() > 0)
+                                            <div class="mt-3">
+                                                <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Bijgevoegde foto's</h5>
+                                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                    @foreach($photos as $photo)
+                                                        <a href="{{ $photo->url }}" target="_blank" class="block group">
+                                                            <img src="{{ $photo->url }}" alt="Taak foto" class="w-full h-24 object-cover rounded-lg shadow hover:opacity-80 transition" />
+                                                        </a>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             @endforeach
 
