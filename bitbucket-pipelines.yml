@@ -1,0 +1,23 @@
+image: atlassian/default-image:4
+
+pipelines:
+  default:
+    - step:
+        name: PHP QA (Pint + PHPStan)
+        caches:
+          - composer
+          - node
+        services:
+          - docker
+        script:
+          - apt-get update && apt-get install -y php8.2 php8.2-cli php8.2-mbstring php8.2-xml php8.2-curl unzip git
+          - php -v
+          - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          - composer install --no-interaction --prefer-dist
+          - npm ci --omit=dev --no-audit --no-fund || true
+          - composer run lint
+          - composer run analyse
+definitions:
+  caches:
+    composer: ~/.composer/cache
+    node: ~/.npm

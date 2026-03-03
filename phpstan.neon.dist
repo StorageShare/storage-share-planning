@@ -1,0 +1,20 @@
+includes:
+  - vendor/nunomaduro/larastan/extension.neon
+
+parameters:
+  memoryLimit: 1G
+  paths:
+    - app
+  level: 6
+  checkMissingTypehints: true
+  reportUnmatchedIgnoredErrors: true
+  tmpDir: var/phpstan
+  excludePaths:
+    - vendor/*
+    - storage/*
+    - bootstrap/cache/*
+
+  # Laravel specifics
+  scanDirectories:
+    - vendor/laravel/framework/src
+    - vendor/nunomaduro/larastan
