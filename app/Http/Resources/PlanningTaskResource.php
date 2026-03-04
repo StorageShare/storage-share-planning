@@ -2,9 +2,14 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PlanningTask;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @property-read PlanningTask $resource
+ * @mixin PlanningTask
+ */
 class PlanningTaskResource extends JsonResource
 {
     /**
