@@ -2,20 +2,28 @@
 
 namespace App\Models;
 
+use App\Enums\TaskStatus;
+use Database\Factories\PlanningTaskFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read Planning $planning
+ * @property-read Task|null $task
+ * @property-read DefaultTask|null $defaultTask
+ * @property-read Location|null $specificLocation
+ * @property-read Collection<int, PlanningTaskCompletion> $completions
+ */
 class PlanningTask extends Model
 {
+    /**
+     * @use HasFactory<PlanningTaskFactory>
+     */
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'planning_id',
         'task_id',
@@ -42,12 +50,14 @@ class PlanningTask extends Model
      */
     protected $casts = [
         'completed_at' => 'datetime',
-        'status' => \App\Enums\TaskStatus::class,
+        'status' => TaskStatus::class,
         'is_vehicle_task' => 'boolean',
     ];
 
     /**
      * Get the planning that owns the planning task.
+     *
+     * @return BelongsTo<Planning, $this>
      */
     public function planning(): BelongsTo
     {
@@ -56,6 +66,8 @@ class PlanningTask extends Model
 
     /**
      * Get the specific task associated with this planning task (if any).
+     *
+     * @return BelongsTo<Task, $this>
      */
     public function task(): BelongsTo
     {
@@ -64,6 +76,8 @@ class PlanningTask extends Model
 
     /**
      * Get the default task associated with this planning task (if any).
+     *
+     * @return BelongsTo<DefaultTask, $this>
      */
     public function defaultTask(): BelongsTo
     {
@@ -72,6 +86,8 @@ class PlanningTask extends Model
 
     /**
      * Get the specific location for this planning task (especially for default task instances).
+     *
+     * @return BelongsTo<Location, $this>
      */
     public function specificLocation(): BelongsTo
     {
@@ -80,6 +96,8 @@ class PlanningTask extends Model
 
     /**
      * Vehicle task linkage when this planning task represents a vehicle task.
+     *
+     * @return BelongsTo<VehicleTask, $this>
      */
     public function vehicleTask(): BelongsTo
     {
@@ -88,6 +106,8 @@ class PlanningTask extends Model
 
     /**
      * Get the photos associated with the planning task execution.
+     *
+     * @return HasMany<PlanningTaskPhoto, $this>
      */
     public function planningTaskPhotos(): HasMany
     {
@@ -96,6 +116,8 @@ class PlanningTask extends Model
 
     /**
      * Get the completion history for the planning task.
+     *
+     * @return HasMany<PlanningTaskCompletion, $this>
      */
     public function completions(): HasMany
     {

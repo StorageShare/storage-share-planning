@@ -52,15 +52,17 @@ class TaskCompletedApprovedMail extends Mailable
      */
     public function attachments(): array
     {
+        /** @var array<int, Attachment> $attachments */
         $attachments = [];
 
-        // Collect unique paths to avoid duplicate attachments
+        // Collect unique paths to avoid duplicate attachments (path => true)
+        /** @var array<string, bool> $addedPaths */
         $addedPaths = [];
 
         // 1) Photos added on the latest completion (preferred)
         try {
             $completionPhotos = $this->completion->photos()->get();
-            list($photo, $path, $addedPaths, $attachment, $attachments) = $this->extracted($completionPhotos, $addedPaths, $attachments);
+            [$addedPaths, $attachments] = $this->assembleAttachments($completionPhotos, $addedPaths, $attachments);
         } catch (\Throwable $e) {
             // Fail silently – attachments are optional
         }
@@ -68,7 +70,7 @@ class TaskCompletedApprovedMail extends Mailable
         // 2) Any photos linked directly to the planning task (fallback / additional)
         try {
             $taskPhotos = $this->planningTask->planningTaskPhotos()->get();
-            list($photo, $path, $addedPaths, $attachment, $attachments) = $this->extracted($taskPhotos, $addedPaths, $attachments);
+            [$addedPaths, $attachments] = $this->assembleAttachments($taskPhotos, $addedPaths, $attachments);
         } catch (\Throwable $e) {
             // Fail silently – attachments are optional
         }
@@ -77,12 +79,14 @@ class TaskCompletedApprovedMail extends Mailable
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Collection $completionPhotos
-     * @param array $addedPaths
-     * @param array $attachments
-     * @return array
+     * Build the attachments list from a photo collection.
+     *
+     * @param iterable<int, object> $completionPhotos
+     * @param array<string, bool> $addedPaths
+     * @param array<int, Attachment> $attachments
+     * @return array{0: array<string, bool>, 1: array<int, Attachment>}
      */
-    public function extracted(\Illuminate\Database\Eloquent\Collection $completionPhotos, array $addedPaths, array $attachments): array
+    private function assembleAttachments(iterable $completionPhotos, array $addedPaths, array $attachments): array
     {
         foreach ($completionPhotos as $photo) {
             $path = (string)($photo->path ?? '');
@@ -100,6 +104,6 @@ class TaskCompletedApprovedMail extends Mailable
             }
             $attachments[] = $attachment;
         }
-        return array($photo, $path, $addedPaths, $attachment, $attachments);
+        return [$addedPaths, $attachments];
     }
 }

@@ -2,7 +2,6 @@ includes:
   - vendor/nunomaduro/larastan/extension.neon
 
 parameters:
-  memoryLimit: 1G
   paths:
     - app
   level: 6
@@ -13,8 +12,3 @@ parameters:
     - vendor/*
     - storage/*
     - bootstrap/cache/*
-
-  # Laravel specifics
-  scanDirectories:
-    - vendor/laravel/framework/src
-    - vendor/nunomaduro/larastan

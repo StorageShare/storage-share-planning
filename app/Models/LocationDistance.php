@@ -2,15 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
 
 class LocationDistance extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'from_location_id',
         'to_location_id',
@@ -30,6 +28,7 @@ class LocationDistance extends Model
 
     /**
      * Relatie naar de van-locatie
+     * @return BelongsTo<Location, $this>
      */
     public function fromLocation(): BelongsTo
     {
@@ -38,6 +37,7 @@ class LocationDistance extends Model
 
     /**
      * Relatie naar de naar-locatie
+     * @return BelongsTo<Location, $this>
      */
     public function toLocation(): BelongsTo
     {
@@ -46,8 +46,10 @@ class LocationDistance extends Model
 
     /**
      * Scope voor het vinden van afstand tussen specifieke locaties
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeBetweenLocations($query, $fromLocationId, $toLocationId)
+    public function scopeBetweenLocations(Builder $query, int $fromLocationId, int $toLocationId): Builder
     {
         return $query->where('from_location_id', $fromLocationId)
                     ->where('to_location_id', $toLocationId);
@@ -55,8 +57,10 @@ class LocationDistance extends Model
 
     /**
      * Scope voor recente berekeningen
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeRecent($query, $hours = 24)
+    public function scopeRecent(Builder $query, int $hours = 24): Builder
     {
         return $query->where('calculated_at', '>=', Carbon::now()->subHours($hours));
     }
@@ -65,11 +69,11 @@ class LocationDistance extends Model
      * Haal afstand op tussen twee locaties (bidirectioneel)
      * Probeert beide richtingen en geeft de gevonden afstand terug
      */
-    public static function getDistance($fromLocationId, $toLocationId): ?self
+    public static function getDistance(int $fromLocationId, int $toLocationId): ?self
     {
         // Probeer eerst de directe richting
         $distance = self::betweenLocations($fromLocationId, $toLocationId)->first();
-        
+
         // Als niet gevonden, probeer de omgekeerde richting
         if (!$distance) {
             $distance = self::betweenLocations($toLocationId, $fromLocationId)->first();
@@ -81,7 +85,7 @@ class LocationDistance extends Model
     /**
      * Haal alleen de afstand in kilometers op
      */
-    public static function getDistanceKm($fromLocationId, $toLocationId): ?float
+    public static function getDistanceKm(int $fromLocationId, int $toLocationId): ?float
     {
         $distance = self::getDistance($fromLocationId, $toLocationId);
         return $distance?->distance_km;
@@ -90,7 +94,7 @@ class LocationDistance extends Model
     /**
      * Haal alleen de reistijd in minuten op
      */
-    public static function getDurationMinutes($fromLocationId, $toLocationId): ?int
+    public static function getDurationMinutes(int $fromLocationId, int $toLocationId): ?int
     {
         $distance = self::getDistance($fromLocationId, $toLocationId);
         return $distance?->duration_minutes;
@@ -100,11 +104,11 @@ class LocationDistance extends Model
      * Sla een nieuwe afstand op (of update bestaande)
      */
     public static function storeDistance(
-        $fromLocationId,
-        $toLocationId,
-        $distanceKm,
-        $durationMinutes,
-        $calculationMethod = 'google_maps',
+        int $fromLocationId,
+        int $toLocationId,
+        float $distanceKm,
+        int $durationMinutes,
+        string $calculationMethod = 'google_maps',
         $apiResponse = null
     ): self {
         return self::updateOrCreate(
@@ -125,7 +129,7 @@ class LocationDistance extends Model
     /**
      * Haal alle afstanden op vanaf een specifieke locatie, gesorteerd op afstand
      */
-    public static function getDistancesFrom($fromLocationId, $sortBy = 'distance_km')
+    public static function getDistancesFrom(int $fromLocationId, string $sortBy = 'distance_km')
     {
         return self::where('from_location_id', $fromLocationId)
                   ->with('toLocation')
@@ -136,7 +140,7 @@ class LocationDistance extends Model
     /**
      * Haal alle afstanden op naar een specifieke locatie
      */
-    public static function getDistancesTo($toLocationId, $sortBy = 'distance_km')
+    public static function getDistancesTo(int $toLocationId, string $sortBy = 'distance_km')
     {
         return self::where('to_location_id', $toLocationId)
                   ->with('fromLocation')
@@ -147,7 +151,7 @@ class LocationDistance extends Model
     /**
      * Check of een afstand recentelijk is berekend
      */
-    public function isRecent($hours = 24): bool
+    public function isRecent(int $hours = 24): bool
     {
         if (!$this->calculated_at) {
             return false;
@@ -189,16 +193,17 @@ class LocationDistance extends Model
 
     /**
      * Bulk insert van afstanden (voor seeding/import)
+     * @param array<string, int|float|string> $distances
      */
     public static function bulkStore(array $distances): int
     {
         $now = Carbon::now();
         $data = collect($distances)->map(function ($distance) use ($now) {
             return [
-                'from_location_id' => $distance['from_location_id'],
-                'to_location_id' => $distance['to_location_id'],
-                'distance_km' => $distance['distance_km'],
-                'duration_minutes' => $distance['duration_minutes'],
+                'from_location_id' => (int) $distance['from_location_id'],
+                'to_location_id' => (int) $distance['to_location_id'],
+                'distance_km' => (float) $distance['distance_km'],
+                'duration_minutes' => (int) $distance['duration_minutes'],
                 'calculated_at' => $now,
                 'calculation_method' => $distance['calculation_method'] ?? 'google_maps',
                 'api_response' => $distance['api_response'] ?? null,

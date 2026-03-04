@@ -11,7 +11,7 @@ class Kernel extends ConsoleKernel
     /**
      * The Artisan commands provided by your application.
      *
-     * @var array
+     * @var array<int, class-string<\Illuminate\Console\Command>>
      */
     protected $commands = [
         // Commands\SyncExternalLocationsCommand::class,

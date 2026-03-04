@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use Database\Factories\ExternalTaskFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExternalTask extends Model
 {
+    /**
+     * @use HasFactory<ExternalTaskFactory>
+     */
     use HasFactory;
 
     protected $fillable = [
@@ -32,11 +36,17 @@ class ExternalTask extends Model
         'external_deadline_at' => 'datetime',
     ];
 
+    /**
+     * @return BelongsTo<Location, $this>
+     */
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
     }
 
+    /**
+     * @return HasMany<ExternalTaskComment, $this>
+     */
     public function comments(): HasMany
     {
         return $this->hasMany(ExternalTaskComment::class);

@@ -13,11 +13,17 @@ class ExternalTaskComment extends Model
         'comment',
     ];
 
+    /**
+     * @return BelongsTo<ExternalTask, $this>
+     */
     public function externalTask(): BelongsTo
     {
         return $this->belongsTo(ExternalTask::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

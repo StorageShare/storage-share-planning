@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\Planning;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -17,22 +18,22 @@ class LocationCompletedMail extends Mailable
     /**
      * The location instance.
      *
-     * @var \App\Models\Location
+     * @var Location
      */
     public $location;
 
     /**
      * The planning instance.
      *
-     * @var \App\Models\Planning
+     * @var Planning
      */
     public $planning;
 
     /**
      * Create a new message instance.
      *
-     * @param \App\Models\Location $location
-     * @param \App\Models\Planning $planning
+     * @param Location $location
+     * @param Planning $planning
      * @return void
      */
     public function __construct(Location $location, Planning $planning)
@@ -44,7 +45,7 @@ class LocationCompletedMail extends Mailable
     /**
      * Get the message envelope.
      *
-     * @return \Illuminate\Mail\Mailables\Envelope
+     * @return Envelope
      */
     public function envelope()
     {
@@ -56,9 +57,9 @@ class LocationCompletedMail extends Mailable
     /**
      * Get the message content definition.
      *
-     * @return \Illuminate\Mail\Mailables\Content
+     * @return Content
      */
-    public function content()
+    public function content(): Content
     {
         return new Content(
             markdown: 'emails.location.completed',
@@ -68,10 +69,10 @@ class LocationCompletedMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array
+     * @return array<int, Attachment>
      */
-    public function attachments()
+    public function attachments(): array
     {
         return [];
     }
-} 
+}

@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Planning;
 use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -46,9 +47,9 @@ class PlanningReadyNotificationMail extends Mailable
     /**
      * Get the message content definition.
      *
-     * @return \Illuminate\Mail\Mailables\Content
+     * @return Content
      */
-    public function content()
+    public function content(): Content
     {
         return new Content(
             markdown: 'emails.planning.ready-notification',
@@ -58,10 +59,10 @@ class PlanningReadyNotificationMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array
+     * @return array<int, Attachment>
      */
-    public function attachments()
+    public function attachments(): array
     {
         return [];
     }
-} 
+}

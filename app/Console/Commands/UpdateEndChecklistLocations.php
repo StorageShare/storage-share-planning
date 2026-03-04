@@ -24,7 +24,7 @@ class UpdateEndChecklistLocations extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $this->info('Updating end checklist items with location information...');
 
@@ -40,7 +40,9 @@ class UpdateEndChecklistLocations extends Command
         foreach ($items as $item) {
             if ($item->type === 'material' && $item->requirement) {
                 // Find location through planning tasks
-                $planningTask = $item->planning->planningTasks
+                /** @var \Illuminate\Support\Collection<int, \App\Models\PlanningTask> $planningTasks */
+                $planningTasks = $item->planning->planningTasks;
+                $planningTask = $planningTasks
                     ->filter(function($pt) use ($item) {
                         return ($pt->task && $pt->task->requirements->contains($item->requirement_id)) ||
                                ($pt->defaultTask && $pt->defaultTask->requirements->contains($item->requirement_id));
@@ -48,7 +50,8 @@ class UpdateEndChecklistLocations extends Command
                     ->first();
 
                 if ($planningTask) {
-                    $locationId = $planningTask->specificLocation?->id ?? $planningTask->task?->location_id;
+                    // Prefer specific location id when present, else fall back to task->location_id
+                    $locationId = $planningTask->specificLocation?->id ?: $planningTask->task?->location_id;
                     if ($locationId) {
                         $item->update(['location_id' => $locationId]);
                         $this->line("Updated material item {$item->id} with location {$locationId}");
@@ -57,7 +60,9 @@ class UpdateEndChecklistLocations extends Command
                 }
             } elseif ($item->type === 'end_action') {
                 // Find location through planning tasks with end_day_action
-                $planningTask = $item->planning->planningTasks
+                /** @var \Illuminate\Support\Collection<int, \App\Models\PlanningTask> $planningTasks */
+                $planningTasks = $item->planning->planningTasks;
+                $planningTask = $planningTasks
                     ->filter(function($pt) use ($item) {
                         return ($pt->task && $pt->task->end_day_action_title === $item->title) ||
                                ($pt->defaultTask && $pt->defaultTask->end_day_action_title === $item->title);
@@ -65,7 +70,8 @@ class UpdateEndChecklistLocations extends Command
                     ->first();
 
                 if ($planningTask) {
-                    $locationId = $planningTask->specificLocation?->id ?? $planningTask->task?->location_id;
+                    // Prefer specific location id when present, else fall back to task->location_id
+                    $locationId = $planningTask->specificLocation?->id ?: $planningTask->task?->location_id;
                     if ($locationId) {
                         $item->update(['location_id' => $locationId]);
                         $this->line("Updated end_action item {$item->id} with location {$locationId}");

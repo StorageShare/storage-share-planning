@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OfflineSyncQueue;
 use App\Models\PlanningTask;
 use App\Models\PlanningTaskCompletion;
+use App\Models\User;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,11 +28,11 @@ class OfflineSyncController extends Controller
             'completions.*.completed_offline_at' => 'required|date',
             'completions.*.task_duration_seconds' => 'sometimes|integer|min:0'
         ]);
-        
+
         $results = [];
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         foreach ($request->input('completions') as $completionData) {
             try {
                 $results[] = $this->syncSingleCompletion($completionData, $user);
@@ -44,11 +45,16 @@ class OfflineSyncController extends Controller
                 ];
             }
         }
-        
+
         return response()->json(['results' => $results]);
     }
-    
-    private function syncSingleCompletion(array $data, $user): array
+
+    /**
+     * @param array<string, mixed> $data
+     * @param User $user
+     * @return array
+     */
+    private function syncSingleCompletion(array $data, User $user): array
     {
         // Controleer of deze completion al eerder is gesynchroniseerd
         if (PlanningTaskCompletion::where('sync_hash', $data['sync_hash'])->exists()) {
@@ -57,10 +63,10 @@ class OfflineSyncController extends Controller
                 'status' => 'already_synced'
             ];
         }
-        
+
         return DB::transaction(function () use ($data, $user) {
             $planningTask = PlanningTask::findOrFail($data['planning_task_id']);
-            
+
             $completion = $planningTask->completions()->create([
                 'user_id' => $user->id,
                 'comment' => $data['comment'],
@@ -69,21 +75,21 @@ class OfflineSyncController extends Controller
                 'created_at' => $data['completed_offline_at'],
                 'task_duration_seconds' => $data['task_duration_seconds'] ?? 0,
             ]);
-            
+
             // Update planning task status
             $planningTask->update([
                 'completed_at' => $data['completed_offline_at'],
                 'completed_notes' => $data['comment'],
                 'status' => $user->isAdmin() ? 'completed' : 'review'
             ]);
-            
+
             // Update original task status if this is a backlog task
             if ($planningTask->task) {
                 $planningTask->task->update([
                     'status' => $user->isAdmin() ? 'completed' : 'review'
                 ]);
             }
-            
+
             return [
                 'sync_hash' => $data['sync_hash'],
                 'status' => 'synced',
@@ -91,7 +97,7 @@ class OfflineSyncController extends Controller
             ];
         });
     }
-    
+
     public function syncPhotos(Request $request, ImageService $imageService): JsonResponse
     {
         $request->validate([
@@ -102,9 +108,9 @@ class OfflineSyncController extends Controller
             'photos.*.filename' => 'required|string',
             'photos.*.taken_at' => 'required|date'
         ]);
-        
+
         $results = [];
-        
+
         foreach ($request->input('photos') as $photoData) {
             try {
                 $results[] = $this->syncSinglePhoto($photoData, $imageService);
@@ -117,19 +123,19 @@ class OfflineSyncController extends Controller
                 ];
             }
         }
-        
+
         return response()->json(['results' => $results]);
     }
-    
+
     private function syncSinglePhoto(array $data, ImageService $imageService): array
     {
         // Vind de completion
         $completion = PlanningTaskCompletion::where('sync_hash', $data['completion_sync_hash'])->first();
-        
+
         if (!$completion) {
             throw new \Exception('Completion not found for sync_hash: ' . $data['completion_sync_hash']);
         }
-        
+
         // Controleer of foto al bestaat
         if ($completion->photos()->where('sync_hash', $data['sync_hash'])->exists()) {
             return [
@@ -137,16 +143,16 @@ class OfflineSyncController extends Controller
                 'status' => 'already_synced'
             ];
         }
-        
+
         // Decode en sla foto op
         $fileData = base64_decode($data['file_data']);
         $tempFile = tmpfile();
         $tempPath = stream_get_meta_data($tempFile)['uri'];
         file_put_contents($tempPath, $fileData);
-        
+
         $extension = pathinfo($data['filename'], PATHINFO_EXTENSION);
         $filename = uniqid('ptc_' . $completion->id . '_', true) . '.' . $extension;
-        
+
         $uploadedFile = new UploadedFile(
             $tempPath,
             $data['filename'],
@@ -154,22 +160,22 @@ class OfflineSyncController extends Controller
             null,
             true
         );
-        
+
         $path = $imageService->saveCompressedImage(
             $uploadedFile,
             'planning-task-completion-photos/' . $completion->id,
             $filename,
             'public'
         );
-        
+
         $photo = $completion->photos()->create([
             'file_path' => $path,
             'sync_hash' => $data['sync_hash'],
             'created_at' => $data['taken_at']
         ]);
-        
+
         fclose($tempFile);
-        
+
         return [
             'sync_hash' => $data['sync_hash'],
             'status' => 'synced',
@@ -181,7 +187,7 @@ class OfflineSyncController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         $pendingItems = OfflineSyncQueue::forUser($user->id)
             ->pending()
             ->byPriority()
@@ -195,4 +201,4 @@ class OfflineSyncController extends Controller
 
         return response()->json($stats);
     }
-} 
+}

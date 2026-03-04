@@ -7,8 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property VehicleType $type
+ */
 class Vehicle extends Model
 {
+    /** @use HasFactory<\Database\Factories\VehicleFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -45,6 +49,9 @@ class Vehicle extends Model
     /**
      * Plannings assigned to this vehicle.
      */
+    /**
+     * @return HasMany<Planning, $this>
+     */
     public function plannings(): HasMany
     {
         return $this->hasMany(Planning::class);
@@ -52,6 +59,9 @@ class Vehicle extends Model
 
     /**
      * Vehicle-specific tasks that can be scheduled for this vehicle.
+     */
+    /**
+     * @return HasMany<VehicleTask, $this>
      */
     public function vehicleTasks(): HasMany
     {

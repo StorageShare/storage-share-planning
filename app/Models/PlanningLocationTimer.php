@@ -6,15 +6,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int|null $location_id
+ * @property string|null $location_type
+ * @property int|null $total_duration_seconds
+ * @property \Carbon\CarbonInterface|null $started_at
+ * @property \Carbon\CarbonInterface|null $ended_at
+ * @property \Carbon\CarbonInterface|null $created_at
+ * @property \Carbon\CarbonInterface|null $updated_at
+ * @property-read Planning $planning
+ * @property-read Location|null $location
+ */
 class PlanningLocationTimer extends Model
 {
-    use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'planning_id',
         'location_id',
@@ -36,6 +42,7 @@ class PlanningLocationTimer extends Model
 
     /**
      * Get the planning that owns the timer.
+     * @return BelongsTo<Planning, $this>
      */
     public function planning(): BelongsTo
     {
@@ -44,12 +51,16 @@ class PlanningLocationTimer extends Model
 
     /**
      * Get the location that owns the timer.
+     * @return BelongsTo<Location, $this>
      */
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
     }
 
+    /**
+     * @return string
+     */
     public function label(): string
     {
         switch ($this->location_type) {

@@ -3,15 +3,12 @@
 namespace App\Models;
 
 use App\Enums\TaskStatus;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VehicleTask extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'vehicle_id',
         'title',
@@ -26,16 +23,25 @@ class VehicleTask extends Model
         'estimated_time_minutes' => 'integer',
     ];
 
+    /**
+     * @return BelongsTo<Vehicle, $this>
+     */
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<PlanningTask, $this>
+     */
     public function planningTasks(): HasMany
     {
         return $this->hasMany(PlanningTask::class);

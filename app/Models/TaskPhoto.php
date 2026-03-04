@@ -2,18 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TaskPhoto extends Model
 {
-    use HasFactory;
-
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'task_id',
@@ -32,6 +29,8 @@ class TaskPhoto extends Model
 
     /**
      * Get the task that owns the photo.
+     *
+     * @return BelongsTo<Task, $this>
      */
     public function task(): BelongsTo
     {

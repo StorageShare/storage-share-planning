@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * @property Role $role
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -52,11 +55,17 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * @return BelongsToMany<Planning, $this>
+     */
     public function plannings(): BelongsToMany
     {
         return $this->belongsToMany(Planning::class);
     }
 
+    /**
+     * @return HasMany<ExternalTaskComment, $this>
+     */
     public function externalTaskComments(): HasMany
     {
         return $this->hasMany(ExternalTaskComment::class);

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,8 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class EndChecklistItemPhoto extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'end_checklist_item_id',
         'file_path',
@@ -25,11 +22,17 @@ class EndChecklistItemPhoto extends Model
 
     protected $appends = ['url'];
 
+    /**
+     * @return BelongsTo<EndChecklistItem, $this>
+     */
     public function item(): BelongsTo
     {
         return $this->belongsTo(EndChecklistItem::class, 'end_checklist_item_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');

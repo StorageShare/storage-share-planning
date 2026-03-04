@@ -2,21 +2,22 @@
 
 namespace App\Models;
 
+use Database\Factories\DefaultTaskFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 class DefaultTask extends Model
 {
+    /**
+     * @use HasFactory<DefaultTaskFactory>
+     */
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'title',
         'description',
@@ -55,16 +56,20 @@ class DefaultTask extends Model
 
     /**
      * Scope a query to only include default tasks that apply to all locations.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeForAllLocations($query)
+    public function scopeForAllLocations(Builder $query): Builder
     {
         return $query->where('applies_to_all_locations', true);
     }
 
     /**
      * Scope a query to only include default tasks for a specific location.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeForLocation($query, $locationId)
+    public function scopeForLocation(Builder $query, int $locationId): Builder
     {
         return $query->where(function($q) use ($locationId) {
             $q->where('applies_to_all_locations', true)
@@ -82,16 +87,20 @@ class DefaultTask extends Model
 
     /**
      * Scope a query to only include default tasks that apply to door types.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeForDoorTypes($query)
+    public function scopeForDoorTypes(Builder $query): Builder
     {
         return $query->where('applies_to_door_types', true);
     }
 
     /**
      * Scope a query to only include default tasks for a specific door type.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeForDoorType($query, $doorType)
+    public function scopeForDoorType(Builder $query, string $doorType): Builder
     {
         return $query->where('applies_to_door_types', true)
                     ->whereJsonContains('door_types', strtolower(trim($doorType)));
@@ -99,6 +108,7 @@ class DefaultTask extends Model
 
     /**
      * The locations that belong to the default task.
+     * @return BelongsToMany<Location, $this>
      */
     public function locations(): BelongsToMany
     {
@@ -107,6 +117,7 @@ class DefaultTask extends Model
 
     /**
      * Get the planning tasks associated with the default task.
+     * @return HasMany<PlanningTask, $this>
      */
     public function planningTasks(): HasMany
     {
@@ -115,14 +126,16 @@ class DefaultTask extends Model
 
     /**
      * Get the user who created the default task.
+     * @return BelongsTo<User, $this>
      */
-    public function creator(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
      * Get the requirements for the default task.
+     * @return BelongsToMany<Requirement, $this>
      */
     public function requirements(): BelongsToMany
     {
@@ -131,8 +144,9 @@ class DefaultTask extends Model
 
     /**
      * Get locations that match the door types for this default task.
+     * @return Builder<Location>
      */
-    public function applicableLocationsByDoorType()
+    public function applicableLocationsByDoorType(): Builder
     {
         if (!$this->applies_to_door_types || empty($this->door_types)) {
             return Location::whereRaw('1 = 0'); // Return empty query
@@ -189,6 +203,7 @@ class DefaultTask extends Model
 
     /**
      * Get all available door types from locations.
+     * @return array<string>
      */
     public static function getAvailableDoorTypes(): array
     {

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\TaskStatus;
+use Database\Factories\PlanningFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,15 +12,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @property-read string $title
+ */
 class Planning extends Model
 {
+    /**
+     * @use HasFactory<PlanningFactory>
+     */
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'planned_date',
         'notes',
@@ -43,6 +46,8 @@ class Planning extends Model
 
     /**
      * De locaties die bij deze planning horen.
+     *
+     * @return BelongsToMany<Location, $this>
      */
     public function locations(): BelongsToMany
     {
@@ -53,6 +58,8 @@ class Planning extends Model
 
     /**
      * Get the tasks for the planning.
+     *
+     * @return HasMany<PlanningTask, $this>
      */
     public function planningTasks(): HasMany
     {
@@ -61,6 +68,8 @@ class Planning extends Model
 
     /**
      * Get the end checklist items for the planning.
+     *
+     * @return HasMany<EndChecklistItem, $this>
      */
     public function endChecklistItems(): HasMany
     {
@@ -69,6 +78,7 @@ class Planning extends Model
 
     /**
      * The users that belong to the planning.
+     * @return BelongsToMany<User, $this>
      */
     public function users(): BelongsToMany
     {
@@ -77,6 +87,7 @@ class Planning extends Model
 
     /**
      * Get the user who created the planning.
+     * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
     {
@@ -85,6 +96,7 @@ class Planning extends Model
 
     /**
      * Assigned vehicle for this planning.
+     * @return BelongsTo<Vehicle, $this>
      */
     public function vehicle(): BelongsTo
     {
@@ -93,12 +105,17 @@ class Planning extends Model
 
     /**
      * Get the location timers for the planning.
+     *
+     * @return HasMany<PlanningLocationTimer, $this>
      */
     public function locationTimers(): HasMany
     {
         return $this->hasMany(PlanningLocationTimer::class);
     }
 
+    /**
+     * @return HasMany<PlanningComment, $this>
+     */
     public function comments(): HasMany
     {
         return $this->hasMany(PlanningComment::class);
@@ -155,12 +172,7 @@ class Planning extends Model
 
         // Check if every single task is marked as 'completed'
         $allTasksCompleted = $this->planningTasks->every(function ($task) {
-            $status = $task->status;
-            // Accept both enum and string values for status
-            if ($status instanceof \App\Enums\TaskStatus) {
-                return $status === \App\Enums\TaskStatus::COMPLETED;
-            }
-            return $status === (\App\Enums\TaskStatus::COMPLETED->value ?? 'completed') || $status === 'completed';
+            return $task->status === TaskStatus::COMPLETED;
         });
 
         if ($allTasksCompleted) {
@@ -201,7 +213,7 @@ class Planning extends Model
         // 1. Cleanup tasks directly linked to this planning
         $uncompletedDefaultPlanningTasks = $this->planningTasks()
             ->whereNotNull('default_task_id')
-            ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
+            ->where('status', '!=', TaskStatus::COMPLETED->value)
             ->get();
 
         foreach ($uncompletedDefaultPlanningTasks as $planningTask) {
@@ -226,29 +238,11 @@ class Planning extends Model
 
             if ($defaultTaskTitles->isNotEmpty()) {
                 Task::whereIn('location_id', $locationIds)
-                    ->where('status', \App\Enums\TaskStatus::OPEN->value)
+                    ->where('status', TaskStatus::OPEN->value)
                     ->whereIn('title', $defaultTaskTitles)
                     ->whereDoesntHave('planningTasks') // Only tasks NOT currently in any planning (backlog)
                     ->delete();
             }
         }
-    }
-    /**
-     * Evenly distribute total travel time among all locations once, after completion.
-     */
-    public function distributeTravelTimeToLocationsIfNeeded(): void
-    {
-        // Travel time splitting among locations has been removed. This method is now a no-op.
-        return;
-    }
-
-    /**
-     * Replace any previously distributed travel time on location timers
-     * with a new even distribution based on current travel timers.
-     */
-    public function redistributeTravelTime(): void
-    {
-        // Travel time splitting among locations has been removed. This method is now a no-op.
-        return;
     }
 }

@@ -12,7 +12,7 @@ class ExternalLocationService
     /**
      * Fetch external locations from the API.
      *
-     * @return array|null
+     * @return array<int, array<string, mixed>>|null
      */
     public function fetchExternalLocations(): ?array
     {

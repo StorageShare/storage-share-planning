@@ -85,15 +85,14 @@ class ImageService
         $extension = strtolower($extension);
 
         switch ($extension) {
-            case 'jpg':
-            case 'jpeg':
-                return $image->toJpeg($quality);
             case 'png':
                 return $image->toPng();
             case 'webp':
                 return $image->toWebp($quality);
             case 'gif':
                 return $image->toGif();
+            case 'jpg':
+            case 'jpeg':
             default:
                 return $image->toJpeg($quality);
         }
@@ -118,8 +117,15 @@ class ImageService
      */
     public function getHumanFileSize(int $bytes, int $decimals = 2): string
     {
-        $sz = 'BKMGTP';
-        $factor = floor((strlen($bytes) - 1) / 3);
-        return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor] . 'B';
+        if ($bytes < 0) {
+            $bytes = 0;
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        $factor = $bytes > 0 ? (int) floor(log($bytes, 1024)) : 0;
+        $factor = max(0, min($factor, count($units) - 1));
+
+        $value = $bytes / (1024 ** $factor);
+        return sprintf("%.{$decimals}f", $value) . ' ' . $units[$factor];
     }
 }

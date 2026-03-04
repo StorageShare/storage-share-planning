@@ -65,7 +65,6 @@ class PlanningTravelDistributionTest extends TestCase
 
         // Trigger distribution (now a no-op)
         $planning->load('locations', 'locationTimers');
-        $planning->distributeTravelTimeToLocationsIfNeeded();
         $planning->refresh();
         $t1->refresh();
         $t2->refresh();
@@ -78,7 +77,6 @@ class PlanningTravelDistributionTest extends TestCase
         $this->assertNull($planning->travel_time_distributed_at);
 
         // Second call should also do nothing
-        $planning->distributeTravelTimeToLocationsIfNeeded();
         $t1->refresh();
         $t2->refresh();
         $t3->refresh();

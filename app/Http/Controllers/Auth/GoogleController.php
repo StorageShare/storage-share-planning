@@ -12,7 +12,9 @@ class GoogleController extends Controller
 {
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        // Socialite returns a Symfony RedirectResponse; wrap into Laravel's RedirectResponse
+        $targetUrl = Socialite::driver('google')->redirect()->getTargetUrl();
+        return redirect()->away($targetUrl);
     }
 
     public function callback(): RedirectResponse

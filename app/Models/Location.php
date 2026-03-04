@@ -10,15 +10,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property string|null $name
+ * @property string|null $address
+ * @property string|null $postal_code
+ * @property string|null $city
+ * @property string|null $bv
+ */
 class Location extends Model
 {
+    /**
+     * @use HasFactory<\Database\Factories\LocationFactory>
+     */
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'external_id',
         'sync_external_id',
@@ -35,11 +40,6 @@ class Location extends Model
         'total_rooms',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'last_synced_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -63,12 +63,17 @@ class Location extends Model
 
     /**
      * Get the tasks for the location.
+     * @return HasMany<Task, $this>
      */
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
     }
 
+    /**
+     * Get the external tasks for the location.
+     * @return HasMany<ExternalTask, $this>
+     */
     public function externalTasks(): HasMany
     {
         return $this->hasMany(ExternalTask::class);
@@ -76,6 +81,7 @@ class Location extends Model
 
     /**
      * The default tasks that belong to the location.
+     * @return BelongsToMany<DefaultTask, $this>
      */
     public function defaultTasks(): BelongsToMany
     {
@@ -84,6 +90,7 @@ class Location extends Model
 
     /**
      * The requirements that are automatically required for this location.
+     * @return BelongsToMany<Requirement, $this>
      */
     public function requiredRequirements(): BelongsToMany
     {
@@ -92,6 +99,7 @@ class Location extends Model
 
     /**
      * De planningen die aan deze locatie gekoppeld zijn.
+     * @return BelongsToMany<Planning, $this>
      */
     public function plannings(): BelongsToMany
     {
@@ -117,7 +125,7 @@ class Location extends Model
     /**
      * Check if all tasks for this location within a planning are completed (review or skipped).
      *
-     * @param \App\Models\Planning $planning
+     * @param Planning $planning
      * @return bool
      */
     public function areAllTasksCompletedInPlanning(Planning $planning): bool

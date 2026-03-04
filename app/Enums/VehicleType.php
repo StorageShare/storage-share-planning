@@ -17,6 +17,8 @@ enum VehicleType: string
 
     /**
      * Key/value options suitable for selects: [value => label]
+     *
+     * @return array<string, string>
      */
     public static function options(): array
     {
@@ -29,6 +31,8 @@ enum VehicleType: string
 
     /**
      * Convenience method returning backing values only.
+     *
+     * @return array<int, string>
      */
     public static function values(): array
     {

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\VehicleType;
 use App\Models\Vehicle;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum as EnumRule;
 
@@ -24,6 +25,9 @@ class StoreVehicleRequest extends FormRequest
         }
     }
 
+    /**
+     * @return array<string, ValidationRule|array|string>
+     */
     public function rules(): array
     {
         return [

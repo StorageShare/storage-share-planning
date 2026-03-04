@@ -70,9 +70,11 @@ class BvStatsController extends Controller
         foreach ($plannings as $planning) {
             // Travel time distribution among locations removed; no safety-net redistribution.
 
+            /** @var \Illuminate\Support\Collection<int, \App\Models\Location> $planningLocations */
             $planningLocations = $planning->locations;
-            $planningTimers = $planning->locationTimers->keyBy(function ($timer) {
-                return $timer->location_id ?? 'travel_' . $timer->location_type;
+            /** @var \Illuminate\Support\Collection<int, PlanningLocationTimer> $planningTimers */
+            $planningTimers = $planning->locationTimers->keyBy(function (PlanningLocationTimer $timer): int|string {
+                return $timer->location_id ?? ('travel_' . (string) $timer->location_type);
             });
 
             if ($planningLocations->isEmpty()) {
@@ -125,12 +127,12 @@ class BvStatsController extends Controller
             }
 
             // If travel has already been distributed into location timers, skip counting travel timers to avoid double counting
-            if (isset($planning->travel_time_distributed_at) && $planning->travel_time_distributed_at) {
+            if (!empty($planning->travel_time_distributed_at)) {
                 // Do nothing: location timers already include travel time
             } else {
                 // Distribute travel time between locations based on BV, multiplied by users
-                $travelTimers = $planningTimers->filter(function ($timer) {
-                    return in_array($timer->location_type, ['travel', 'travel_back']);
+                $travelTimers = $planningTimers->filter(function (PlanningLocationTimer $timer): bool {
+                    return in_array($timer->location_type, ['travel', 'travel_back'], true);
                 });
 
                 foreach ($travelTimers as $travelTimer) {

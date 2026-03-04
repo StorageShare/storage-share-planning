@@ -15,7 +15,7 @@ class TravelTimeService
      * @param Location|string $origin
      * @param Location|string $destination
      * @param string $mode
-     * @return array
+     * @return array{duration_minutes:int, distance_km:float, duration_text?:string, distance_text?:string, error?:string, estimated?:bool}
      */
     public function calculateTravelTime($origin, $destination, string $mode = 'driving'): array
     {
@@ -40,10 +40,14 @@ class TravelTimeService
     /**
      * Calculate travel times for a sequence of locations
      *
-     * @param array $locations
+     * @param array<int, Location|string> $locations
      * @param string|null $startAddress
      * @param string $mode
-     * @return array
+     * @return array{
+     *   segments: array<int, array{from:string, to:string, duration_minutes:int, distance_km:float, index:int|string, error?:string, is_return?:bool}>,
+     *   total_duration_minutes:int,
+     *   total_duration_formatted:string
+     * }
      */
     public function calculateTravelTimesForSequence(array $locations, ?string $startAddress = null, string $mode = 'driving'): array
     {
@@ -86,14 +90,14 @@ class TravelTimeService
         return [
             'segments' => $results,
             'total_duration_minutes' => $totalTime,
-            'total_duration_formatted' => $this->formatDuration($totalTime)
+            'total_duration_formatted' => $this->formatDuration((int) $totalTime)
         ];
     }
 
     /**
      * Get address string from location or string
      */
-    private function getAddressFromLocation($location): string
+    private function getAddressFromLocation(Location|string $location): string
     {
         if ($location instanceof Location) {
             return $location->full_address ?: $location->name;
@@ -105,7 +109,7 @@ class TravelTimeService
     /**
      * Get display name from location or string
      */
-    private function getDisplayName($location): string
+    private function getDisplayName(Location|string $location): string
     {
         if ($location instanceof Location) {
             return $location->name;
@@ -124,6 +128,8 @@ class TravelTimeService
 
     /**
      * Fetch travel time from external API
+     *
+     * @return array{duration_minutes:int, distance_km:float, duration_text?:string, distance_text?:string, error?:string, estimated?:bool}
      */
     private function fetchTravelTimeFromApi(string $origin, string $destination, string $mode): array
     {
@@ -160,7 +166,7 @@ class TravelTimeService
                     $element = $data['rows'][0]['elements'][0];
 
                     return [
-                        'duration_minutes' => ceil($element['duration']['value'] / 60),
+                        'duration_minutes' => (int) ceil($element['duration']['value'] / 60),
                         'distance_km' => round($element['distance']['value'] / 1000, 1),
                         'duration_text' => $element['duration']['text'],
                         'distance_text' => $element['distance']['text']
@@ -202,6 +208,8 @@ class TravelTimeService
 
     /**
      * Try the new Google Routes API
+     *
+     * @return array{duration_minutes:int, distance_km:float, duration_text?:string, distance_text?:string, error?:string, estimated?:bool}|null
      */
     private function tryRoutesApi(string $origin, string $destination, string $mode, string $apiKey): ?array
     {
@@ -231,9 +239,9 @@ class TravelTimeService
                     $distanceMeters = $route['distanceMeters'] ?? 0;
 
                     return [
-                        'duration_minutes' => ceil($durationSeconds / 60),
+                        'duration_minutes' => (int) ceil($durationSeconds / 60),
                         'distance_km' => round($distanceMeters / 1000, 1),
-                        'duration_text' => $this->formatDuration(ceil($durationSeconds / 60)),
+                        'duration_text' => $this->formatDuration((int) ceil($durationSeconds / 60)),
                         'distance_text' => round($distanceMeters / 1000, 1) . ' km'
                     ];
                 }
@@ -259,6 +267,8 @@ class TravelTimeService
 
     /**
      * Get estimated travel time when API is not available
+     *
+     * @return array{duration_minutes:int, distance_km:float, error:string, estimated:bool}
      */
     private function getEstimatedTravelTime(string $origin, string $destination): array
     {
@@ -267,7 +277,7 @@ class TravelTimeService
 
         return [
             'duration_minutes' => $estimatedTime,
-            'distance_km' => 0,
+            'distance_km' => 0.0,
             'error' => 'Geschatte reistijd (geen API-sleutel beschikbaar)',
             'estimated' => true
         ];

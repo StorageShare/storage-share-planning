@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\LocationDistance;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Carbon\CarbonInterface;
 
 class CalculateLocationDistances extends Command
 {
@@ -15,7 +16,7 @@ class CalculateLocationDistances extends Command
      *
      * @var string
      */
-    protected $signature = 'distances:calculate 
+    protected $signature = 'distances:calculate
                             {--force : Herbereken alle afstanden, zelfs als ze al bestaan}
                             {--missing-only : Bereken alleen ontbrekende afstanden}
                             {--from-location=* : Bereken alleen afstanden vanaf specifieke locatie ID(s)}
@@ -39,10 +40,10 @@ class CalculateLocationDistances extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $this->info('🚀 Starten met berekenen van locatie afstanden...');
-        
+
         $force = $this->option('force');
         $missingOnly = $this->option('missing-only');
         $fromLocationIds = $this->option('from-location');
@@ -52,18 +53,18 @@ class CalculateLocationDistances extends Command
         if (!empty($fromLocationIds)) {
             $validIds = Location::whereIn('id', $fromLocationIds)->pluck('id')->toArray();
             $invalidIds = array_diff($fromLocationIds, $validIds);
-            
+
             if (!empty($invalidIds)) {
                 $this->error('❌ Ongeldige locatie IDs gevonden: ' . implode(', ', $invalidIds));
                 return 1;
             }
-            
+
             $fromLocationIds = $validIds;
         }
 
         try {
             $startTime = now();
-            
+
             if ($force && $missingOnly) {
                 $this->error('❌ --force en --missing-only kunnen niet samen gebruikt worden');
                 return 1;
@@ -88,7 +89,7 @@ class CalculateLocationDistances extends Command
             }
 
             $this->displayResults($result, $startTime);
-            
+
             // Toon nieuwe statistieken
             $this->newLine();
             $this->info('📊 Nieuwe statistieken:');
@@ -103,7 +104,7 @@ class CalculateLocationDistances extends Command
         }
     }
 
-    private function showCurrentStats()
+    private function showCurrentStats(): void
     {
         $totalDistances = LocationDistance::count();
         $recentDistances = LocationDistance::recent(168)->count(); // 1 week
@@ -123,10 +124,15 @@ class CalculateLocationDistances extends Command
         );
     }
 
+    /**
+     * Calculate and optionally re-calculate all distances.
+     *
+     * @return array{calculated:int, skipped:int, errors:int, total_locations:int}
+     */
     private function calculateAllDistances(bool $skipExisting): array
     {
-        $this->info($skipExisting ? 
-            '📍 Berekenen van alle ontbrekende afstanden...' : 
+        $this->info($skipExisting ?
+            '📍 Berekenen van alle ontbrekende afstanden...' :
             '📍 Herberekenen van alle afstanden...'
         );
 
@@ -135,7 +141,12 @@ class CalculateLocationDistances extends Command
 
         if ($locations->count() < 2) {
             $this->warn('⚠️  Minimaal 2 locaties nodig voor afstand berekening');
-            return ['calculated' => 0, 'skipped' => 0, 'errors' => 0];
+            return [
+                'calculated' => 0,
+                'skipped' => 0,
+                'errors' => 0,
+                'total_locations' => $locations->count(),
+            ];
         }
 
         $totalPairs = $locations->count() * ($locations->count() - 1);
@@ -165,7 +176,7 @@ class CalculateLocationDistances extends Command
                 }
 
                 $distance = $this->locationDistanceService->calculateAndStore($fromLocation->id, $toLocation->id);
-                
+
                 if ($distance) {
                     $calculated++;
                 } else {
@@ -190,12 +201,16 @@ class CalculateLocationDistances extends Command
         ];
     }
 
+    /**
+     * @param array<int, int> $fromLocationIds
+     * @return array{calculated:int, skipped:int, errors:int, total_locations:int}
+     */
     private function calculateMissingDistances(array $fromLocationIds = []): array
     {
         $this->info('📍 Berekenen van alleen ontbrekende afstanden...');
 
-        $locations = empty($fromLocationIds) ? 
-            Location::all() : 
+        $locations = empty($fromLocationIds) ?
+            Location::all() :
             Location::whereIn('id', $fromLocationIds)->get();
 
         $calculated = 0;
@@ -206,7 +221,7 @@ class CalculateLocationDistances extends Command
             $existingToIds = LocationDistance::where('from_location_id', $fromLocation->id)
                 ->pluck('to_location_id')
                 ->toArray();
-            
+
             $allLocationIds = Location::where('id', '!=', $fromLocation->id)->pluck('id')->toArray();
             $missingLocationIds = array_diff($allLocationIds, $existingToIds);
 
@@ -216,13 +231,13 @@ class CalculateLocationDistances extends Command
             }
 
             $this->info("📏 Berekenen van " . count($missingLocationIds) . " ontbrekende afstanden voor: {$fromLocation->name}");
-            
+
             $progressBar = $this->output->createProgressBar(count($missingLocationIds));
             $progressBar->start();
 
             foreach ($missingLocationIds as $toLocationId) {
                 $distance = $this->locationDistanceService->calculateAndStore($fromLocation->id, $toLocationId);
-                
+
                 if ($distance) {
                     $calculated++;
                 } else {
@@ -245,10 +260,14 @@ class CalculateLocationDistances extends Command
         ];
     }
 
+    /**
+     * @param array<int, int> $fromLocationIds
+     * @return array{calculated:int, skipped:int, errors:int, total_locations:int}
+     */
     private function calculateFromSpecificLocations(array $fromLocationIds, bool $skipExisting): array
     {
         $this->info('📍 Berekenen van afstanden vanaf specifieke locaties...');
-        
+
         $locations = Location::whereIn('id', $fromLocationIds)->get();
         $this->info("Gevonden {$locations->count()} start locaties");
 
@@ -258,7 +277,7 @@ class CalculateLocationDistances extends Command
 
         foreach ($locations as $fromLocation) {
             $this->info("📏 Berekenen vanaf: {$fromLocation->name}");
-            
+
             $otherLocations = Location::where('id', '!=', $fromLocation->id)->get();
             $progressBar = $this->output->createProgressBar($otherLocations->count());
             $progressBar->start();
@@ -275,7 +294,7 @@ class CalculateLocationDistances extends Command
                 }
 
                 $distance = $this->locationDistanceService->calculateAndStore($fromLocation->id, $toLocation->id);
-                
+
                 if ($distance) {
                     $calculated++;
                 } else {
@@ -298,14 +317,18 @@ class CalculateLocationDistances extends Command
         ];
     }
 
-    private function displayResults(array $result, $startTime)
+    /**
+     * @param array{calculated:int, skipped:int, errors:int, total_locations:int} $result
+     */
+    private function displayResults(array $result, CarbonInterface $startTime): void
     {
-        $duration = $startTime->diffForHumans(now(), true);
-        
+        // Use correct signature: (other, syntax, short)
+        $duration = $startTime->diffForHumans(now(), null, true);
+
         $this->newLine();
         $this->info('🎉 Afstand berekening voltooid!');
         $this->newLine();
-        
+
         $this->table(
             ['Resultaat', 'Aantal'],
             [

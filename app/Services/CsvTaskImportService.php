@@ -16,8 +16,8 @@ class CsvTaskImportService
     /**
      * Import tasks from CSV data.
      *
-     * @param array $csvData
-     * @return array
+     * @param array<int, array<string, mixed>> $csvData
+     * @return array{success_count:int, error_count:int, errors: array<int, string>, imported_tasks: array<int, \App\Models\Task>}
      */
     public function importTasks(array $csvData): array
     {
@@ -403,7 +403,7 @@ class CsvTaskImportService
      * Parse CSV content from uploaded file.
      *
      * @param string $csvContent
-     * @return array
+     * @return array<int, array<string, string|null>>
      */
     public function parseCsvContent(string $csvContent): array
     {
@@ -418,7 +418,7 @@ class CsvTaskImportService
         $file->setCsvControl(',');
 
         foreach ($file as $rowIndex => $row) {
-            if ($row === null || (is_array($row) && count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0)) {
+            if ($row === false || (is_array($row) && count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0)) {
                 continue;
             }
             if ($headers === null) {
@@ -433,7 +433,9 @@ class CsvTaskImportService
             if (count($row) === count($headers)) {
                 // Trim values
                 $row = array_map(fn($v) => is_string($v) ? trim($v) : $v, $row);
-                $data[] = array_combine($headers, $row);
+                /** @var array<string, string|null> $assoc */
+                $assoc = array_combine($headers, $row);
+                $data[] = $assoc;
             }
         }
 
@@ -607,7 +609,7 @@ class CsvTaskImportService
     /**
      * Check if a row is empty (all fields are empty or null).
      *
-     * @param array $row
+     * @param array<string, string|null> $row
      * @return bool
      */
     private function isEmptyRow(array $row): bool
@@ -689,6 +691,7 @@ class CsvTaskImportService
     private function getFirstLineOfDescription(string $description): string
     {
         $lines = explode("\n", $description);
+        /** @var non-empty-list<string>|list<string> $lines */
         return trim($lines[0] ?? '');
     }
 
@@ -714,7 +717,7 @@ class CsvTaskImportService
      * Get requirements for Controleronde activity.
      *
      * @param string $description
-     * @return array
+     * @return array<int, int>
      */
     private function getControlerondeBenodigdheden(string $description): array
     {
@@ -731,4 +734,5 @@ class CsvTaskImportService
 
         return $benodigdheden;
     }
+
 }

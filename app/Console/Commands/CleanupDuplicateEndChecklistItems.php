@@ -24,7 +24,7 @@ class CleanupDuplicateEndChecklistItems extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $this->info('Cleaning up duplicate end checklist items...');
 

@@ -11,6 +11,9 @@ class UpdateDefaultVehicleTaskRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return string[]
+     */
     public function rules(): array
     {
         return [

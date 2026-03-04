@@ -19,7 +19,9 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        /** @var view-string $view */
+        $view = 'auth.register';
+        return view($view);
     }
 
     /**

@@ -47,6 +47,10 @@ class ExternalTaskController extends Controller
         ], 201);
     }
 
+    /**
+     * @throws ValidationException
+     * @param array<string, mixed> $data
+     */
     private function resolveLocation(array $data): Location
     {
         if (!empty($data['location_id'])) {

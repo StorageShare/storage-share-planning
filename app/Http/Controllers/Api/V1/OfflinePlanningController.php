@@ -61,6 +61,10 @@ class OfflinePlanningController extends Controller
         ]);
     }
 
+    /**
+     * @param Planning $planning
+     * @return array<int, array{id: int, naam: string, beschrijving: string, type: string}>
+     */
     private function calculateRequirements(Planning $planning): array
     {
         $requirements = collect();

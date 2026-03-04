@@ -130,6 +130,7 @@ class UpdatePlanningRequest extends FormRequest
 
     /**
      * Get custom messages for validator errors.
+     * @return array<string, string>
      */
     public function messages(): array
     {

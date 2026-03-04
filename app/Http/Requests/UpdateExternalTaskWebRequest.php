@@ -15,6 +15,9 @@ class UpdateExternalTaskWebRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, string|array>
+     */
     public function rules(): array
     {
         return [

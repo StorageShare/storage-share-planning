@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Task;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -16,7 +17,7 @@ class TaskReadyForReviewMail extends Mailable
     /**
      * The task instance.
      *
-     * @var \App\Models\Task
+     * @var Task
      */
     public $task;
 
@@ -33,9 +34,9 @@ class TaskReadyForReviewMail extends Mailable
     /**
      * Get the message envelope.
      *
-     * @return \Illuminate\Mail\Mailables\Envelope
+     * @return Envelope
      */
-    public function envelope()
+    public function envelope(): Envelope
     {
         return new Envelope(
             subject: 'Nieuwe taak ter beoordeling: '.$this->task->title,
@@ -45,9 +46,9 @@ class TaskReadyForReviewMail extends Mailable
     /**
      * Get the message content definition.
      *
-     * @return \Illuminate\Mail\Mailables\Content
+     * @return Content
      */
-    public function content()
+    public function content(): Content
     {
         return new Content(
             markdown: 'emails.tasks.review',
@@ -57,9 +58,9 @@ class TaskReadyForReviewMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array
+     * @return array<int, Attachment>
      */
-    public function attachments()
+    public function attachments(): array
     {
         return [];
     }

@@ -299,7 +299,7 @@ class TaskReviewController extends Controller
     /**
      * Review a skipped planning task and decide whether to add it back to backlog.
      */
-    public function reviewSkipped(Request $request, PlanningTask $planning_task)
+    public function reviewSkipped(Request $request, PlanningTask $planning_task): RedirectResponse
     {
         $request->validate([
             'action' => 'required|in:add_to_backlog,dismiss',

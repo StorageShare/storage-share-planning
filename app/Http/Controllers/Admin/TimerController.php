@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Planning;
+use App\Models\PlanningLocationTimer;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TimerController extends Controller
 {
@@ -75,7 +80,7 @@ class TimerController extends Controller
         // Calculate timer statistics
         $totalDurationSeconds = $planning->locationTimers->sum('total_duration_seconds');
 
-        $timersByLocation = $planning->locationTimers->map(function ($timer) {
+        $timersByLocation = $planning->locationTimers->map(function (PlanningLocationTimer $timer): array {
             $hours = floor(($timer->total_duration_seconds ?? 0) / 3600);
             $minutes = floor((($timer->total_duration_seconds ?? 0) % 3600) / 60);
             $seconds = ($timer->total_duration_seconds ?? 0) % 60;
@@ -93,9 +98,10 @@ class TimerController extends Controller
         $onLocationByLocation = $planning->locationTimers
             ->where('location_type', 'location')
             ->groupBy('location_id')
-            ->map(function ($group) {
-                $seconds = $group->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
-                /** @var \App\Models\PlanningLocationTimer|null $first */
+            ->map(function (Collection $group): array {
+                /** @var Collection<int, PlanningLocationTimer> $group */
+                $seconds = $group->sum(function (PlanningLocationTimer $t): int { return (int) ($t->total_duration_seconds ?? 0); });
+                /** @var PlanningLocationTimer|null $first */
                 $first = $group->first();
                 $locationName = $first && $first->location ? $first->location->name : 'Onbekende locatie';
                 return [
@@ -136,7 +142,7 @@ class TimerController extends Controller
     /**
      * Get live timer data for a planning (AJAX endpoint)
      */
-    public function getLiveData(Planning $planning)
+    public function getLiveData(Planning $planning): JsonResponse
     {
         // Check if user is admin
         $user = Auth::user();
@@ -146,7 +152,7 @@ class TimerController extends Controller
 
         $timers = $planning->locationTimers()->with('location')->get();
 
-        $liveData = $timers->map(function ($timer) {
+        $liveData = $timers->map(function (PlanningLocationTimer $timer): array {
             $currentSeconds = 0;
             if ($timer->started_at && !$timer->ended_at) {
                 // Timer is running - calculate current time
@@ -180,7 +186,7 @@ class TimerController extends Controller
     /**
      * Export timer data as CSV
      */
-    public function export(Request $request)
+    public function export(Request $request): StreamedResponse
     {
         // Check if user is admin
         $user = Auth::user();
@@ -243,9 +249,10 @@ class TimerController extends Controller
                 $onLocationByLocation = $planning->locationTimers
                     ->where('location_type', 'location')
                     ->groupBy('location_id')
-                    ->map(function ($group) {
-                        $seconds = $group->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
-                        /** @var \App\Models\PlanningLocationTimer|null $first */
+                    ->map(function (Collection $group): array {
+                        /** @var Collection<int, PlanningLocationTimer> $group */
+                        $seconds = $group->sum(function (PlanningLocationTimer $t): int { return (int) ($t->total_duration_seconds ?? 0); });
+                        /** @var PlanningLocationTimer|null $first */
                         $first = $group->first();
                         return [
                             'location_id' => $first?->location_id,
@@ -270,7 +277,9 @@ class TimerController extends Controller
                     }
                 }
 
-                foreach ($planning->locationTimers as $timer) {
+                /** @var \Illuminate\Database\Eloquent\Collection<int, PlanningLocationTimer> $planningTimers */
+                $planningTimers = $planning->locationTimers;
+                foreach ($planningTimers as $timer) {
                     $baseSeconds = (int) ($timer->total_duration_seconds ?? 0);
                     $hours = floor($baseSeconds / 3600);
                     $minutes = floor(($baseSeconds % 3600) / 60);

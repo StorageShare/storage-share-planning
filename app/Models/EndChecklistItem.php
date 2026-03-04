@@ -2,30 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read Planning $planning
+ * @property-read Collection<int, EndChecklistItemPhoto> $photos
+ * @property int|null $item_count
+ * @property Collection<int, EndChecklistItem>|null $all_items
+ */
 class EndChecklistItem extends Model
 {
-    use HasFactory;
-
-    /**
-     * Default attribute values.
-     * Ensure a new checklist item starts in the 'open' state.
-     *
-     * @var array<string, mixed>
-     */
     protected $attributes = [
         'status' => 'open',
     ];
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'title',
         'planning_id',
@@ -44,11 +38,6 @@ class EndChecklistItem extends Model
         'uploaded_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'reviewed_at' => 'datetime',
         'uploaded_at' => 'datetime',
@@ -56,6 +45,8 @@ class EndChecklistItem extends Model
 
     /**
      * Get the planning that owns the checklist item.
+     *
+     * @return BelongsTo<Planning, $this>
      */
     public function planning(): BelongsTo
     {
@@ -64,6 +55,8 @@ class EndChecklistItem extends Model
 
     /**
      * Get the requirement (material) associated with this item (if type is 'material').
+     *
+     * @return BelongsTo<Requirement, $this>
      */
     public function requirement(): BelongsTo
     {
@@ -72,6 +65,8 @@ class EndChecklistItem extends Model
 
     /**
      * Get the location associated with this checklist item.
+     *
+     * @return BelongsTo<Location, $this>
      */
     public function location(): BelongsTo
     {
@@ -80,6 +75,8 @@ class EndChecklistItem extends Model
 
     /**
      * Get the user who uploaded the photo for this item.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function uploader(): BelongsTo
     {
@@ -88,6 +85,8 @@ class EndChecklistItem extends Model
 
     /**
      * Get the user who reviewed this item.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo
     {
@@ -96,6 +95,8 @@ class EndChecklistItem extends Model
 
     /**
      * Photos uploaded for this checklist item (multiple).
+     *
+     * @return HasMany<EndChecklistItemPhoto, $this>
      */
     public function photos(): HasMany
     {
@@ -104,24 +105,30 @@ class EndChecklistItem extends Model
 
     /**
      * Scope om alleen material items te krijgen.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeMaterials($query)
+    public function scopeMaterials(Builder $query): Builder
     {
         return $query->where('type', 'material');
     }
 
     /**
      * Scope om alleen end action items te krijgen.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeEndActions($query)
+    public function scopeEndActions(Builder $query): Builder
     {
         return $query->where('type', 'end_action');
     }
 
     /**
      * Scope om alleen items met bepaalde status te krijgen.
+     * @param Builder<self> $query
+     * @return Builder<self>
      */
-    public function scopeWithStatus($query, string $status)
+    public function scopeWithStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }

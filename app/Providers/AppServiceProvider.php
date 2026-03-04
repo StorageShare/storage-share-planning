@@ -32,11 +32,15 @@ class AppServiceProvider extends ServiceProvider
             if (!auth()->check()) return false;
             // Accept either enum instance or string (e.g. 'admin')
             $target = $role instanceof Role ? $role : Role::from($role);
-            return auth()->user()->role === $target;
+            // User model casts 'role' to Role enum; compare directly
+            /** @var Role $userRole */
+            $userRole = auth()->user()->role;
+            return $userRole === $target;
         });
 
         Blade::if('anyrole', function (...$roles) {
             if (!auth()->check()) return false;
+            /** @var Role $userRole */
             $userRole = auth()->user()->role;
             $targets = array_map(fn($r) => $r instanceof Role ? $r : Role::from($r), $roles);
             return in_array($userRole, $targets, true);

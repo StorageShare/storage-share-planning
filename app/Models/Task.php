@@ -4,23 +4,29 @@ namespace App\Models;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use Database\Factories\TaskFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-// Import TaskPhoto
-// Import PlanningTask
-
+/**
+ * @property-read Location $location
+ * @property-read Collection<int, PlanningTask> $planningTasks
+ */
 class Task extends Model
 {
+    /**
+     * @use HasFactory<TaskFactory>
+     */
     use HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'location_id',
@@ -61,6 +67,8 @@ class Task extends Model
 
     /**
      * Get the location that owns the task.
+     *
+     * @return BelongsTo<Location, $this>
      */
     public function location(): BelongsTo
     {
@@ -69,6 +77,8 @@ class Task extends Model
 
     /**
      * Get the photos for the task.
+     *
+     * @return HasMany<TaskPhoto, $this>
      */
     public function taskPhotos(): HasMany
     {
@@ -77,6 +87,8 @@ class Task extends Model
 
     /**
      * Get the planning tasks associated with this task.
+     *
+     * @return HasMany<PlanningTask, $this>
      */
     public function planningTasks(): HasMany
     {
@@ -85,6 +97,7 @@ class Task extends Model
 
     /**
      * Get the user who created the task.
+     * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
     {
@@ -93,6 +106,8 @@ class Task extends Model
 
     /**
      * Get the completions for the task.
+     *
+     * @return HasMany<TaskCompletion, $this>
      */
     public function completions(): HasMany
     {
@@ -101,6 +116,7 @@ class Task extends Model
 
     /**
      * Get the requirements for the task.
+     * @return BelongsToMany<Requirement, $this>
      */
     public function requirements(): BelongsToMany
     {
@@ -109,6 +125,7 @@ class Task extends Model
 
     /**
      * Get the parent recurring task (if this is a generated recurring task).
+     * @return BelongsTo<Task, $this>
      */
     public function parentRecurringTask(): BelongsTo
     {
@@ -117,6 +134,7 @@ class Task extends Model
 
     /**
      * Get the child recurring tasks (if this is a parent recurring task).
+     * @return HasMany<Task, $this>
      */
     public function childRecurringTasks(): HasMany
     {
@@ -127,26 +145,29 @@ class Task extends Model
     /**
      * Calculate the next recurring date based on completion date.
      */
-    public function calculateNextRecurringDate(\DateTime $fromDate = null): ?\DateTime
+    public function calculateNextRecurringDate(?\DateTimeInterface $fromDate = null): ?\DateTimeInterface
     {
         if (!$this->is_recurring || !$this->recurring_interval_type || !$this->recurring_interval_value) {
             return null;
         }
 
-        $date = $fromDate ?? new \DateTime();
+        // Ensure we always operate on an immutable instance that supports add()
+        $date = $fromDate
+            ? \DateTimeImmutable::createFromInterface($fromDate)
+            : new \DateTimeImmutable();
 
         switch ($this->recurring_interval_type) {
             case 'days':
-                $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'D'));
+                $date = $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'D'));
                 break;
             case 'weeks':
-                $date->add(new \DateInterval('P' . ($this->recurring_interval_value * 7) . 'D'));
+                $date = $date->add(new \DateInterval('P' . ($this->recurring_interval_value * 7) . 'D'));
                 break;
             case 'months':
-                $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'M'));
+                $date = $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'M'));
                 break;
             case 'years':
-                $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'Y'));
+                $date = $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'Y'));
                 break;
         }
 
@@ -155,6 +176,7 @@ class Task extends Model
 
     /**
      * Get human readable recurring interval description.
+     * @return string|null
      */
     public function getRecurringIntervalDescription(): ?string
     {
@@ -178,7 +200,7 @@ class Task extends Model
     /**
      * Create a new recurring task instance based on this task.
      */
-    public function createRecurringInstance(\DateTime $newDeadline = null): Task
+    public function createRecurringInstance(?\DateTimeInterface $newDeadline = null): Task
     {
         $newTask = $this->replicate([
             'id',
@@ -190,7 +212,8 @@ class Task extends Model
 
         $newTask->parent_recurring_task_id = $this->id;
         $newTask->status = TaskStatus::OPEN;
-        $newTask->deadline = $newDeadline;
+        // Ensure Carbon|null assignment to match casted property type
+        $newTask->deadline = $newDeadline ? \Carbon\Carbon::instance(\DateTime::createFromInterface($newDeadline)) : null;
         $newTask->save();
 
         // Copy requirements relationship

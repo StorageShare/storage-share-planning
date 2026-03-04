@@ -21,7 +21,7 @@ class LocationDistanceController extends Controller
 
     /**
      * Haal gesorteerde afstanden op vanaf een locatie
-     * 
+     *
      * GET /api/v1/location-distances/{locationId}/sorted
      */
     public function getSortedDistances(int $locationId): JsonResponse
@@ -36,7 +36,7 @@ class LocationDistanceController extends Controller
             }
 
             $distances = $this->locationDistanceService->getDistancesForApi($locationId);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -65,7 +65,7 @@ class LocationDistanceController extends Controller
 
     /**
      * Sorteer een lijst van locatie IDs op afstand
-     * 
+     *
      * POST /api/v1/location-distances/sort
      * Body: {
      *   "from_location_id": 1,
@@ -102,14 +102,14 @@ class LocationDistanceController extends Controller
             foreach ($sortedIds as $locationId) {
                 $distance = $this->locationDistanceService->getDistance($fromLocationId, $locationId);
                 $location = Location::find($locationId);
-                
+
                 $locationsWithDistances[] = [
                     'location_id' => $locationId,
-                    'location_name' => $location?->name ?? 'Onbekend',
+                    'location_name' => $location->name ?? 'Onbekend',
                     'distance_km' => $distance?->distance_km,
-                    'duration_minutes' => $distance?->duration_minutes,
-                    'formatted_distance' => $distance?->formatted_distance ?? 'Onbekend',
-                    'formatted_duration' => $distance?->formatted_duration ?? 'Onbekend',
+                    'duration_minutes' => $distance->duration_minutes,
+                    'formatted_distance' => $distance->formatted_distance ?? 'Onbekend',
+                    'formatted_duration' => $distance->formatted_duration ?? 'Onbekend',
                 ];
             }
 
@@ -139,7 +139,7 @@ class LocationDistanceController extends Controller
 
     /**
      * Haal afstand op tussen twee specifieke locaties
-     * 
+     *
      * GET /api/v1/location-distances/{fromLocationId}/to/{toLocationId}
      */
     public function getDistanceBetween(int $fromLocationId, int $toLocationId): JsonResponse
@@ -199,7 +199,7 @@ class LocationDistanceController extends Controller
 
     /**
      * Forceer herberekening van afstand tussen twee locaties
-     * 
+     *
      * POST /api/v1/location-distances/{fromLocationId}/to/{toLocationId}/recalculate
      */
     public function recalculateDistance(int $fromLocationId, int $toLocationId): JsonResponse
@@ -255,7 +255,7 @@ class LocationDistanceController extends Controller
 
     /**
      * Haal cache statistieken op
-     * 
+     *
      * GET /api/v1/location-distances/stats
      */
     public function getCacheStats(): JsonResponse
@@ -266,8 +266,8 @@ class LocationDistanceController extends Controller
             $oldDistances = \App\Models\LocationDistance::where('calculated_at', '<', now()->subDays(365))->count();
             $totalLocations = Location::count();
             $maxPossibleDistances = $totalLocations * ($totalLocations - 1); // A→B en B→A zijn apart
-            
-            $coveragePercentage = $maxPossibleDistances > 0 ? 
+
+            $coveragePercentage = $maxPossibleDistances > 0 ?
                 round(($totalDistances / $maxPossibleDistances) * 100, 1) : 0;
 
             return response()->json([

@@ -72,9 +72,8 @@ class LocationDistanceService
             $distance = LocationDistance::storeDistance(
                 fromLocationId: $fromLocationId,
                 toLocationId: $toLocationId,
-                distanceKm: $segment['distance_km'] ?? null,
-                durationMinutes: $segment['duration_minutes'] ?? null,
-                calculationMethod: 'google_maps',
+                distanceKm: (float) $segment['distance_km'],
+                durationMinutes: (int) $segment['duration_minutes'],
                 apiResponse: $segment
             );
 
@@ -82,9 +81,8 @@ class LocationDistanceService
             LocationDistance::storeDistance(
                 fromLocationId: $toLocationId,
                 toLocationId: $fromLocationId,
-                distanceKm: $segment['distance_km'] ?? null,
-                durationMinutes: $segment['duration_minutes'] ?? null,
-                calculationMethod: 'google_maps',
+                distanceKm: (float) $segment['distance_km'],
+                durationMinutes: (int) $segment['duration_minutes'],
                 apiResponse: $segment
             );
 
@@ -102,6 +100,9 @@ class LocationDistanceService
 
     /**
      * Haal alle afstanden op vanaf een locatie, gesorteerd op afstand
+     */
+    /**
+     * @return Collection<int, LocationDistance>
      */
     public function getDistancesFromLocation(int $fromLocationId, bool $calculateMissing = true): Collection
     {
@@ -135,6 +136,15 @@ class LocationDistanceService
     /**
      * Bereken alle afstanden voor alle locatie combinaties
      * Gebruik dit voor het vooraf berekenen van alle afstanden
+     */
+    /**
+     * @return array{
+     *   calculated:int,
+     *   skipped:int,
+     *   errors:int,
+     *   total_locations:int,
+     *   results: array<int, LocationDistance>
+     * }
      */
     public function calculateAllDistances(bool $skipExisting = true): array
     {
@@ -201,6 +211,10 @@ class LocationDistanceService
     /**
      * Sorteer locatie IDs op afstand vanaf een referentie locatie
      */
+    /**
+     * @param array<int, int> $locationIds
+     * @return array<int, int>
+     */
     public function sortLocationsByDistance(int $fromLocationId, array $locationIds): array
     {
         $distances = [];
@@ -222,6 +236,18 @@ class LocationDistanceService
 
     /**
      * API endpoint data voor frontend
+     */
+    /**
+     * @return array<int, array{
+     *   to_location_id:int,
+     *   location_name:string,
+     *   distance_km: float|int|null,
+     *   duration_minutes: int|null,
+     *   formatted_distance: string|null,
+     *   formatted_duration: string|null,
+     *   calculated_at: string|null,
+     *   is_recent: bool
+     * }>
      */
     public function getDistancesForApi(int $fromLocationId): array
     {
