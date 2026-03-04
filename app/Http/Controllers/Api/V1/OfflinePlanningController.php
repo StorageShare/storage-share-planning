@@ -71,11 +71,11 @@ class OfflinePlanningController extends Controller
 
         // Verzamel requirements van planning tasks
         foreach ($planning->planningTasks as $planningTask) {
-            if ($planningTask->task && $planningTask->task->requirements) {
+            if ($planningTask->task && $planningTask->task->requirements->count() > 0) {
                 $requirements = $requirements->merge($planningTask->task->requirements);
             }
 
-            if ($planningTask->defaultTask && $planningTask->defaultTask->requirements) {
+            if ($planningTask->defaultTask && $planningTask->defaultTask->requirements->count() > 0) {
                 $requirements = $requirements->merge($planningTask->defaultTask->requirements);
             }
         }

@@ -52,7 +52,8 @@ class OfflineSyncController extends Controller
     /**
      * @param array<string, mixed> $data
      * @param User $user
-     * @return array
+     * @return array<string, mixed>
+     * @throws \Throwable
      */
     private function syncSingleCompletion(array $data, User $user): array
     {
@@ -127,6 +128,12 @@ class OfflineSyncController extends Controller
         return response()->json(['results' => $results]);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param ImageService $imageService
+     * @return array<string, mixed>
+     * @throws \Exception
+     */
     private function syncSinglePhoto(array $data, ImageService $imageService): array
     {
         // Vind de completion

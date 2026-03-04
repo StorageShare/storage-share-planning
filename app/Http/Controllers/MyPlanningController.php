@@ -21,7 +21,7 @@ class MyPlanningController extends Controller
         private TravelTimeService $travelTimeService
     ) {}
 
-    public function show(?Planning $planning = null)
+    public function show(?Planning $planning = null): View
     {
         /** @var User $user */
         $user = Auth::user();
@@ -62,14 +62,14 @@ class MyPlanningController extends Controller
         foreach ($planning->planningTasks as $planningTask) {
             // Determine the location context for this planning task
             $taskLocationName = null;
-            if ($planningTask->task && $planningTask->task->location) {
+            if ($planningTask->task != null && $planningTask->task->location) {
                 $taskLocationName = $planningTask->task->location->name;
             } elseif ($planningTask->specificLocation) {
                 $taskLocationName = $planningTask->specificLocation->name;
             }
 
             // Get requirements from backlog tasks
-            if ($planningTask->task && $planningTask->task->requirements) {
+            if ($planningTask->task != null && $planningTask->task->requirements) {
                 $allRequirements = $allRequirements->merge($planningTask->task->requirements);
                 if ($taskLocationName) {
                     foreach ($planningTask->task->requirements as $req) {
@@ -78,7 +78,7 @@ class MyPlanningController extends Controller
                 }
             }
             // Get requirements from default tasks
-            if ($planningTask->defaultTask && $planningTask->defaultTask->requirements) {
+            if ($planningTask->defaultTask != null && $planningTask->defaultTask->requirements) {
                 $allRequirements = $allRequirements->merge($planningTask->defaultTask->requirements);
                 if ($taskLocationName) {
                     foreach ($planningTask->defaultTask->requirements as $req) {
@@ -161,7 +161,7 @@ class MyPlanningController extends Controller
 
         // Group tasks by their effective location_id (from planning_task or fallback to parent task)
         $tasksByLocation = $planning->planningTasks->groupBy(function ($planningTask) {
-            return $planningTask->location_id ?? $planningTask->task?->location_id;
+            return $planningTask->location_id ?? $planningTask->task->location_id;
         });
 
         // Add tasks with no location (true backlog and vehicle tasks) first as a "location"
@@ -185,7 +185,7 @@ class MyPlanningController extends Controller
             $tasksForBacklog = [];
             foreach ($sortedTasks as $task) {
                 $latestCompletion = $task->completions->sortByDesc('created_at')->first();
-                $backlogPhotos = $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($photo) => $photo->url)->toArray() : [];
+                $backlogPhotos = $task->task != null && $task->task->taskPhotos->count() > 0 ? $task->task->taskPhotos->map(fn($photo) => $photo->url)->toArray() : [];
 
                 // Check if task was skipped - only use skip data if task status is actually 'skipped'
                 $skipCompletion = $task->completions->where('review_outcome', 'skipped')->sortByDesc('created_at')->first();
@@ -318,7 +318,7 @@ class MyPlanningController extends Controller
             // Only add location if it has tasks or comments
             if (!empty($tasksForLocation) || !empty($commentsForLocation)) {
                 // Add travel step if we have travel info and travel time > 0
-                if ($travelInfo && $travelInfo['duration_minutes'] > 0) {
+                if ($travelInfo != null && $travelInfo['duration_minutes'] > 0) {
                     $locationSteps[] = [
                         'type' => 'travel',
                         'title' => "Reis naar {$location->name}",
@@ -343,13 +343,6 @@ class MyPlanningController extends Controller
                     'tasks' => $tasksForLocation,
                     'comments' => $commentsForLocation,
                     'travel_info' => $travelInfo,
-                    'outdoor_safe_code' => $location->outdoor_safe_code,
-                    'indoor_safe_code' => $location->indoor_safe_code,
-                    'outdoor_safe_content' => $location->outdoor_safe_content,
-                    'indoor_safe_content' => $location->indoor_safe_content,
-                    'intratone_number' => $location->intratone_number,
-                    'intratone_multiple_numbers' => $location->intratone_multiple_numbers,
-                    'gate_number' => $location->gate_number,
                 ];
 
                 // Add call step after each location

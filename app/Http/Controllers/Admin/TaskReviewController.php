@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Models\EndChecklistItem;
@@ -10,6 +11,7 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -82,7 +84,7 @@ class TaskReviewController extends Controller
         }
 
         foreach ($review_planning_tasks as $planning_task) {
-            $location_name = $planning_task->specificLocation?->name ?? $planning_task->planning->locations->pluck('name')->implode(', ');
+            $location_name = $planning_task->specificLocation->name ?? $planning_task->planning->locations->pluck('name')->implode(', ');
             $completed_by_user = $planning_task->completions->last()?->user;
 
             $combined_list->push((object) [
@@ -97,8 +99,8 @@ class TaskReviewController extends Controller
         }
 
         foreach ($skipped_planning_tasks as $planning_task) {
-            $location_name = $planning_task->specificLocation?->name ??
-                           $planning_task->task?->location?->name ??
+            $location_name = $planning_task->specificLocation->name ??
+                           $planning_task->task?->location->name ??
                            $planning_task->planning->locations->pluck('name')->implode(', ');
             $skipped_by_user = $planning_task->completions->where('review_outcome', 'skipped')->last()?->user;
 
@@ -163,13 +165,13 @@ class TaskReviewController extends Controller
                 $planning = $triggering_planning_task->planning;
             }
 
-            $completion_history = $triggering_planning_task?->completions ?? collect();
+            $completion_history = $triggering_planning_task->completions ?? collect();
 
             $task_item = (object) [
                 'item' => $task,
                 'title' => $task->title,
                 'type' => 'task',
-                'description' => $triggering_planning_task?->description ?? $task->description,
+                'description' => $triggering_planning_task->description ?? $task->description,
                 'location' => $task->location->name,
                 'planning' => $planning,
                 'history' => $completion_history,
@@ -187,7 +189,7 @@ class TaskReviewController extends Controller
                 },
             ])->findOrFail($id);
 
-            $location_name = $task_item->specificLocation?->name ?? $task_item->planning->locations->pluck('name')->implode(', ');
+            $location_name = $task_item->specificLocation->name ?? $task_item->planning->locations->pluck('name')->implode(', ');
             $completion_history = $task_item->completions;
             $planning = $task_item->planning;
 
@@ -214,8 +216,8 @@ class TaskReviewController extends Controller
                 },
             ])->findOrFail($id);
 
-            $location_name = $task_item->specificLocation?->name ??
-                           $task_item->task?->location?->name ??
+            $location_name = $task_item->specificLocation->name ??
+                           $task_item->task->location->name ??
                            $task_item->planning->locations->pluck('name')->implode(', ');
             $completion_history = $task_item->completions;
             $planning = $task_item->planning;
@@ -314,13 +316,13 @@ class TaskReviewController extends Controller
             $newBacklogTask = new \App\Models\Task([
                 'title' => $planning_task->title . ' (Opnieuw)',
                 'description' => $this->appendSkipHistory($planning_task, $planning_task->description),
-                'location_id' => $planning_task->task?->location_id ??
+                'location_id' => $planning_task->task->location_id ??
                                $planning_task->location_id ??
                                $planning_task->planning->locations()->first()?->id,
                 'status' => TaskStatus::OPEN,
-                'priority' => $planning_task->task?->priority ?? \App\Enums\TaskPriority::NORMAL,
+                'priority' => $planning_task->task->priority ?? TaskPriority::NORMAL,
                 'estimated_time_minutes' => $planning_task->estimated_time_minutes ?? $planning_task->task?->estimated_time_minutes,
-                'created_by' => \Illuminate\Support\Facades\Auth::id(),
+                'created_by' => Auth::id(),
             ]);
             $newBacklogTask->save();
 

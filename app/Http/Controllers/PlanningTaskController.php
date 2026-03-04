@@ -20,6 +20,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
 
 class PlanningTaskController extends Controller
@@ -66,7 +67,7 @@ class PlanningTaskController extends Controller
         ];
 
         // Only require photos for non-admin users
-        if (!$user || !$user->isAdmin()) {
+        if ($user == null || !$user->isAdmin()) {
             $validationRules['photos'] = 'required|array|min:1';
             $validationRules['photos.*'] = 'image|mimes:jpeg,png,jpg,webp,gif|max:20480'; // Max 20MB - will be compressed to 2MB
         } else {
@@ -123,7 +124,7 @@ class PlanningTaskController extends Controller
             }
         }
 
-        $newStatus = $user && $user->isAdmin() ? TaskStatus::COMPLETED : TaskStatus::REVIEW;
+        $newStatus = $user != null && $user->isAdmin() ? TaskStatus::COMPLETED : TaskStatus::REVIEW;
         $planning_task->update([
             'completed_at' => now(),
             'completed_notes' => $request->input('completed_notes'), // Keep last note for easy access
@@ -143,7 +144,7 @@ class PlanningTaskController extends Controller
         }
 
         $message = $isFullyCompleted ? "Taak '{$planning_task->title}' gemarkeerd voor review." : "Voltooiingspoging voor '{$planning_task->title}' genoteerd en voor review aangeboden.";
-        if ($user && $user->isAdmin()) {
+        if ($user != null && $user->isAdmin()) {
             $message = "Taak '{$planning_task->title}' als voltooid gemarkeerd.";
         }
 
@@ -469,7 +470,7 @@ class PlanningTaskController extends Controller
     /**
      * Mark a planning task as completed via a simple UI action.
      */
-    public function simpleComplete(Request $request, Planning $planning, PlanningTask $planning_task)
+    public function simpleComplete(Request $request, Planning $planning, PlanningTask $planning_task): JsonResponse
     {
         if ($planning_task->planning_id !== $planning->id) {
             abort(404);
@@ -499,7 +500,7 @@ class PlanningTaskController extends Controller
     /**
      * Mark a planning task as not completed via a simple UI action.
      */
-    public function simpleUncomplete(Request $request, Planning $planning, PlanningTask $planning_task)
+    public function simpleUncomplete(Request $request, Planning $planning, PlanningTask $planning_task): JsonResponse
     {
         if ($planning_task->planning_id !== $planning->id) {
             abort(404);
@@ -525,7 +526,7 @@ class PlanningTaskController extends Controller
     /**
      * Submit completion details (notes, photos) from the step-by-step view.
      */
-    public function submitCompletion(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService)
+    public function submitCompletion(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService): JsonResponse
     {
         if ($planning_task->planning_id !== $planning->id) {
             abort(404);
@@ -541,7 +542,7 @@ class PlanningTaskController extends Controller
         ]);
 
         // Backend validation for is_photo_required
-        $isPhotoRequired = (bool) ($planning_task->task?->is_photo_required ?? $planning_task->defaultTask?->is_photo_required ?? false);
+        $isPhotoRequired = (bool) ($planning_task->task->is_photo_required ?? $planning_task->defaultTask->is_photo_required ?? false);
         if ($isPhotoRequired && !$request->hasFile('photos')) {
             // Check if there are existing photos (if it's being updated/re-submitted)
             $existingPhotosCount = $planning_task->completions()
@@ -630,7 +631,7 @@ class PlanningTaskController extends Controller
     /**
      * Skip a task with a reason.
      */
-    public function skip(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService)
+    public function skip(Request $request, Planning $planning, PlanningTask $planning_task, ImageService $imageService): JsonResponse
     {
         if ($planning_task->planning_id !== $planning->id) {
             abort(404);
@@ -706,7 +707,7 @@ class PlanningTaskController extends Controller
     /**
      * Reopen a task from the step-by-step view if it's in review.
      */
-    public function reopen(Request $request, Planning $planning, PlanningTask $planning_task)
+    public function reopen(Request $request, Planning $planning, PlanningTask $planning_task): JsonResponse
     {
         if ($planning_task->planning_id !== $planning->id) {
             abort(404);
@@ -744,7 +745,7 @@ class PlanningTaskController extends Controller
     /**
      * Store an extra task for a location.
      */
-    public function storeExtraTask(Request $request, Planning $planning, $location_id, ImageService $imageService)
+    public function storeExtraTask(Request $request, Planning $planning, int $location_id, ImageService $imageService): JsonResponse
     {
         $user = Auth::user();
 
@@ -796,7 +797,7 @@ class PlanningTaskController extends Controller
     /**
      * Update a planning comment.
      */
-    public function updateComment(Request $request, PlanningComment $comment, ImageService $imageService)
+    public function updateComment(Request $request, PlanningComment $comment, ImageService $imageService): JsonResponse
     {
         $user = Auth::user();
 
@@ -850,7 +851,7 @@ class PlanningTaskController extends Controller
     /**
      * Check if a location is completed within a planning and trigger LocationCompleted event.
      *
-     * @param \App\Models\PlanningTask $planningTask
+     * @param PlanningTask $planningTask
      * @return void
      */
     private function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
@@ -881,7 +882,7 @@ class PlanningTaskController extends Controller
     /**
      * Download all photos related to a planning task in a single ZIP file.
      */
-    public function downloadPhotos(PlanningTask $planning_task)
+    public function downloadPhotos(PlanningTask $planning_task): BinaryFileResponse|RedirectResponse
     {
         // Authorize via existing middleware (can_execute_plannings) and implicit binding
 

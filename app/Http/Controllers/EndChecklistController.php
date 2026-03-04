@@ -10,12 +10,14 @@ use App\Models\Task;
 use App\Models\DefaultTask;
 use App\Models\PlanningTask;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use App\Services\ImageService;
+use Illuminate\View\View;
 
 class EndChecklistController extends Controller
 {
@@ -308,6 +310,7 @@ class EndChecklistController extends Controller
 
     /**
      * Admin: Get plannings with pending end checklists.
+     *
      */
     public function pendingReviews(): JsonResponse
     {
@@ -333,7 +336,7 @@ class EndChecklistController extends Controller
     /**
      * Admin: Approve a checklist item (and all related items).
      */
-    public function approveItem(Request $request, EndChecklistItem $item)
+    public function approveItem(Request $request, EndChecklistItem $item): JsonResponse|RedirectResponse
     {
         // Get all related items (same requirement AND title, or same end_action title)
         if ($item->type === 'material' && $item->requirement_id) {
@@ -399,7 +402,7 @@ class EndChecklistController extends Controller
     /**
      * Admin: Show reject confirmation with option to create new task.
      */
-    public function showRejectForm(EndChecklistItem $item)
+    public function showRejectForm(EndChecklistItem $item): View
     {
         return view('admin.end-checklist.reject', compact('item'));
     }
@@ -407,7 +410,7 @@ class EndChecklistController extends Controller
     /**
      * Admin: Reject a checklist item (and all related items).
      */
-    public function rejectItem(Request $request, EndChecklistItem $item)
+    public function rejectItem(Request $request, EndChecklistItem $item): JsonResponse|RedirectResponse
     {
         $request->validate([
             'admin_notes' => 'required|string|max:1000',
@@ -464,7 +467,7 @@ class EndChecklistController extends Controller
             // 3) First location in the system
             // 4) If none are available, fall back to review page with an error
             $locationId = $item->location_id
-                ?? ($item->planning ? $item->planning->locations()->first()?->id : null)
+                ?? ($item->planning != null ? $item->planning->locations()->first()?->id : null)
                 ?? (\App\Models\Location::query()->first()?->id);
 
             if (!$locationId) {

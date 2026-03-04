@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 abstract class Controller
@@ -9,7 +10,7 @@ abstract class Controller
     /**
      * Resolve per-page value from query string with support for "all".
      */
-    protected function resolvePerPage(Request $request, $query, int $default = 15, int $max = 200): int
+    protected function resolvePerPage(Request $request, Builder $query, int $default = 15, int $max = 200): int
     {
         $perPage = $request->query('per_page', $default);
 

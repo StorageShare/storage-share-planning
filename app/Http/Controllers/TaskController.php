@@ -348,7 +348,7 @@ class TaskController extends Controller
                         'value' => $new_task->priority->value,
                         'label' => $new_task->priority->label(),
                     ],
-                    'status' => $new_task->status ?: \App\Enums\TaskStatus::OPEN,
+                    'status' => $new_task->status != null ? $new_task->status : TaskStatus::OPEN,
                     'deadline' => $new_task->deadline,
                     'estimated_time_minutes' => $new_task->estimated_time_minutes ?? 0,
                     'location_id' => $new_task->location_id,
@@ -507,7 +507,7 @@ class TaskController extends Controller
         }
 
         // After approval, check if the parent planning is now fully completed
-        if ($triggering_planning_task && $triggering_planning_task->planning) {
+        if ($triggering_planning_task != null && $triggering_planning_task->planning) {
             $triggering_planning_task->planning->checkAndUpdateStatus();
 
             // Check if this location is now completed and notify if needed
