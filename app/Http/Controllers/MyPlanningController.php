@@ -9,6 +9,7 @@ use App\Models\PlanningLocationTimer;
 use App\Models\User;
 use App\Models\EndChecklistItem;
 use App\Services\TravelTimeService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -62,14 +63,14 @@ class MyPlanningController extends Controller
         foreach ($planning->planningTasks as $planningTask) {
             // Determine the location context for this planning task
             $taskLocationName = null;
-            if ($planningTask->task != null && $planningTask->task->location) {
+            if ($planningTask->task?->location != null ) {
                 $taskLocationName = $planningTask->task->location->name;
             } elseif ($planningTask->specificLocation) {
                 $taskLocationName = $planningTask->specificLocation->name;
             }
 
             // Get requirements from backlog tasks
-            if ($planningTask->task != null && $planningTask->task->requirements) {
+            if ($planningTask->task?->requirements != null) {
                 $allRequirements = $allRequirements->merge($planningTask->task->requirements);
                 if ($taskLocationName) {
                     foreach ($planningTask->task->requirements as $req) {
@@ -78,7 +79,7 @@ class MyPlanningController extends Controller
                 }
             }
             // Get requirements from default tasks
-            if ($planningTask->defaultTask != null && $planningTask->defaultTask->requirements) {
+            if ($planningTask->defaultTask?->requirements != null) {
                 $allRequirements = $allRequirements->merge($planningTask->defaultTask->requirements);
                 if ($taskLocationName) {
                     foreach ($planningTask->defaultTask->requirements as $req) {
@@ -361,7 +362,7 @@ class MyPlanningController extends Controller
             $lastLocation = $planning->locations->last();
             $returnTo = $planning->start_address ?: 'kantoor';
             $returnTravel = $this->travelTimeService->calculateTravelTime($lastLocation, $returnTo);
-            if (($returnTravel['duration_minutes'] ?? 0) > 0) {
+            if ($returnTravel['duration_minutes'] > 0) {
                 $locationSteps[] = [
                     'type' => 'travel',
                     'title' => "Reis terug naar start",
@@ -372,7 +373,7 @@ class MyPlanningController extends Controller
                     'destination_address' => $returnTo,
                     'duration_minutes' => $returnTravel['duration_minutes'],
                     'duration_text' => $this->travelTimeService->formatDuration($returnTravel['duration_minutes']),
-                    'distance_km' => $returnTravel['distance_km'] ?? null,
+                    'distance_km' => $returnTravel['distance_km'],
                 ];
             }
         }
@@ -381,10 +382,7 @@ class MyPlanningController extends Controller
         $endDayActions = collect();
         foreach ($planning->planningTasks as $planningTask) {
             // Check if task is completed or in review (handle both enum and string values)
-            $isCompletedOrReview = $planningTask->status === TaskStatus::COMPLETED ||
-                                  $planningTask->status === 'completed' ||
-                                  $planningTask->status === TaskStatus::REVIEW ||
-                                  $planningTask->status === 'review';
+            $isCompletedOrReview = $planningTask->status === TaskStatus::COMPLETED || $planningTask->status === TaskStatus::REVIEW;
 
             if ($isCompletedOrReview) {
                 // Get end day actions from backlog task
@@ -497,18 +495,16 @@ class MyPlanningController extends Controller
      * Restart timer for a specific location in a planning.
      * This preserves the previous duration and starts counting again.
      */
-    public function restartLocationTimer(Request $request, Planning $planning, $locationId)
+    public function restartLocationTimer(Request $request, Planning $planning, int|string $locationId): JsonResponse
     {
         $request->validate([
             'previous_duration' => 'required|integer|min:0',
         ]);
 
-        // Determine location type and actual location ID
         $actualLocationId = null;
         $locationType = 'location';
 
         if ($locationId === 'backlog') {
-            $actualLocationId = null;
             $locationType = 'backlog';
         } elseif (str_starts_with($locationId, 'travel_to_')) {
             // Travel timer - extract destination location ID
@@ -516,12 +512,7 @@ class MyPlanningController extends Controller
             $locationType = 'travel';
         } elseif ($locationId === 'travel_back') {
             // Return travel timer back to start location
-            $actualLocationId = null;
             $locationType = 'travel_back';
-        } else {
-            // Regular location
-            $actualLocationId = $locationId;
-            $locationType = 'location';
         }
 
         $timer = PlanningLocationTimer::where('planning_id', $planning->id)
@@ -550,37 +541,15 @@ class MyPlanningController extends Controller
         ]);
     }
 
-    private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder): void
-    {
-        // Detach all current locations
-        $planning->locations()->detach();
-
-        // If locationOrder is provided, use it; otherwise, use the original order
-        if ($locationOrder) {
-            $orderedLocationIds = explode(',', $locationOrder);
-            // Filter to only include IDs that are actually in $locationIds
-            $orderedLocationIds = array_filter($orderedLocationIds, fn($id) => in_array($id, $locationIds));
-            // Add any missing IDs from $locationIds
-            foreach ($locationIds as $id) {
-                if (!in_array($id, $orderedLocationIds)) {
-                    $orderedLocationIds[] = $id;
-                }
-            }
-        } else {
-            $orderedLocationIds = $locationIds;
-        }
-
-        // Attach locations in the specified order
-        foreach ($orderedLocationIds as $index => $locationId) {
-            $planning->locations()->attach($locationId, ['sort_order' => $index + 1]);
-        }
-    }
-
     /**
      * Ensure that end checklist items exist for the given planning.
      * This will create items if they don't exist yet or update them if the requirements have changed.
      */
-    private function ensureEndChecklistItemsExist(Planning $planning, $uniqueRequirements, $endDayActions): void
+    /**
+     * @param iterable<int, object> $uniqueRequirements  List of requirement-like objects (may be Requirement models or location-specific wrappers)
+     * @param iterable<int, array{ id:int|string, title:string, description:string, location?:string }> $endDayActions
+     */
+    private function ensureEndChecklistItemsExist(Planning $planning, iterable $uniqueRequirements, iterable $endDayActions): void
     {
         // Get existing checklist items
         $existingItems = $planning->endChecklistItems()->get();
@@ -652,9 +621,16 @@ class MyPlanningController extends Controller
         // Remove items that are no longer needed (only if they haven't been reviewed yet)
         $expectedKeys = $expectedItems->pluck('unique_key');
         foreach ($existingItems as $existingItem) {
-            $currentKey = $existingItem->type . '_' .
-                ($existingItem->type === 'material' ? $existingItem->requirement_id :
-                 ($existingItem->type === 'end_action' ? $existingItem->title : 'unknown'));
+            $map = [
+                'material' => (string) ($existingItem->requirement_id),
+                'end_action' => (string) ($existingItem->title),
+            ];
+            // If an unexpected type appears, skip deletion logic for safety
+            if (!array_key_exists($existingItem->type, $map)) {
+                continue;
+            }
+            $keyPart = (string) $map[$existingItem->type];
+            $currentKey = $existingItem->type . '_' . $keyPart;
 
             if (!$expectedKeys->contains($currentKey) && $existingItem->isOpen() && !$existingItem->photo_path) {
                 // Only delete items that haven't been started yet (still 'open' and no photo)

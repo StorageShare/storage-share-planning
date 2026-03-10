@@ -16,8 +16,12 @@ class CustomizeLogHandler
     public function __invoke($logger)
     {
         foreach ($logger->getHandlers() as $handler) {
-            if ($handler instanceof RotatingFileHandler || $handler instanceof StreamHandler) {
+            // Only RotatingFileHandler supports setting the filename format
+            if ($handler instanceof RotatingFileHandler) {
                 $handler->setFilenameFormat('{filename}-{date}', 'Y-m-d');
+            }
+
+            if ($handler instanceof RotatingFileHandler || $handler instanceof StreamHandler) {
                 $handler->setFormatter(new \Monolog\Formatter\LineFormatter(
                     null,
                     null,
@@ -27,4 +31,4 @@ class CustomizeLogHandler
             }
         }
     }
-} 
+}

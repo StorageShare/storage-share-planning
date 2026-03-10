@@ -296,7 +296,7 @@ class PlanningTaskController extends Controller
         return redirect()->route('plannings.review')->with('success', $message);
     }
 
-    public function reject(Request $request, PlanningTask $planning_task): RedirectResponse
+    public function reject(Request $request, PlanningTask $planning_task): RedirectResponse|JsonResponse
     {
         // Require a reason for rejection
         $request->validate([
@@ -745,7 +745,7 @@ class PlanningTaskController extends Controller
     /**
      * Store an extra task for a location.
      */
-    public function storeExtraTask(Request $request, Planning $planning, int $location_id, ImageService $imageService): JsonResponse
+    public function storeExtraTask(Request $request, Planning $planning, int|string $location_id, ImageService $imageService): JsonResponse
     {
         $user = Auth::user();
 

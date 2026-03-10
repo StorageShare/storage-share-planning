@@ -314,7 +314,7 @@ class EndChecklistController extends Controller
      */
     public function pendingReviews(): JsonResponse
     {
-        $plannings = Planning::whereHas('endChecklistItems', function ($query) {
+        $plannings = Planning::whereHas('endChecklistItems', /** @param \Illuminate\Database\Eloquent\Builder<\App\Models\EndChecklistItem> $query */ function (\Illuminate\Database\Eloquent\Builder $query): void {
             $query->where('status', 'pending')
                   ->whereHas('photos');
         })

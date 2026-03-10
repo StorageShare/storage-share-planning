@@ -106,7 +106,8 @@ class LocationDistanceService
      */
     public function getDistancesFromLocation(int $fromLocationId, bool $calculateMissing = true): Collection
     {
-        $distances = LocationDistance::getDistancesFrom($fromLocationId);
+        // Converteer naar Support\Collection zodat de return type consistent is
+        $distances = collect(LocationDistance::getDistancesFrom($fromLocationId)->all());
 
         if ($calculateMissing) {
             // Vind locaties waarvoor we nog geen afstand hebben

@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +17,7 @@ class UpdateExternalTaskWebRequest extends FormRequest
     }
 
     /**
-     * @return array<string, string|array>
+     * @return array<string, ValidationRule|Rule|string|array<int, ValidationRule|Rule|string>>
      */
     public function rules(): array
     {

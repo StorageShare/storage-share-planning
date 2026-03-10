@@ -26,7 +26,7 @@ class UpdateVehicleRequest extends FormRequest
     }
 
     /**
-     * @return array<string, ValidationRule|array|string>
+     * @return array<string, list<EnumRule|string|Rule>>
      */
     public function rules(): array
     {

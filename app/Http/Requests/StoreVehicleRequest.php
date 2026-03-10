@@ -26,7 +26,7 @@ class StoreVehicleRequest extends FormRequest
     }
 
     /**
-     * @return array<string, ValidationRule|array|string>
+     * @return array<string, list<EnumRule|string>>
      */
     public function rules(): array
     {

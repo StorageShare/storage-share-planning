@@ -375,7 +375,7 @@ class TaskReviewController extends Controller
 
         if ($skipCompletion) {
             $history .= "Overgeslagen op: " . $skipCompletion->created_at->format('d-m-Y H:i') . "\n";
-            $history .= "Overgeslagen door: " . ($skipCompletion->user?->name ?? 'Onbekend') . "\n";
+            $history .= "Overgeslagen door: " . ($skipCompletion->user->name ?? 'Onbekend') . "\n";
             if ($skipCompletion->comment) {
                 $history .= "Reden: {$skipCompletion->comment}\n";
             }

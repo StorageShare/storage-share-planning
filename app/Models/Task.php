@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property-read Location $location
  * @property-read Collection<int, PlanningTask> $planningTasks
+ * @property string|null $feedback_owner_name
+ * @property string|null $feedback_emails
  */
 class Task extends Model
 {

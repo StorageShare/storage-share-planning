@@ -88,7 +88,7 @@ class LocationDistance extends Model
     public static function getDistanceKm(int $fromLocationId, int $toLocationId): ?float
     {
         $distance = self::getDistance($fromLocationId, $toLocationId);
-        return $distance?->distance_km;
+        return $distance?->distance_km !== null ? (float) $distance->distance_km : null;
     }
 
     /**
@@ -109,7 +109,7 @@ class LocationDistance extends Model
         float $distanceKm,
         int $durationMinutes,
         string $calculationMethod = 'google_maps',
-        $apiResponse = null
+        mixed $apiResponse = null
     ): self {
         return self::updateOrCreate(
             [
@@ -129,7 +129,10 @@ class LocationDistance extends Model
     /**
      * Haal alle afstanden op vanaf een specifieke locatie, gesorteerd op afstand
      */
-    public static function getDistancesFrom(int $fromLocationId, string $sortBy = 'distance_km')
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, self>
+     */
+    public static function getDistancesFrom(int $fromLocationId, string $sortBy = 'distance_km'): \Illuminate\Database\Eloquent\Collection
     {
         return self::where('from_location_id', $fromLocationId)
                   ->with('toLocation')
@@ -140,7 +143,10 @@ class LocationDistance extends Model
     /**
      * Haal alle afstanden op naar een specifieke locatie
      */
-    public static function getDistancesTo(int $toLocationId, string $sortBy = 'distance_km')
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, self>
+     */
+    public static function getDistancesTo(int $toLocationId, string $sortBy = 'distance_km'): \Illuminate\Database\Eloquent\Collection
     {
         return self::where('to_location_id', $toLocationId)
                   ->with('fromLocation')
@@ -169,7 +175,7 @@ class LocationDistance extends Model
             return 'Onbekend';
         }
 
-        return number_format($this->distance_km, 1) . ' km';
+        return number_format((float) $this->distance_km, 1) . ' km';
     }
 
     /**
@@ -193,12 +199,21 @@ class LocationDistance extends Model
 
     /**
      * Bulk insert van afstanden (voor seeding/import)
-     * @param array<string, int|float|string> $distances
+     *
+     * @param array<int, array{
+     *     from_location_id: int|string,
+     *     to_location_id: int|string,
+     *     distance_km: float|int|string,
+     *     duration_minutes: int|string,
+     *     calculation_method?: string,
+     *     api_response?: mixed
+     * }> $distances
      */
-    public static function bulkStore(array $distances): int
+    public static function bulkStore(array $distances): bool
     {
         $now = Carbon::now();
-        $data = collect($distances)->map(function ($distance) use ($now) {
+        /** @var array<int, array<string, mixed>> $data */
+        $data = collect($distances)->map(function (array $distance) use ($now): array {
             return [
                 'from_location_id' => (int) $distance['from_location_id'],
                 'to_location_id' => (int) $distance['to_location_id'],

@@ -15,7 +15,7 @@ class StoreExternalTaskWebRequest extends FormRequest
     }
 
     /**
-     * @return array<string, string|array>
+     * @return array<string, string|list<Rule|string>>
      */
     public function rules(): array
     {

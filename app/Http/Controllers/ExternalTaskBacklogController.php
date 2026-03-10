@@ -35,9 +35,11 @@ class ExternalTaskBacklogController extends Controller
         $query->orderByRaw('external_deadline_at IS NULL ASC, external_deadline_at ASC')
             ->orderBy('created_at', 'desc');
 
+        // Eager load relationships before pagination (paginator does not support load())
+        $query->with(['location']);
+
         $perPage = $this->resolvePerPage($request, $query, 30);
         $tasks = $query->paginate($perPage)->withQueryString();
-        $tasks->load('location');
 
         return view('external-tasks.index', [
             'tasks' => $tasks,

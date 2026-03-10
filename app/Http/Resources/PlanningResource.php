@@ -20,13 +20,12 @@ class PlanningResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'location_id' => $this->location_id,
-            'planned_date' => $this->planned_date->format('Y-m-d'), // Format date as needed
-            'notes' => $this->notes,
-            'created_at' => $this->created_at->toIso8601String(),
-            'updated_at' => $this->updated_at->toIso8601String(),
-            'location' => new LocationResource($this->whenLoaded('location')),
+            'id' => $this->resource->id,
+            'planned_date' => $this->resource->planned_date->format('Y-m-d'), // Required by request validation
+            'notes' => $this->resource->notes,
+            'created_at' => $this->resource->created_at?->toIso8601String(),
+            'updated_at' => $this->resource->updated_at?->toIso8601String(),
+            'locations' => LocationResource::collection($this->whenLoaded('locations')),
             'planning_tasks' => PlanningTaskResource::collection($this->whenLoaded('planningTasks')),
         ];
     }

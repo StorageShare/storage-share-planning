@@ -11,6 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @property string|null $feedback_owner_name
+ * @property string|null $feedback_emails
+ */
 class DefaultTask extends Model
 {
     /**
@@ -77,10 +81,15 @@ class DefaultTask extends Model
                   $subQ->where('location_id', $locationId);
               })
               ->orWhere(function($doorQ) use ($locationId) {
-                  $doorQ->where('applies_to_door_types', true)
-                       ->whereHas('applicableLocationsByDoorType', function($locationQ) use ($locationId) {
-                           $locationQ->where('id', $locationId);
-                       });
+                  // Match by door type of the given location against the task's door_types JSON
+                  $doorType = optional(Location::find($locationId))->type_deur;
+                  if ($doorType === null || $doorType === '') {
+                      // Force false when there is no door type info available
+                      $doorQ->whereRaw('0 = 1');
+                  } else {
+                      $doorQ->where('applies_to_door_types', true)
+                           ->whereJsonContains('door_types', strtolower(trim((string) $doorType)));
+                  }
               });
         });
     }

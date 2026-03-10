@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, EndChecklistItemPhoto> $photos
  * @property int|null $item_count
  * @property Collection<int, EndChecklistItem>|null $all_items
+ * @property 'open'|'pending'|'approved'|'rejected'|null $status
  */
 class EndChecklistItem extends Model
 {

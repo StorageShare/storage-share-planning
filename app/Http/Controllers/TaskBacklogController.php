@@ -134,12 +134,11 @@ class TaskBacklogController extends Controller
         }
         // --- End of Corrected Sorting Logic ---
 
+        // Eager load relationships before pagination to avoid calling load() on paginator
+        $query->with(['location', 'planningTasks.planning']);
+
         $perPage = $this->resolvePerPage($request, $query, 30);
         $tasks = $query->paginate($perPage)->withQueryString();
-
-        // Eager load relationships on the paginated collection.
-        // This is more reliable than using with() before complex sorts/queries.
-        $tasks->load('location', 'planningTasks.planning');
 
         $locations = Location::orderBy('name')->get();
         $priorities = TaskPriority::cases();

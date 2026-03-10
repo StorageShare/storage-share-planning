@@ -20,17 +20,20 @@ class TaskResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'description' => $this->description,
-            'location_id' => $this->location_id,
-            'priority' => $this->priority->value,
-            'priority_label' => $this->priority->label(),
-            'deadline' => $this->deadline ? $this->deadline->toIso8601String() : null,
-            'estimated_hours' => $this->estimated_hours,
-            'status' => $this->status,
-            'created_at' => $this->created_at->toIso8601String(),
-            'updated_at' => $this->updated_at->toIso8601String(),
+            'id' => $this->resource->id,
+            'title' => $this->resource->title,
+            'description' => $this->resource->description,
+            'location_id' => $this->resource->location_id,
+            'priority' => $this->resource->priority->value,
+            'priority_label' => $this->resource->priority->label(),
+            'deadline' => $this->resource->deadline?->toIso8601String(),
+            // Derive hours from minutes to avoid accessing an undefined property on Task model
+            'estimated_hours' => $this->resource->estimated_time_minutes !== null
+                ? round($this->resource->estimated_time_minutes / 60, 2)
+                : null,
+            'status' => $this->resource->status,
+            'created_at' => $this->resource->created_at?->toIso8601String(),
+            'updated_at' => $this->resource->updated_at?->toIso8601String(),
             'location' => new LocationResource($this->whenLoaded('location')),
             'photos' => TaskPhotoResource::collection($this->whenLoaded('taskPhotos')),
         ];

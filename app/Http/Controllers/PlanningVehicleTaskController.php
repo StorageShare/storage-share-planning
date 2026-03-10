@@ -30,13 +30,30 @@ class PlanningVehicleTaskController extends Controller
             'vehicle_tasks.*.estimated_time_minutes' => 'nullable|integer|min:0',
         ]);
 
+        /**
+         * @var array<int, array{
+         *   default_id?: int|string|null,
+         *   title?: string|null,
+         *   description?: string|null,
+         *   estimated_time_minutes?: int|null
+         * }> $vehicleTasks
+         */
         $vehicleTasks = $data['vehicle_tasks'];
 
-        // Preload defaults to minimize queries
+        // Preload defaults to minimize queries (avoid collect() on mixed for PHPStan)
         $defaultsById = collect();
-        $defaultIds = collect($vehicleTasks)->pluck('default_id')->filter()->unique();
-        if ($defaultIds->isNotEmpty()) {
-            $defaultsById = DefaultVehicleTask::whereIn('id', $defaultIds)->get()->keyBy('id');
+        $defaultIdColumn = array_column($vehicleTasks, 'default_id');
+        /** @var array<int,int> $ids */
+        $ids = array_values(array_unique(array_filter(array_map(
+            static function ($v): ?int {
+                if (is_int($v)) { return $v; }
+                if (is_string($v) && ctype_digit($v)) { return (int) $v; }
+                return null;
+            },
+            $defaultIdColumn
+        ))));
+        if (!empty($ids)) {
+            $defaultsById = DefaultVehicleTask::whereIn('id', $ids)->get()->keyBy('id');
         }
 
         /** @var \App\Models\User|null $user */

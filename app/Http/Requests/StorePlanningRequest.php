@@ -85,7 +85,9 @@ class StorePlanningRequest extends FormRequest
                 Rule::exists(DefaultTask::class, 'id'),
                 function ($attribute, $value, $fail) {
                     $defaultTask = DefaultTask::find($value);
-                    $selected_location_ids = collect($this->input('location_ids', []));
+                    /** @var array<int, int> $ids */
+                    $ids = is_array($this->input('location_ids')) ? $this->input('location_ids') : [];
+                    $selected_location_ids = collect($ids);
                     if ($defaultTask && ! $defaultTask->locations()->whereIn('locations.id', $selected_location_ids)->exists()) {
                         $fail('De geselecteerde standaardtaak ('.$defaultTask->title.') hoort niet bij één van de gekozen locaties.');
                     }

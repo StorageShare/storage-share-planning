@@ -20,12 +20,11 @@ class LocationResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'address' => $this->address,
-            'description' => $this->description,
-            'created_at' => $this->created_at->toIso8601String(),
-            'updated_at' => $this->updated_at->toIso8601String(),
+            'id' => $this->resource->id,
+            'name' => $this->resource->name,
+            'address' => $this->resource->address,
+            'created_at' => $this->resource->created_at?->toIso8601String(),
+            'updated_at' => $this->resource->updated_at?->toIso8601String(),
             // Optioneel: relaties toevoegen als ze geladen zijn
             // 'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
             // 'plannings' => PlanningResource::collection($this->whenLoaded('plannings')),
