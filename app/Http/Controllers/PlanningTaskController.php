@@ -799,6 +799,12 @@ class PlanningTaskController extends Controller
      */
     public function updateComment(Request $request, PlanningComment $comment, ImageService $imageService): JsonResponse
     {
+        // Prevent PHP max_execution_time timeouts during multi-photo uploads
+        // Default PHP-FPM often limits to ~30s which can be hit when compressing multiple images
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300); // allow up to 5 minutes for heavy uploads/compression
+        }
+
         $user = Auth::user();
 
         // Check if user is the owner of the comment or an admin

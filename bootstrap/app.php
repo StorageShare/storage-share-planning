@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Global HTTP middleware
+        $middleware->append(\App\Http\Middleware\IncreaseExecutionTime::class);
+
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
             'can_execute_plannings' => \App\Http\Middleware\CanExecutePlannings::class,
