@@ -164,4 +164,33 @@ class TaskBacklogController extends Controller
             'searchTerm' => $searchTerm,
         ]);
     }
+
+    /**
+     * Bulk delete selected backlog tasks.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && in_array($user->role, [Role::ADMIN, Role::FACILITIES_COORDINATOR], true), 403);
+
+        $validated = $request->validate([
+            'task_ids' => ['required', 'array', 'min:1'],
+            'task_ids.*' => ['integer', 'exists:tasks,id'],
+        ], [
+            'task_ids.required' => 'Selecteer minstens één taak om te verwijderen.',
+            'task_ids.array' => 'Ongeldige selectie opgegeven.',
+            'task_ids.min' => 'Selecteer minstens één taak om te verwijderen.',
+        ]);
+
+        $ids = $validated['task_ids'];
+
+        DB::transaction(function () use ($ids) {
+            Task::whereIn('id', $ids)->delete();
+        });
+
+        $count = count($ids);
+
+        // Redirect back to the previous list (preserves filters and pagination via referrer)
+        return back()->with('success', $count.' taken succesvol verwijderd.');
+    }
 }

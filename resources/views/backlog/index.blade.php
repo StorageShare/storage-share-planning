@@ -46,6 +46,18 @@
                             </svg>
                             <span>Nieuwe Taak Toevoegen</span>
                         </a>
+                        @anyrole('admin', 'facilities_coordinator')
+                        <form id="bulkDeleteFormTop" action="{{ route('backlog.bulk-destroy') }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button id="bulkDeleteButtonTop" type="submit" disabled class="flex items-center justify-center w-1/2 px-5 py-2 text-sm tracking-wide text-white transition-colors duration-200 bg-red-500 rounded-lg shrink-0 sm:w-auto gap-x-2 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-red-500 dark:bg-red-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <span>Verwijder geselecteerde</span>
+                            </button>
+                        </form>
+                        @endanyrole
                     </div>
                 </div>
 
@@ -148,6 +160,9 @@
                         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                             <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
                                 <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
+                                    <form id="bulkDeleteFormTable" action="{{ route('backlog.bulk-destroy') }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
                                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                         <thead class="bg-gray-50 dark:bg-gray-800">
                                             <tr>
@@ -156,6 +171,11 @@
                                                         array_filter(request()->except('page')) // Get all current query params except pagination
                                                     );
                                                 @endphp
+                                                <th scope="col" class="w-8 py-3.5 px-4">
+                                                    @anyrole('admin', 'facilities_coordinator')
+                                                    <input type="checkbox" id="selectAllTasks" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-600">
+                                                    @endanyrole
+                                                </th>
                                                 <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                                     <a href="{{ route('backlog.index', array_merge($routeParams, ['sort_by' => 'title', 'sort_direction' => ($sortBy == 'title' && $sortDirection == 'asc') ? 'desc' : 'asc'])) }}" class="flex items-center gap-x-3 focus:outline-none hover:text-gray-700">
                                                         <span>Titel</span>
@@ -201,6 +221,11 @@
                                         <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
                                             @foreach ($tasks as $task)
                                             <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
+                                                <td class="px-4 py-4 text-sm">
+                                                    @anyrole('admin', 'facilities_coordinator')
+                                                    <input type="checkbox" name="task_ids[]" value="{{ $task->id }}" class="taskCheckbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-600">
+                                                    @endanyrole
+                                                </td>
                                                 <td class="px-4 py-4 text-sm font-medium">
                                                     <div>
                                                         <a href="{{ route('tasks.show', $task) }}" class="font-medium text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">{{ $task->title }}</a>
@@ -285,6 +310,7 @@
                                             @endforeach
                                         </tbody>
                                     </table>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -313,6 +339,15 @@
         const locationFilter = document.getElementById('location_id_filter');
         const priorityFilter = document.getElementById('priority_filter');
         const statusFilter = document.getElementById('status_filter');
+        const selectAll = document.getElementById('selectAllTasks');
+        const checkboxes = document.querySelectorAll('.taskCheckbox');
+        const bulkButtons = [
+            document.getElementById('bulkDeleteButtonTop')
+        ];
+        const bulkForms = [
+            document.getElementById('bulkDeleteFormTop'),
+            document.getElementById('bulkDeleteFormTable')
+        ];
 
         let debounceTimer;
 
@@ -323,6 +358,39 @@
 
         function submitForm() {
             searchForm.submit();
+        }
+
+        function updateBulkButtons() {
+            const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            bulkButtons.forEach(btn => { if (btn) btn.disabled = !anyChecked; });
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+                updateBulkButtons();
+            });
+        }
+
+        if (checkboxes.length) {
+            checkboxes.forEach(cb => cb.addEventListener('change', updateBulkButtons));
+        }
+
+        // Ensure the top bulk form submits the table form data (selected checkboxes) with proper confirmation
+        if (bulkForms[0] && bulkForms[1]) {
+            bulkForms[0].addEventListener('submit', function (e) {
+                e.preventDefault();
+                const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+                if (!anyChecked) {
+                    return; // nothing selected; don't submit
+                }
+                const confirmed = window.confirm('Weet je zeker dat je de geselecteerde taken wilt verwijderen?');
+                if (!confirmed) {
+                    return; // user cancelled
+                }
+                // Submit the table form so the selected checkboxes are posted
+                bulkForms[1].submit();
+            });
         }
 
         if (searchInput) {

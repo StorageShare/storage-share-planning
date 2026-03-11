@@ -142,6 +142,8 @@ Route::middleware('auth')->group(function () {
 
     // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
     Route::get('backlog', [TaskBacklogController::class, 'index'])->name('backlog.index');
+    // Bulk delete backlog tasks (admins and facilities coordinators via blade visibility; server-side role check in controller)
+    Route::delete('backlog/bulk-destroy', [TaskBacklogController::class, 'bulkDestroy'])->name('backlog.bulk-destroy');
     Route::get('external-backlog', [ExternalTaskBacklogController::class, 'index'])->name('external-backlog.index');
     Route::get('external-backlog/create', [ExternalTaskBacklogController::class, 'create'])->name('external-backlog.create');
     Route::post('external-backlog', [ExternalTaskBacklogController::class, 'store'])->name('external-backlog.store');
