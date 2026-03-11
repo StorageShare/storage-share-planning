@@ -501,24 +501,9 @@ class MyPlanningController extends Controller
             'previous_duration' => 'required|integer|min:0',
         ]);
 
-        $actualLocationId = null;
-        $locationType = 'location';
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
 
-        if ($locationId === 'backlog') {
-            $locationType = 'backlog';
-        } elseif (str_starts_with($locationId, 'travel_to_')) {
-            // Travel timer - extract destination location ID
-            $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
-        } elseif ($locationId === 'travel_back') {
-            // Return travel timer back to start location
-            $locationType = 'travel_back';
-        }
-
-        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
-            ->where('location_id', $actualLocationId)
-            ->where('location_type', $locationType)
-            ->first();
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
 
         if (!$timer) {
             return response()->json(['error' => 'Timer not found'], 404);
@@ -538,6 +523,42 @@ class MyPlanningController extends Controller
                 'ended_at' => null,
                 'total_duration' => $timer->total_duration_seconds,
             ],
+        ]);
+    }
+
+    /**
+     * Resolve timer target semantics consistently with PlanningController.
+     *
+     * @return array{0:int|string|null,1:string}
+     */
+    private function resolveTimerTarget(int|string $locationId): array
+    {
+        if ($locationId === 'backlog') {
+            return [null, 'backlog'];
+        }
+        if (is_string($locationId) && str_starts_with($locationId, 'travel_to_')) {
+            return [str_replace('travel_to_', '', $locationId), 'travel'];
+        }
+        if ($locationId === 'travel_back') {
+            return [null, 'travel_back'];
+        }
+        return [$locationId, 'location'];
+    }
+
+    private function findTimer(Planning $planning, int|string|null $actualLocationId, string $locationType): ?PlanningLocationTimer
+    {
+        return PlanningLocationTimer::where('planning_id', $planning->id)
+            ->where('location_id', $actualLocationId)
+            ->where('location_type', $locationType)
+            ->first();
+    }
+
+    private function buildTimerJson(PlanningLocationTimer $timer): JsonResponse
+    {
+        return response()->json([
+            'started_at' => $timer->started_at?->toISOString(),
+            'ended_at' => $timer->ended_at?->toISOString(),
+            'total_duration' => $timer->total_duration_seconds,
         ]);
     }
 

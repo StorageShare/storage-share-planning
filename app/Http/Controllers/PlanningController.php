@@ -15,6 +15,10 @@ use App\Models\Vehicle;
 use App\Services\TravelTimeService;
 use App\Mail\PlanningReadyNotificationMail;
 use App\Enums\TaskStatus;
+use App\Enums\Role;
+use App\Models\PlanningTask;
+use App\Models\Requirement;
+use App\Models\VehicleTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,14 +72,11 @@ class PlanningController extends Controller
      */
     public function updateLocationActualTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
     {
-        $request->validate([
-            'time' => ['required', 'regex:/^\d{1,2}:\d{2}$/'],
-        ]);
-
-        $seconds = $this->parseHHMMToSeconds($request->string('time'));
+        $time = $this->validateTimeInput($request);
+        $seconds = $this->parseHHMMToSeconds($time);
 
         // Set the total on-location time directly to the provided HH:mm (interpreted as total desired time on location)
-        $timer = \App\Models\PlanningLocationTimer::firstOrNew([
+        $timer = PlanningLocationTimer::firstOrNew([
             'planning_id' => $planning->id,
             'location_id' => $location->id,
             'location_type' => 'location',
@@ -99,13 +100,10 @@ class PlanningController extends Controller
      */
     public function updateTravelToTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
     {
-        $request->validate([
-            'time' => ['required', 'regex:/^\d{1,2}:\d{2}$/'],
-        ]);
+        $time = $this->validateTimeInput($request);
+        $seconds = $this->parseHHMMToSeconds($time);
 
-        $seconds = $this->parseHHMMToSeconds($request->string('time'));
-
-        $timer = \App\Models\PlanningLocationTimer::firstOrNew([
+        $timer = PlanningLocationTimer::firstOrNew([
             'planning_id' => $planning->id,
             'location_id' => $location->id,
             'location_type' => 'travel',
@@ -131,13 +129,10 @@ class PlanningController extends Controller
      */
     public function updateTravelBackTime(Request $request, Planning $planning): JsonResponse|RedirectResponse
     {
-        $request->validate([
-            'time' => ['required', 'regex:/^\d{1,2}:\d{2}$/'],
-        ]);
+        $time = $this->validateTimeInput($request);
+        $seconds = $this->parseHHMMToSeconds($time);
 
-        $seconds = $this->parseHHMMToSeconds($request->string('time'));
-
-        $timer = \App\Models\PlanningLocationTimer::firstOrNew([
+        $timer = PlanningLocationTimer::firstOrNew([
             'planning_id' => $planning->id,
             'location_id' => null,
             'location_type' => 'travel_back',
@@ -189,7 +184,7 @@ class PlanningController extends Controller
         $query = Planning::with(['locations', 'users'])->withCount('planningTasks');
 
         $user = Auth::user();
-        if ($user && $user->role !== \App\Enums\Role::ADMIN) {
+        if ($user && $user->role !== Role::ADMIN) {
             $query->whereHas('users', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             });
@@ -258,31 +253,13 @@ class PlanningController extends Controller
     {
         $users = User::all();
         $locations = Location::with('defaultTasks')->orderBy('name')->get();
-        $defaultTasksByLocation = $locations->mapWithKeys(function ($location) {
-            // Haal alle default tasks op die specifiek aan deze locatie zijn gekoppeld OF die voor alle locaties gelden
-            $locationSpecificTasks = $location->defaultTasks;
-            $allLocationTasks = DefaultTask::forAllLocations()->get();
-
-            // Combineer beide collecties en verwijder duplicaten
-            $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
-
-            return [$location->id => $allTasks->map(function ($task) use ($location) {
-                return [
-                    'id' => $task->id,
-                    'title' => $task->title,
-                    'description' => $task->description,
-                    'estimated_time_minutes' => $task->calculateEstimatedTime($location),
-                    'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
-                    'is_always_included' => $task->is_always_included ?? false,
-                ];
-            })];
-        });
+        $defaultTasksByLocation = $this->buildDefaultTasksByLocation($locations);
 
         // Haal alle backlog taken op die beschikbaar zijn voor planning.
         $all_backlog_tasks = Task::query()
             ->whereIn('status', ['open', 'in_progress', 'rejected', 'in_review'])
             ->where(function ($query) {
-                $query->whereIn('status', [\App\Enums\TaskStatus::OPEN->value, \App\Enums\TaskStatus::IN_REVIEW->value])
+                $query->whereIn('status', [TaskStatus::OPEN->value, TaskStatus::IN_REVIEW->value])
                     ->orWhereDoesntHave('planningTasks');
             })
             ->orderByRaw('deadline IS NULL ASC, deadline ASC') // Eerst taken met deadline (eerste deadline eerst)
@@ -293,99 +270,24 @@ class PlanningController extends Controller
             ->orderBy('created_at', 'asc') // Als laatste tie-breaker: created_at
             ->get();
 
-        $backlogTasksByLocation = $all_backlog_tasks->groupBy('location_id')
-            ->map(
-            /**
-             * @param \Illuminate\Database\Eloquent\Collection<int, \App\Models\Task> $tasks
-             * @return \Illuminate\Support\Collection<int, array{
-             *   id:int,
-             *   title:string,
-             *   description:string|null,
-             *   priority: array{value:string,label:string},
-             *   status: \App\Enums\TaskStatus,
-             *   deadline: \Carbon\Carbon|null,
-             *   estimated_time_minutes:int
-             * }>
-             */
-                function (\Illuminate\Database\Eloquent\Collection $tasks, int|string $_key) {
-                    /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Task> $tasks */
-                    return $tasks->map(function (\App\Models\Task $task) {
-                        return [
-                            'id' => $task->id,
-                            'title' => $task->title,
-                            'description' => $task->description,
-                            'priority' => [
-                                'value' => $task->priority->value,
-                                'label' => $task->priority->label(),
-                            ],
-                            'status' => $task->status,
-                            'deadline' => $task->deadline,
-                            'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
-                        ];
-                    });
-                });
-
-        $backlogPriorityCountsByLocation = $all_backlog_tasks->groupBy('location_id')
-            ->map(function ($tasks_for_location) {
-                return [
-                    TaskPriority::HIGH->value => $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
-                    TaskPriority::NORMAL->value => $tasks_for_location->where('priority', TaskPriority::NORMAL)->count(),
-                    TaskPriority::LOW->value => $tasks_for_location->where('priority', TaskPriority::LOW)->count(),
-                ];
-            });
-
-        $backlogTotalEstimatedTimeByLocation = $all_backlog_tasks->groupBy('location_id')
-            ->map(function ($tasks_for_location) {
-                // Assuming 'estimated_time_minutes' is the field for estimated time.
-                return $tasks_for_location->sum('estimated_time_minutes');
-            });
+        $backlogTasksByLocation = $this->mapBacklogTasksByLocation($all_backlog_tasks);
+        $backlogPriorityCountsByLocation = $this->computeBacklogPriorityCounts($all_backlog_tasks);
+        $backlogTotalEstimatedTimeByLocation = $this->computeBacklogTotalEstimated($all_backlog_tasks);
 
         // Sort locations based on priority task counts and then name
-        $locations = $locations->sortBy(function ($location) use ($backlogPriorityCountsByLocation) {
-            $counts = $backlogPriorityCountsByLocation[$location->id] ?? [
-                TaskPriority::HIGH->value => 0,
-                TaskPriority::NORMAL->value => 0,
-                TaskPriority::LOW->value => 0,
-            ];
-
-            return [
-                -($counts[TaskPriority::HIGH->value]),
-                -($counts[TaskPriority::NORMAL->value]),
-                -($counts[TaskPriority::LOW->value]),
-                $location->name,
-            ];
-        })->values();
+        $locations = $this->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
 
         $selected_location_id = $request->query('location_id');
 
-        $requirements = \App\Models\Requirement::orderBy('name')->get();
+        $requirements = Requirement::orderBy('name')->get();
 
-        $plannedBacklogTasks = \App\Models\PlanningTask::whereNotNull('task_id')
-            ->with('planning:id,planned_date')
-            ->get()
-            ->mapWithKeys(function ($planningTask) {
-                return [$planningTask->task_id => [
-                    'planning_id' => $planningTask->planning->id,
-                    'planning_title' => $planningTask->planning->planned_date->format('d-m-Y'),
-                ]];
-            });
+        $plannedBacklogTasks = $this->plannedBacklogTasksMap();
 
         // Vehicles available for selected/planned date (default should match UI: tomorrow)
         // The create form defaults the planned_date input to tomorrow (now()->addDay()),
         // so align the server-side default to avoid filtering vehicles on the wrong day.
         $selectedDate = $request->input('planned_date') ?? now()->addDay()->toDateString();
-        $availableVehicles = Vehicle::query()
-            ->whereDoesntHave('plannings', function ($q) use ($selectedDate) {
-                // Exclude only vehicles that are assigned to a non-completed planning on the selected date
-                // Treat NULL status as non-completed
-                $q->whereDate('planned_date', $selectedDate)
-                    ->where(function ($qq) {
-                        $qq->whereNull('status')
-                            ->orWhere('status', '!=', 'completed');
-                    });
-            })
-            ->orderBy('name')
-            ->get();
+        $availableVehicles = $this->availableVehiclesForDate($selectedDate);
 
         return view('plannings.create', compact(
             'locations',
@@ -515,25 +417,7 @@ class PlanningController extends Controller
     {
         $users = User::all();
         $locations = Location::with('defaultTasks')->orderBy('name')->get();
-        $defaultTasksByLocation = $locations->mapWithKeys(function ($location) {
-            // Haal alle default tasks op die specifiek aan deze locatie zijn gekoppeld OF die voor alle locaties gelden
-            $locationSpecificTasks = $location->defaultTasks;
-            $allLocationTasks = DefaultTask::forAllLocations()->get();
-
-            // Combineer beide collecties en verwijder duplicaten
-            $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
-
-            return [$location->id => $allTasks->map(function ($task) use ($location) {
-                return [
-                    'id' => $task->id,
-                    'title' => $task->title,
-                    'description' => $task->description,
-                    'estimated_time_minutes' => $task->calculateEstimatedTime($location),
-                    'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
-                    'is_always_included' => $task->is_always_included ?? false,
-                ];
-            })];
-        });
+        $defaultTasksByLocation = $this->buildDefaultTasksByLocation($locations);
 
         $planning->load('locations');
         $current_selected_location_ids = $planning->locations->pluck('id')->all();
@@ -543,7 +427,7 @@ class PlanningController extends Controller
             ->whereIn('status', ['open', 'in_progress', 'rejected', 'in_review'])
             ->where(function ($query) use ($planning) {
                 // Open en In Review taken mogen ook al aan andere planningen gekoppeld zijn
-                $query->whereIn('status', [\App\Enums\TaskStatus::OPEN->value, \App\Enums\TaskStatus::IN_REVIEW->value])
+                $query->whereIn('status', [TaskStatus::OPEN->value, TaskStatus::IN_REVIEW->value])
                     ->orWhereDoesntHave('planningTasks')
                     ->orWhereHas('planningTasks', function ($planningQuery) use ($planning) {
                         // OF de taak is gekoppeld aan de HUIDIGE planning
@@ -569,65 +453,10 @@ class PlanningController extends Controller
          *   estimated_time_minutes:int
          * }>> $backlogTasksByLocation
          */
-        $backlogTasksByLocation = $availableBacklogTasks
-            ->groupBy('location_id')
-            ->map(static function (\Illuminate\Database\Eloquent\Collection $tasks, int|string $_key) {
-                /** @var \Illuminate\Support\Collection<int, array{
-                 *   id:int,
-                 *   title:string,
-                 *   description:string|null,
-                 *   priority: array{value:string,label:string},
-                 *   status: \App\Enums\TaskStatus,
-                 *   deadline: \Carbon\Carbon|null,
-                 *   estimated_time_minutes:int
-                 * }> $mapped
-                 */
-                $mapped = $tasks
-                    ->map(static function (\App\Models\Task $task): array {
-                        /** @var array{
-                         *   id:int,
-                         *   title:string,
-                         *   description:string|null,
-                         *   priority: array{value:string,label:string},
-                         *   status: \App\Enums\TaskStatus,
-                         *   deadline: \Carbon\Carbon|null,
-                         *   estimated_time_minutes:int
-                         * } $row
-                         */
-                        $row = [
-                            'id' => $task->id,
-                            'title' => $task->title,
-                            'description' => $task->description,
-                            'priority' => [
-                                'value' => $task->priority->value,
-                                'label' => $task->priority->label(),
-                            ],
-                            'status' => $task->status,
-                            'deadline' => $task->deadline,
-                            'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
-                        ];
+        $backlogTasksByLocation = $this->mapBacklogTasksByLocation($availableBacklogTasks);
 
-                        return $row;
-                    })
-                    ->toBase();
-
-                return $mapped;
-            });
-
-        $backlogPriorityCountsByLocation = $availableBacklogTasks->groupBy('location_id')
-            ->map(function ($tasks_for_location) {
-                return [
-                    TaskPriority::HIGH->value => $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
-                    TaskPriority::NORMAL->value => $tasks_for_location->where('priority', TaskPriority::NORMAL)->count(),
-                    TaskPriority::LOW->value => $tasks_for_location->where('priority', TaskPriority::LOW)->count(),
-                ];
-            });
-
-        $backlogTotalEstimatedTimeByLocation = $availableBacklogTasks->groupBy('location_id')
-            ->map(function ($tasks_for_location) {
-                // Assuming 'estimated_time_minutes' is the field for estimated time.
-                return $tasks_for_location->sum('estimated_time_minutes');
-            });
+        $backlogPriorityCountsByLocation = $this->computeBacklogPriorityCounts($availableBacklogTasks);
+        $backlogTotalEstimatedTimeByLocation = $this->computeBacklogTotalEstimated($availableBacklogTasks);
 
         $current_selected_default_tasks = $planning->planningTasks
             ->whereNotNull('default_task_id')
@@ -642,53 +471,19 @@ class PlanningController extends Controller
             ->all();
 
         // Sort locations based on priority task counts and then name
-        $locations = $locations->sortBy(function ($location) use ($backlogPriorityCountsByLocation) {
-            $counts = $backlogPriorityCountsByLocation[$location->id] ?? [
-                TaskPriority::HIGH->value => 0,
-                TaskPriority::NORMAL->value => 0,
-                TaskPriority::LOW->value => 0,
-            ];
+        $locations = $this->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
 
-            return [
-                -($counts[TaskPriority::HIGH->value]),     // Descending high priority
-                -($counts[TaskPriority::NORMAL->value]),  // Descending normal priority
-                -($counts[TaskPriority::LOW->value]),     // Descending low priority
-                $location->name,                               // Ascending name
-            ];
-        })->values();
-
-        $plannedBacklogTasks = \App\Models\PlanningTask::whereNotNull('task_id')
-            ->where('planning_id', '!=', $planning->id)
-            ->with('planning:id,planned_date')
-            ->get()
-            ->mapWithKeys(function ($planningTask) {
-                return [$planningTask->task_id => [
-                    'planning_id' => $planningTask->planning->id,
-                    'planning_title' => $planningTask->planning->planned_date->format('d-m-Y'),
-                ]];
-            });
+        $plannedBacklogTasks = $this->plannedBacklogTasksMap($planning, true);
 
         // Vehicles available for the planning date; include currently assigned vehicle if set
         $selectedDate = $planning->planned_date->toDateString();
-        $availableVehicles = Vehicle::query()
-            ->whereDoesntHave('plannings', function ($q) use ($selectedDate, $planning) {
-                // Exclude only vehicles that are assigned to a non-completed planning on the selected date, excluding the current planning
-                // Treat NULL status as non-completed
-                $q->whereDate('planned_date', $selectedDate)
-                    ->where('plannings.id', '!=', $planning->id)
-                    ->where(function ($qq) {
-                        $qq->whereNull('status')
-                            ->orWhere('status', '!=', 'completed');
-                    });
-            })
-            ->orderBy('name')
-            ->get();
+        $availableVehicles = $this->availableVehiclesForDate($selectedDate, $planning);
         if ($planning->vehicle && !$availableVehicles->contains('id', $planning->vehicle->id)) {
             $availableVehicles->push($planning->vehicle);
             $availableVehicles = $availableVehicles->sortBy('name')->values();
         }
 
-        $requirements = \App\Models\Requirement::orderBy('name')->get();
+        $requirements = Requirement::orderBy('name')->get();
 
         return view('plannings.edit', compact(
             'planning',
@@ -859,28 +654,8 @@ class PlanningController extends Controller
      */
     public function getLocationTimer(Planning $planning, int|string $locationId): JsonResponse
     {
-        // Determine location type and actual location ID
-        if ($locationId === 'backlog') {
-            $actualLocationId = null;
-            $locationType = 'backlog';
-        } elseif (str_starts_with($locationId, 'travel_to_')) {
-            // Travel timer - extract destination location ID
-            $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
-        } elseif ($locationId === 'travel_back') {
-            // Return travel timer back to start location
-            $actualLocationId = null;
-            $locationType = 'travel_back';
-        } else {
-            // Regular location
-            $actualLocationId = $locationId;
-            $locationType = 'location';
-        }
-
-        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
-            ->where('location_id', $actualLocationId)
-            ->where('location_type', $locationType)
-            ->first();
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
 
         if (!$timer) {
             return response()->json([
@@ -890,11 +665,7 @@ class PlanningController extends Controller
             ]);
         }
 
-        return response()->json([
-            'started_at' => $timer->started_at?->toISOString(),
-            'ended_at' => $timer->ended_at?->toISOString(),
-            'total_duration' => $timer->total_duration_seconds,
-        ]);
+        return $this->buildTimerJson($timer);
     }
 
     /**
@@ -902,44 +673,15 @@ class PlanningController extends Controller
      */
     public function startLocationTimer(Planning $planning, int|string $locationId): JsonResponse
     {
-        if ($locationId === 'backlog') {
-            $actualLocationId = null;
-            $locationType = 'backlog';
-        } elseif (str_starts_with($locationId, 'travel_to_')) {
-            // Travel timer - extract destination location ID
-            $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
-        } elseif ($locationId === 'travel_back') {
-            // Return travel timer back to start location
-            $actualLocationId = null;
-            $locationType = 'travel_back';
-        } else {
-            // Regular location
-            $actualLocationId = $locationId;
-            $locationType = 'location';
-        }
-
-        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
-            ->where('location_id', $actualLocationId)
-            ->where('location_type', $locationType)
-            ->first();
-
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
         if ($timer) {
-            // Timer exists - just update start time and clear end time
             $timer->update([
                 'started_at' => now(),
                 'ended_at' => null,
             ]);
         } else {
-            // Create new timer
-            $timer = PlanningLocationTimer::create([
-                'planning_id' => $planning->id,
-                'location_id' => $actualLocationId,
-                'location_type' => $locationType,
-                'started_at' => now(),
-                'ended_at' => null,
-                'total_duration_seconds' => 0,
-            ]);
+            $timer = $this->ensureTimerStarted($planning, $actualLocationId, $locationType);
         }
 
         return response()->json([
@@ -960,27 +702,8 @@ class PlanningController extends Controller
             'total_duration' => 'required|integer|min:0',
         ]);
 
-        if ($locationId === 'backlog') {
-            $actualLocationId = null;
-            $locationType = 'backlog';
-        } elseif (str_starts_with($locationId, 'travel_to_')) {
-            // Travel timer - extract destination location ID
-            $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
-        } elseif ($locationId === 'travel_back') {
-            // Return travel timer back to start location
-            $actualLocationId = null;
-            $locationType = 'travel_back';
-        } else {
-            // Regular location
-            $actualLocationId = $locationId;
-            $locationType = 'location';
-        }
-
-        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
-            ->where('location_id', $actualLocationId)
-            ->where('location_type', $locationType)
-            ->first();
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
 
         if (!$timer) {
             return response()->json(['error' => 'Timer not found'], 404);
@@ -1012,27 +735,8 @@ class PlanningController extends Controller
             'previous_duration' => 'required|integer|min:0',
         ]);
 
-        if ($locationId === 'backlog') {
-            $actualLocationId = null;
-            $locationType = 'backlog';
-        } elseif (str_starts_with($locationId, 'travel_to_')) {
-            // Travel timer - extract destination location ID
-            $actualLocationId = str_replace('travel_to_', '', $locationId);
-            $locationType = 'travel';
-        } elseif ($locationId === 'travel_back') {
-            // Return travel timer back to start location
-            $actualLocationId = null;
-            $locationType = 'travel_back';
-        } else {
-            // Regular location
-            $actualLocationId = $locationId;
-            $locationType = 'location';
-        }
-
-        $timer = PlanningLocationTimer::where('planning_id', $planning->id)
-            ->where('location_id', $actualLocationId)
-            ->where('location_type', $locationType)
-            ->first();
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
 
         if (!$timer) {
             return response()->json(['error' => 'Timer not found'], 404);
@@ -1053,6 +757,209 @@ class PlanningController extends Controller
                 'total_duration' => $timer->total_duration_seconds,
             ],
         ]);
+    }
+
+    /**
+     * Shared helpers (private) to keep controller lean and DRY.
+     */
+    /**
+     * @return array{0:int|string|null,1:string}
+     */
+    private function resolveTimerTarget(int|string $locationId): array
+    {
+        if ($locationId === 'backlog') {
+            return [null, 'backlog'];
+        }
+        if (is_string($locationId) && str_starts_with($locationId, 'travel_to_')) {
+            return [str_replace('travel_to_', '', $locationId), 'travel'];
+        }
+        if ($locationId === 'travel_back') {
+            return [null, 'travel_back'];
+        }
+        return [$locationId, 'location'];
+    }
+
+    private function findTimer(Planning $planning, int|string|null $actualLocationId, string $locationType): ?PlanningLocationTimer
+    {
+        return PlanningLocationTimer::where('planning_id', $planning->id)
+            ->where('location_id', $actualLocationId)
+            ->where('location_type', $locationType)
+            ->first();
+    }
+
+    private function ensureTimerStarted(Planning $planning, int|string|null $actualLocationId, string $locationType): PlanningLocationTimer
+    {
+        return PlanningLocationTimer::create([
+            'planning_id' => $planning->id,
+            'location_id' => $actualLocationId,
+            'location_type' => $locationType,
+            'started_at' => now(),
+            'ended_at' => null,
+            'total_duration_seconds' => 0,
+        ]);
+    }
+
+    private function buildTimerJson(PlanningLocationTimer $timer): JsonResponse
+    {
+        return response()->json([
+            'started_at' => $timer->started_at?->toISOString(),
+            'ended_at' => $timer->ended_at?->toISOString(),
+            'total_duration' => $timer->total_duration_seconds,
+        ]);
+    }
+
+    /**
+     * Validate the required HH:mm time input and return it as string.
+     * Keeps validation behavior identical across endpoints.
+     */
+    private function validateTimeInput(Request $request): string
+    {
+        $request->validate([
+            'time' => ['required', 'regex:/^\d{1,2}:\d{2}$/'],
+        ]);
+
+        // string() returns Str, but cast to string for clarity and phpstan
+        return (string) $request->string('time');
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection<int, Location> $locations
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, array{id:int,title:string,description:string,estimated_time_minutes:int,applies_to_all_locations:bool,is_always_included:bool}>>
+     */
+    private function buildDefaultTasksByLocation($locations)
+    {
+        return $locations->mapWithKeys(function ($location) {
+            $locationSpecificTasks = $location->defaultTasks;
+            $allLocationTasks = DefaultTask::forAllLocations()->get();
+            $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
+            return [$location->id => $allTasks->map(function ($task) use ($location) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    // DefaultTask::description is non-null in model typing; normalize to string for views
+                    'description' => (string) $task->description,
+                    'estimated_time_minutes' => $task->calculateEstimatedTime($location),
+                    'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
+                    'is_always_included' => $task->is_always_included ?? false,
+                ];
+            })];
+        });
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Collection<int, Task> $tasks
+     * @return \Illuminate\Support\Collection<int|string, \Illuminate\Support\Collection<int, array{id:int,title:string,description:string,priority: array{value:string,label:string},status: TaskStatus,deadline: ?\Carbon\Carbon,estimated_time_minutes:int}>>
+     */
+    private function mapBacklogTasksByLocation($tasks)
+    {
+        return $tasks->groupBy('location_id')
+            ->map(static function (\Illuminate\Database\Eloquent\Collection $grouped, $key): \Illuminate\Support\Collection {
+                /** @var Task $task */
+                return $grouped->map(static function (Task $task): array {
+                    return [
+                        'id' => $task->id,
+                        'title' => $task->title,
+                        // Normalize to string to match model typing and UI expectations
+                        'description' => (string) $task->description,
+                        'priority' => [
+                            'value' => $task->priority->value,
+                            'label' => $task->priority->label(),
+                        ],
+                        'status' => $task->status,
+                        'deadline' => $task->deadline,
+                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                    ];
+                })->toBase();
+            });
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Collection<int, Task> $tasks
+     * @return \Illuminate\Support\Collection<int|string, array{
+     *   high:int, normal:int, low:int
+     * }>|\Illuminate\Support\Collection<int|string, array<string,int>>
+     */
+    private function computeBacklogPriorityCounts($tasks): \Illuminate\Support\Collection
+    {
+        return $tasks->groupBy('location_id')
+            ->map(function ($tasks_for_location) {
+                return [
+                    TaskPriority::HIGH->value => $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
+                    TaskPriority::NORMAL->value => $tasks_for_location->where('priority', TaskPriority::NORMAL)->count(),
+                    TaskPriority::LOW->value => $tasks_for_location->where('priority', TaskPriority::LOW)->count(),
+                ];
+            });
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Collection<int, Task> $tasks
+     * @return \Illuminate\Support\Collection<int|string, int>
+     */
+    private function computeBacklogTotalEstimated($tasks): \Illuminate\Support\Collection
+    {
+        return $tasks->groupBy('location_id')
+            ->map(function ($tasks_for_location) {
+                return $tasks_for_location->sum('estimated_time_minutes');
+            });
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Collection<int, Location>|\Illuminate\Support\Collection<int, Location> $locations
+     * @param \Illuminate\Support\Collection<int|string, array<string,int>> $backlogPriorityCountsByLocation
+     * @return \Illuminate\Support\Collection<int, Location>
+     */
+    private function sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation): \Illuminate\Support\Collection
+    {
+        return $locations->sortBy(function ($location) use ($backlogPriorityCountsByLocation) {
+            $counts = $backlogPriorityCountsByLocation[$location->id] ?? [
+                TaskPriority::HIGH->value => 0,
+                TaskPriority::NORMAL->value => 0,
+                TaskPriority::LOW->value => 0,
+            ];
+            return [
+                -($counts[TaskPriority::HIGH->value]),
+                -($counts[TaskPriority::NORMAL->value]),
+                -($counts[TaskPriority::LOW->value]),
+                $location->name,
+            ];
+        })->values();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, array{planning_id:int,planning_title:string}>
+     */
+    private function plannedBacklogTasksMap(?Planning $planning = null, bool $excludeCurrent = false)
+    {
+        $query = PlanningTask::whereNotNull('task_id')->with('planning:id,planned_date');
+        if ($planning && $excludeCurrent) {
+            $query->where('planning_id', '!=', $planning->id);
+        }
+        return $query->get()->mapWithKeys(function ($planningTask) {
+            return [(int) $planningTask->task_id => [
+                'planning_id' => $planningTask->planning->id,
+                'planning_title' => $planningTask->planning->planned_date->format('d-m-Y'),
+            ]];
+        });
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, Vehicle>
+     */
+    private function availableVehiclesForDate(string $selectedDate, ?Planning $planning = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return Vehicle::query()
+            ->whereDoesntHave('plannings', function ($q) use ($selectedDate, $planning) {
+                $q->whereDate('planned_date', $selectedDate);
+                if ($planning) {
+                    $q->where('plannings.id', '!=', $planning->id);
+                }
+                $q->where(function ($qq) {
+                    $qq->whereNull('status')
+                        ->orWhere('status', '!=', 'completed');
+                });
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     /**
