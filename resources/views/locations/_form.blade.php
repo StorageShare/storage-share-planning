@@ -23,30 +23,6 @@
         </div>
 
         <div>
-            <x-input-label for="address" :value="__('Adres')" />
-            <x-text-input type="text" id="address" name="address" class="block mt-1 w-full" :value="old('address', $location->address ?? '')" required />
-            <x-input-error :messages="$errors->get('address')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="postal_code" :value="__('Postcode')" />
-            <x-text-input type="text" id="postal_code" name="postal_code" class="block mt-1 w-full" :value="old('postal_code', $location->postal_code ?? '')" required />
-            <x-input-error :messages="$errors->get('postal_code')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="city" :value="__('Stad')" />
-            <x-text-input type="text" id="city" name="city" class="block mt-1 w-full" :value="old('city', $location->city ?? '')" required />
-            <x-input-error :messages="$errors->get('city')" class="mt-2" />
-        </div>
-
-        <div class="md:col-span-2">
-            <x-input-label for="description" :value="__('Omschrijving')" />
-            <textarea id="description" name="description" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" rows="3">{{ old('description', $location->description ?? '') }}</textarea>
-            <x-input-error :messages="$errors->get('description')" class="mt-2" />
-        </div>
-
-        <div>
             <x-input-label for="bv" :value="__('BV')" />
             <x-text-input type="text" id="bv" name="bv" class="block mt-1 w-full" :value="old('bv', $location->bv ?? '')" />
             <x-input-error :messages="$errors->get('bv')" class="mt-2" />
