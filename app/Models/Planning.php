@@ -53,7 +53,8 @@ class Planning extends Model
     {
         return $this->belongsToMany(Location::class, 'location_planning')
             ->withPivot('sort_order')
-            ->orderBy('sort_order');
+            // Ensure we always order by the pivot column, not a base table column
+            ->orderByPivot('sort_order');
     }
 
     /**
