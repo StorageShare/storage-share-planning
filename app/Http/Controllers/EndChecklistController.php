@@ -404,7 +404,7 @@ class EndChecklistController extends Controller
      */
     public function showRejectForm(EndChecklistItem $item): View
     {
-        return view('admin.end-checklist.reject', compact('item'));
+        return view($this->viewName('admin.end-checklist.reject'), compact('item'));
     }
 
     /**

@@ -47,7 +47,11 @@ De daadwerkelijke content wordt door de volgende tool call geplaatst.
                             <div>
                                 <h5 class="mb-2 text-xl font-semibold tracking-tight text-gray-800 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400">{{ $location->name }}</h5>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    @php $taskCount = $location->tasks_count ?? $location->tasks()->count(); @endphp
+                                    @php
+                                        $taskCount = $location->tasks_count ?? $location->tasks()
+                                            ->whereNotIn('status', [\App\Enums\TaskStatus::COMPLETED->value, \App\Enums\TaskStatus::REJECTED->value])
+                                            ->count();
+                                    @endphp
                                     {{ $taskCount }} {{ ($taskCount == 1) ? __('openstaande taak') : __('openstaande taken') }}
                                 </p>
                             </div>

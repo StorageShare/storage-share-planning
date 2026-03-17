@@ -19,7 +19,7 @@ class CsvImportController extends Controller
      */
     public function show(): View
     {
-        return view('csv-import.index');
+        return view($this->viewName('csv-import.index'));
     }
 
     /**
@@ -67,7 +67,7 @@ class CsvImportController extends Controller
 
             // Flash results to session
             $message = "Import voltooid: {$importResults['success_count']} taken succesvol geïmporteerd.";
-            
+
             if ($importResults['error_count'] > 0) {
                 $message .= " {$importResults['error_count']} fouten opgetreden.";
             }
@@ -91,7 +91,7 @@ class CsvImportController extends Controller
     {
         $headers = [
             'Locatie',
-            'Activiteit', 
+            'Activiteit',
             'Omschrijving',
             'Prioriteit',
             'Team 1',
@@ -121,7 +121,7 @@ class CsvImportController extends Controller
         ];
 
         $csvContent = '';
-        
+
         // Add headers
         $csvContent .= implode(',', array_map(function($header) {
             return '"' . str_replace('"', '""', $header) . '"';
@@ -138,4 +138,4 @@ class CsvImportController extends Controller
             ->header('Content-Type', 'text/csv')
             ->header('Content-Disposition', 'attachment; filename="taken_import_template.csv"');
     }
-} 
+}

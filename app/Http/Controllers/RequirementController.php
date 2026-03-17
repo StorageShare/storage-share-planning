@@ -23,7 +23,7 @@ class RequirementController extends Controller
         $perPage = $this->resolvePerPage($request, $query, 20);
         $requirements = $query->paginate($perPage)->withQueryString();
 
-        return view('requirements.index', compact('requirements'));
+        return view($this->viewName('requirements.index'), compact('requirements'));
     }
 
     /**
@@ -33,7 +33,7 @@ class RequirementController extends Controller
     {
         $locations = Location::orderBy('name')->get();
 
-        return view('requirements.create', compact('locations'));
+        return view($this->viewName('requirements.create'), compact('locations'));
     }
 
     /**
@@ -62,7 +62,7 @@ class RequirementController extends Controller
     {
         $requirement->load(['creator', 'tasks.location', 'defaultTasks', 'requiredForLocations']);
 
-        return view('requirements.show', compact('requirement'));
+        return view($this->viewName('requirements.show'), compact('requirement'));
     }
 
     /**
@@ -73,7 +73,7 @@ class RequirementController extends Controller
         $locations = Location::orderBy('name')->get();
         $selectedLocations = $requirement->requiredForLocations->pluck('id')->toArray();
 
-        return view('requirements.edit', compact('requirement', 'locations', 'selectedLocations'));
+        return view($this->viewName('requirements.edit'), compact('requirement', 'locations', 'selectedLocations'));
     }
 
     /**

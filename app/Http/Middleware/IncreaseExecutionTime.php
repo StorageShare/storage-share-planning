@@ -4,13 +4,14 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class IncreaseExecutionTime
 {
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
         // Read desired execution time from config (fallback to 300 seconds)
         $seconds = (int) config('performance.max_execution_time', 300);
@@ -26,6 +27,8 @@ class IncreaseExecutionTime
             }
         }
 
-        return $next($request);
+        /** @var Response $response */
+        $response = $next($request);
+        return $response;
     }
 }

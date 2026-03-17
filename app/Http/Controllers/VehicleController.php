@@ -21,7 +21,7 @@ class VehicleController extends Controller
         $perPage = $this->resolvePerPage($request, $query);
         $vehicles = $query->paginate($perPage)->withQueryString();
 
-        return view('vehicles.index', compact('vehicles'));
+        return view($this->viewName('vehicles.index'), compact('vehicles'));
     }
 
     /**
@@ -30,7 +30,7 @@ class VehicleController extends Controller
     public function create(): View
     {
         $types = VehicleType::options();
-        return view('vehicles.create', compact('types'));
+        return view($this->viewName('vehicles.create'), compact('types'));
     }
 
     /**
@@ -59,7 +59,7 @@ class VehicleController extends Controller
     public function edit(Vehicle $vehicle): View
     {
         $types = VehicleType::options();
-        return view('vehicles.edit', compact('vehicle', 'types'));
+        return view($this->viewName('vehicles.edit'), compact('vehicle', 'types'));
     }
 
     /**

@@ -72,7 +72,7 @@ class DashboardController extends Controller
 
         $tasks_for_review_count = $review_tasks_count + $review_planning_tasks_count;
 
-        return view('dashboard', [
+        return view($this->viewName('dashboard'), [
             'todays_plannings' => $todays_plannings,
             'plannings_rest_of_week' => $plannings_rest_of_week,
             'plannings_next_week' => $plannings_next_week,

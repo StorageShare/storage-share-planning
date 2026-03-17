@@ -19,7 +19,7 @@ class UserController extends Controller
         $perPage = $this->resolvePerPage($request, $query);
         $users = $query->paginate($perPage)->withQueryString();
 
-        return view('users.index', compact('users'));
+        return view($this->viewName('users.index'), compact('users'));
     }
 
     /**
@@ -27,7 +27,7 @@ class UserController extends Controller
      */
     public function create(): View
     {
-        return view('users.create', [
+        return view($this->viewName('users.create'), [
             'roles' => Role::cases(),
         ]);
     }
@@ -57,7 +57,7 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
-        return view('users.edit', [
+        return view($this->viewName('users.edit'), [
             'user' => $user,
             'roles' => Role::cases(),
         ]);

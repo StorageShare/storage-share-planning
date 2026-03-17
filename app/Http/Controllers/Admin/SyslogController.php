@@ -24,7 +24,7 @@ class SyslogController extends Controller
 
         $logs = $this->getSyslogEntries($lines, $search);
 
-        return view('admin.logs.syslog', compact('logs', 'lines', 'search'));
+        return view($this->viewName('admin.logs.syslog'), compact('logs', 'lines', 'search'));
     }
 
     public function api(Request $request): JsonResponse

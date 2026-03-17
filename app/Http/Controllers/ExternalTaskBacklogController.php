@@ -41,7 +41,7 @@ class ExternalTaskBacklogController extends Controller
         $perPage = $this->resolvePerPage($request, $query, 30);
         $tasks = $query->paginate($perPage)->withQueryString();
 
-        return view('external-tasks.index', [
+        return view($this->viewName('external-tasks.index'), [
             'tasks' => $tasks,
             'searchTerm' => $searchTerm,
             'statusFilter' => $statusParam,
@@ -54,7 +54,7 @@ class ExternalTaskBacklogController extends Controller
         $locations = Location::orderBy('name')->get();
         $priorities = TaskPriority::cases();
 
-        return view('external-tasks.create', compact('locations', 'priorities'));
+        return view($this->viewName('external-tasks.create'), compact('locations', 'priorities'));
     }
 
     public function store(StoreExternalTaskWebRequest $request): RedirectResponse
@@ -71,7 +71,7 @@ class ExternalTaskBacklogController extends Controller
     {
         $externalTask->load(['location', 'comments.user']);
 
-        return view('external-tasks.show', [
+        return view($this->viewName('external-tasks.show'), [
             'task' => $externalTask,
             'statusOptions' => TaskStatus::cases(),
         ]);
@@ -97,7 +97,7 @@ class ExternalTaskBacklogController extends Controller
         $priorities = TaskPriority::cases();
         $statuses = TaskStatus::cases();
 
-        return view('external-tasks.edit', [
+        return view($this->viewName('external-tasks.edit'), [
             'task' => $externalTask,
             'locations' => $locations,
             'priorities' => $priorities,

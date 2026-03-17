@@ -175,7 +175,7 @@ class TaskController extends Controller
 
         // Relationships already eager-loaded on the query above
 
-        return view('tasks.index', compact(
+        return view($this->viewName('tasks.index'), compact(
             'location',
             'tasks',
             'sortBy',
@@ -193,7 +193,14 @@ class TaskController extends Controller
     {
         $searchTerm = $request->input('search_term', '');
 
-        $locationsQuery = Location::query();
+        $locationsQuery = Location::query()->withCount([
+            'tasks as tasks_count' => function ($query) {
+                $query->whereNotIn('status', [
+                    TaskStatus::COMPLETED->value,
+                    TaskStatus::REJECTED->value,
+                ]);
+            },
+        ]);
 
         if (! empty($searchTerm)) {
             $locationsQuery->whereRaw('LOWER(name) LIKE ?', [strtolower("%{$searchTerm}%")]);
@@ -201,7 +208,7 @@ class TaskController extends Controller
 
         $locations = $locationsQuery->orderBy('name')->get();
 
-        return view('tasks.select-location', compact('locations', 'searchTerm'));
+        return view($this->viewName('tasks.select-location'), compact('locations', 'searchTerm'));
     }
 
     /**
@@ -213,7 +220,7 @@ class TaskController extends Controller
         $requirements = Requirement::orderBy('name')->get();
         $availableDoorTypes = \App\Models\DefaultTask::getAvailableDoorTypes();
 
-        return view('tasks.bulk-create', compact('locations', 'requirements', 'availableDoorTypes'));
+        return view($this->viewName('tasks.bulk-create'), compact('locations', 'requirements', 'availableDoorTypes'));
     }
 
     /**
@@ -281,7 +288,7 @@ class TaskController extends Controller
         // Get prefilled data from session (if redirected from rejected checklist item)
         $prefill = session('prefill', []);
 
-        return view('tasks.create', compact('location', 'requirements', 'prefill'));
+        return view($this->viewName('tasks.create'), compact('location', 'requirements', 'prefill'));
     }
 
     /**
@@ -384,7 +391,7 @@ class TaskController extends Controller
             ->flatMap(fn ($planningTask) => $planningTask->completions)
             ->sortByDesc('created_at');
 
-        return view('tasks.show', [
+        return view($this->viewName('tasks.show'), [
             'task' => $task,
             'completion_history' => $completion_history,
             'planning_id' => $request->get('planning'),
@@ -401,7 +408,7 @@ class TaskController extends Controller
         $requirements = Requirement::orderBy('name')->get();
         $selectedRequirements = $task->requirements->pluck('id')->toArray();
 
-        return view('tasks.edit', compact('task', 'requirements', 'selectedRequirements'));
+        return view($this->viewName('tasks.edit'), compact('task', 'requirements', 'selectedRequirements'));
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View; // Added for DB::raw
@@ -154,7 +155,7 @@ class TaskBacklogController extends Controller
             // Add other simple string-based filters here if any in the future
         ];
 
-        return view('backlog.index', [
+        return view($this->viewName('backlog.index'), [
             'tasks' => $tasks,
             'locations' => $locations,
             'priorities' => $priorities,
@@ -168,7 +169,7 @@ class TaskBacklogController extends Controller
     /**
      * Bulk delete selected backlog tasks.
      */
-    public function bulkDestroy(Request $request)
+    public function bulkDestroy(Request $request): RedirectResponse
     {
         $user = Auth::user();
         abort_unless($user && in_array($user->role, [Role::ADMIN, Role::FACILITIES_COORDINATOR], true), 403);

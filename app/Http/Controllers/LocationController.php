@@ -63,7 +63,7 @@ class LocationController extends Controller
         $perPage = $this->resolvePerPage($request, $locationsQuery);
         $locations = $locationsQuery->paginate($perPage)->appends($request->query()); // appends query string to pagination links
 
-        return view('locations.index', compact('locations', 'sortBy', 'sortDirection', 'searchTerm', 'activeFilter'));
+        return view($this->viewName('locations.index'), compact('locations', 'sortBy', 'sortDirection', 'searchTerm', 'activeFilter'));
     }
 
     /**
@@ -81,7 +81,7 @@ class LocationController extends Controller
         $openTasksPerPage = $this->resolvePerPage($request, $openTasksQuery, 10);
         $open_tasks = $openTasksQuery->paginate($openTasksPerPage)->withQueryString();
 
-        return view('locations.show', compact('location', 'open_tasks'));
+        return view($this->viewName('locations.show'), compact('location', 'open_tasks'));
     }
 
     /**
@@ -91,7 +91,7 @@ class LocationController extends Controller
     {
         $externalLocations = $externalLocationService->fetchExternalLocations() ?? [];
 
-        return view('locations.create', compact('externalLocations'));
+        return view($this->viewName('locations.create'), compact('externalLocations'));
     }
 
     /**
@@ -117,7 +117,7 @@ class LocationController extends Controller
 
         $externalLocations = $externalLocationService->fetchExternalLocations() ?? [];
 
-        return view('locations.edit', compact('location', 'externalLocations'));
+        return view($this->viewName('locations.edit'), compact('location', 'externalLocations'));
     }
 
     /**

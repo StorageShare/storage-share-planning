@@ -55,7 +55,7 @@ class TimerController extends Controller
         // Get all users for filter dropdown
         $users = User::orderBy('name')->get();
 
-        return view('admin.timers.index', compact('plannings', 'users'));
+        return view($this->viewName('admin.timers.index'), compact('plannings', 'users'));
     }
 
     /**
@@ -136,7 +136,7 @@ class TimerController extends Controller
             }
         }
 
-        return view('admin.timers.show', compact('planning', 'timersByLocation', 'totalDurationSeconds', 'distributedByLocation', 'totalTravelToDistribute'));
+        return view($this->viewName('admin.timers.show'), compact('planning', 'timersByLocation', 'totalDurationSeconds', 'distributedByLocation', 'totalTravelToDistribute'));
     }
 
     /**

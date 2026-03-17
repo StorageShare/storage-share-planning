@@ -45,7 +45,7 @@ class DefaultTaskController extends Controller
         $perPage = $this->resolvePerPage($request, $defaultTasksQuery);
         $defaultTasks = $defaultTasksQuery->paginate($perPage)->appends($request->query());
 
-        return view('default-tasks.index', compact(
+        return view($this->viewName('default-tasks.index'), compact(
             'defaultTasks',
             'sortBy',
             'sortDirection',
@@ -63,7 +63,7 @@ class DefaultTaskController extends Controller
         $requirements = Requirement::orderBy('name')->get();
         $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
 
-        return view('default-tasks.create', compact('locations', 'requirements', 'availableDoorTypes'));
+        return view($this->viewName('default-tasks.create'), compact('locations', 'requirements', 'availableDoorTypes'));
     }
 
     /**
@@ -118,7 +118,7 @@ class DefaultTaskController extends Controller
     {
         $defaultTask->load('locations');
 
-        return view('default-tasks.show', compact('defaultTask'));
+        return view($this->viewName('default-tasks.show'), compact('defaultTask'));
     }
 
     /**
@@ -132,7 +132,7 @@ class DefaultTaskController extends Controller
         $selectedRequirements = $defaultTask->requirements->pluck('id')->toArray();
         $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
 
-        return view('default-tasks.edit', compact('defaultTask', 'locations', 'selectedLocations', 'requirements', 'selectedRequirements', 'availableDoorTypes'));
+        return view($this->viewName('default-tasks.edit'), compact('defaultTask', 'locations', 'selectedLocations', 'requirements', 'selectedRequirements', 'availableDoorTypes'));
     }
 
     /**

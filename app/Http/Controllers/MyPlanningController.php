@@ -48,7 +48,7 @@ class MyPlanningController extends Controller
         }
 
         if (!$planning) {
-            return view('my-planning.show-empty');
+            return view($this->viewName('my-planning.show-empty'));
         }
 
         $locationSteps = [];
@@ -483,7 +483,7 @@ class MyPlanningController extends Controller
             'total_minutes' => $totalTaskMinutes + ($travelTimes ? $travelTimes['total_duration_minutes'] : 0),
         ];
 
-        return view('my-planning.show', [
+        return view($this->viewName('my-planning.show'), [
             'planning' => $planning,
             'locationSteps' => $locationSteps,
             'travelTimes' => $travelTimes,
@@ -553,6 +553,7 @@ class MyPlanningController extends Controller
             ->first();
     }
 
+    /** @phpstan-ignore-next-line method.unused */
     private function buildTimerJson(PlanningLocationTimer $timer): JsonResponse
     {
         return response()->json([

@@ -46,7 +46,7 @@ class PlanningTaskController extends Controller
             },
         ]);
 
-        return view('plannings.tasks.show', compact('planning_task'));
+        return view($this->viewName('plannings.tasks.show'), compact('planning_task'));
     }
 
     /**

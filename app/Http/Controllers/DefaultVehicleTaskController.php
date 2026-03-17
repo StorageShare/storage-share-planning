@@ -38,7 +38,7 @@ class DefaultVehicleTaskController extends Controller
         $perPage = $this->resolvePerPage($request, $query);
         $defaults = $query->paginate($perPage)->appends($request->query());
 
-        return view('default-vehicle-tasks.index', compact('defaults', 'search', 'sortBy', 'sortDirection'));
+        return view($this->viewName('default-vehicle-tasks.index'), compact('defaults', 'search', 'sortBy', 'sortDirection'));
     }
 
     /**
@@ -46,7 +46,7 @@ class DefaultVehicleTaskController extends Controller
      */
     public function create(): View
     {
-        return view('default-vehicle-tasks.create');
+        return view($this->viewName('default-vehicle-tasks.create'));
     }
 
     /**
@@ -69,7 +69,7 @@ class DefaultVehicleTaskController extends Controller
      */
     public function edit(DefaultVehicleTask $defaultVehicleTask): View
     {
-        return view('default-vehicle-tasks.edit', compact('defaultVehicleTask'));
+        return view($this->viewName('default-vehicle-tasks.edit'), compact('defaultVehicleTask'));
     }
 
     /**

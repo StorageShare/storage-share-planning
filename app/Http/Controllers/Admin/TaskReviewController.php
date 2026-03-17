@@ -135,7 +135,7 @@ class TaskReviewController extends Controller
         // Sort the combined list by completion date, newest first
         $tasks_to_review = $combined_list->sortByDesc('completed_at');
 
-        return view('admin.tasks.review', compact('tasks_to_review'));
+        return view($this->viewName('admin.tasks.review'), compact('tasks_to_review'));
     }
 
     /**
@@ -290,7 +290,7 @@ class TaskReviewController extends Controller
             abort(404);
         }
 
-        return view('admin.tasks.show', [
+        return view($this->viewName('admin.tasks.show'), [
             'task' => $task_item,
             'type' => $type,
             'completion_history' => $completion_history,

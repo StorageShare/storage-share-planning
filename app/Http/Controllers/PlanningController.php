@@ -64,7 +64,7 @@ class PlanningController extends Controller
         $perPage = $this->resolvePerPage($request, $planningsQuery);
         $plannings = $planningsQuery->paginate($perPage)->withQueryString();
 
-        return view('plannings.review', compact('plannings'));
+        return view($this->viewName('plannings.review'), compact('plannings'));
     }
 
     /**
@@ -236,7 +236,7 @@ class PlanningController extends Controller
         $perPage = $this->resolvePerPage($request, $query);
         $plannings = $query->paginate($perPage)->withQueryString();
 
-        return view('plannings.index', compact(
+        return view($this->viewName('plannings.index'), compact(
             'plannings',
             'sortBy',
             'sortDirection',
@@ -289,7 +289,7 @@ class PlanningController extends Controller
         $selectedDate = $request->input('planned_date') ?? now()->addDay()->toDateString();
         $availableVehicles = $this->availableVehiclesForDate($selectedDate);
 
-        return view('plannings.create', compact(
+        return view($this->viewName('plannings.create'), compact(
             'locations',
             'defaultTasksByLocation',
             'backlogTasksByLocation',
@@ -407,7 +407,7 @@ class PlanningController extends Controller
             'on_location_seconds' => (int)$actualOnLocationSeconds,
         ];
 
-        return view('plannings.show', compact('planning', 'travelTimes', 'timeOverview', 'onLocationTimers', 'travelToTimers', 'travelBackTimer', 'actualTotals'));
+        return view($this->viewName('plannings.show'), compact('planning', 'travelTimes', 'timeOverview', 'onLocationTimers', 'travelToTimers', 'travelBackTimer', 'actualTotals'));
     }
 
     /**
@@ -485,7 +485,7 @@ class PlanningController extends Controller
 
         $requirements = Requirement::orderBy('name')->get();
 
-        return view('plannings.edit', compact(
+        return view($this->viewName('plannings.edit'), compact(
             'planning',
             'locations',
             'defaultTasksByLocation',
@@ -853,8 +853,7 @@ class PlanningController extends Controller
     private function mapBacklogTasksByLocation($tasks)
     {
         return $tasks->groupBy('location_id')
-            ->map(static function (\Illuminate\Database\Eloquent\Collection $grouped, $key): \Illuminate\Support\Collection {
-                /** @var Task $task */
+            ->map(static function (\Illuminate\Database\Eloquent\Collection $grouped, int|string|null $key): \Illuminate\Support\Collection {
                 return $grouped->map(static function (Task $task): array {
                     return [
                         'id' => $task->id,

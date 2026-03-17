@@ -174,7 +174,7 @@ class BvStatsController extends Controller
             return $totalB <=> $totalA;
         });
 
-        return view('admin.bv-stats.index', compact(
+        return view($this->viewName('admin.bv-stats.index'), compact(
             'bvStats',
             'fromDate',
             'toDate',

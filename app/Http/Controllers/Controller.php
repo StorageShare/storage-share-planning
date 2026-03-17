@@ -39,4 +39,17 @@ abstract class Controller
 
         return $default;
     }
+
+    /**
+     * Hint a string literal as a Laravel view name for static analysis.
+     *
+     * This helps Larastan satisfy the `view-string` requirement when calling the
+     * global `view()` helper, without affecting runtime behavior.
+     *
+     * @phpstan-return view-string
+     */
+    protected function viewName(string $name): string
+    {
+        return $name;
+    }
 }
