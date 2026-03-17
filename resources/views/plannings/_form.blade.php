@@ -256,7 +256,6 @@
             </select>
         </div>
     </div>
-</div>
 
 <div id="planning_form_script_data"
     data-locations="{{ json_encode($locations->map(fn($loc) => ['id' => $loc->id, 'name' => $loc->name])) }}"
@@ -277,13 +276,14 @@
     data-initial-selected-location-ids="{{ json_encode(old('location_ids', $current_selected_location_ids ?? ($selected_location_id ? [$selected_location_id] : []) )) }}">
 </div>
 
-<div class="mt-8 flex items-center gap-x-2">
-    <button type="submit" class="py-2.5 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
-        {{ isset($planning) ? 'Planning Bijwerken' : 'Planning Aanmaken' }}
-    </button>
+<div class="mt-8 text-right gap-x-2">
     <a href="{{ route('plannings.index') }}" class="py-2.5 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700">
         Annuleren
     </a>
+
+    <button type="submit" class="py-2.5 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+        {{ isset($planning) ? 'Planning Bijwerken' : 'Planning Aanmaken' }}
+    </button>
 </div>
 
 @push('scripts')
@@ -1273,6 +1273,8 @@
             const planningForm = tasksByLocationContainer ? tasksByLocationContainer.closest('form') : null;
             if (planningForm) {
                 planningForm.addEventListener('submit', function() {
+                    // Ensure the latest drag-and-drop order is captured just before submit
+                    try { updateLocationOrderInput(); } catch (e) { /* no-op */ }
                     // Remove existing injected hidden inputs to avoid duplicates on repeated attempts
                     planningForm.querySelectorAll('.selected-task-hidden').forEach(el => el.remove());
 

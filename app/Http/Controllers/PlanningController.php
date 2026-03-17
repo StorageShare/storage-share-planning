@@ -966,22 +966,35 @@ class PlanningController extends Controller
      */
     private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder): void
     {
-        $orderedIds = $locationOrder ? explode(',', $locationOrder) : [];
-        $locationsToSync = [];
+        // Parse incoming explicit order from hidden field and preserve it strictly
+        $orderedIds = $locationOrder ? array_values(array_filter(
+            array_map(static fn($v) => (int)trim((string)$v), explode(',', $locationOrder)),
+            static fn($v) => $v > 0
+        )) : [];
 
-        // Ensure all selected locations are in the ordered list to avoid data loss
-        /** @var array<int,string> $orderedIds */
-        $finalOrderedIds = collect($orderedIds)->unique()->filter(fn($id) => in_array((int)$id, $locationIds, true));
+        // Build final order: keep only selected IDs in the exact user-provided order
+        $selectedSet = array_flip(array_map('intval', $locationIds));
+        $finalOrderedIds = [];
+        foreach ($orderedIds as $id) {
+            if (isset($selectedSet[$id]) && !in_array($id, $finalOrderedIds, true)) {
+                $finalOrderedIds[] = $id;
+            }
+        }
+        // Append any selected IDs that might be missing (e.g., newly selected without drag)
         foreach ($locationIds as $id) {
-            if (!$finalOrderedIds->contains((string)$id)) {
-                $finalOrderedIds->push((string)$id);
+            $iid = (int)$id;
+            if (!in_array($iid, $finalOrderedIds, true)) {
+                $finalOrderedIds[] = $iid;
             }
         }
 
+        // Map to pivot payload with 0-based sort_order
+        $locationsToSync = [];
         foreach ($finalOrderedIds as $index => $locationId) {
             $locationsToSync[(int)$locationId] = ['sort_order' => $index];
         }
 
+        // Sync pivot table
         $planning->locations()->sync($locationsToSync);
     }
 
