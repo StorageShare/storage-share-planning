@@ -162,7 +162,7 @@ class MyPlanningController extends Controller
 
         // Group tasks by their effective location_id (from planning_task or fallback to parent task)
         $tasksByLocation = $planning->planningTasks->groupBy(function ($planningTask) {
-            return $planningTask->location_id ?? $planningTask->task->location_id;
+            return $planningTask->location_id ?? $planningTask->task?->location_id;
         });
 
         // Add tasks with no location (true backlog and vehicle tasks) first as a "location"
