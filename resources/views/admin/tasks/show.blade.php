@@ -404,6 +404,37 @@
                             </div>
                         </div>
                     </form>
+
+                    {{-- Foto Workflow Sectie --}}
+                    @if($task->type === 'task' || $task->type === 'planning_task')
+                        <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10">
+                            <h3 class="text-lg font-medium text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h3>
+                            <p class="mt-1 text-sm text-blue-700 dark:text-blue-400">Gebruik dit formulier om de foto van de ruimte rond te sturen naar alle klanten en het automatische opvolgingsproces te starten.</p>
+
+                            <form action="{{ route('photo-workflow.distribute', ['task' => ($task->type === 'task' ? $task->item->id : $task->item->task_id ?? $task->item->id)]) }}" method="POST" class="mt-4">
+                                @csrf
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                    <div>
+                                        <label for="room" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ruimte nummer/naam</label>
+                                        <input type="text" name="room" id="room" value="{{ $task->item->room ?? '' }}" required
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+                                               placeholder="Bijv. 101 of A-02">
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                            Foto rondsturen & Proces starten
+                                        </button>
+                                    </div>
+                                </div>
+                                @if($task->item->photo_process_step)
+                                    <div class="mt-3 text-xs text-blue-600 dark:text-blue-400">
+                                        Huidige status: <strong>{{ $task->item->photo_process_step }}</strong>
+                                        (Laatste update: {{ $task->item->photo_process_at ? $task->item->photo_process_at->format('d-m-Y H:i') : 'Onbekend' }})
+                                    </div>
+                                @endif
+                            </form>
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>

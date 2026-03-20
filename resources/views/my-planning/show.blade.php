@@ -986,6 +986,35 @@
                                                     </div>
                                                 </div>
 
+                                                {{-- Photo Workflow Section --}}
+                                                <template x-if="task.underlying_task_id">
+                                                    <div class="mt-4 p-4 border-t border-gray-200 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg">
+                                                        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h3>
+                                                        <p class="mt-1 text-xs text-blue-700 dark:text-blue-400">Gebruik dit formulier om de foto van de ruimte rond te sturen naar alle klanten en het automatische opvolgingsproces te starten.</p>
+
+                                                        <form :action="`/photo-workflow/distribute/${task.underlying_task_id}`" method="POST" class="mt-3">
+                                                            @csrf
+                                                            <div class="flex flex-col sm:flex-row gap-3 items-end">
+                                                                <div class="w-full">
+                                                                    <label :for="`room_${task.task_id}`" class="block text-[10px] font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Ruimte nummer/naam</label>
+                                                                    <input type="text" name="room" :id="`room_${task.task_id}`" :value="task.room || ''" required
+                                                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+                                                                           placeholder="Bijv. 101 of A-02">
+                                                                </div>
+                                                                <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
+                                                                    Proces starten
+                                                                </button>
+                                                            </div>
+                                                            <template x-if="task.photo_process_step">
+                                                                <div class="mt-2 text-[10px] text-blue-600 dark:text-blue-400">
+                                                                    Status: <strong x-text="task.photo_process_step"></strong>
+                                                                    <span x-show="task.photo_process_at" x-text="` (${task.photo_process_at})`"></span>
+                                                                </div>
+                                                            </template>
+                                                        </form>
+                                                    </div>
+                                                </template>
+
                                                 {{-- Task Form --}}
                                                 <div x-show="task.status === 'open'" class="space-y-4">
 

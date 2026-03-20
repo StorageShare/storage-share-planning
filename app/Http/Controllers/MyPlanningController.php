@@ -200,11 +200,12 @@ class MyPlanningController extends Controller
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
                     'photos' => $latestCompletion ? $latestCompletion->photos->pluck('url') : [],
                     'backlog_photos' => $backlogPhotos,
-                    'is_vehicle_task' => (bool) $task->is_vehicle_task,
-                    'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
-                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
+                    'room' => $task->task?->room ?? $task->room,
+                    'photo_process_step' => $task->task?->photo_process_step ?? $task->photo_process_step,
+                    'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
+                    'underlying_task_id' => $task->task_id,
                 ];
             }
 
@@ -275,6 +276,10 @@ class MyPlanningController extends Controller
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
+                    'room' => $task->task?->room ?? $task->room,
+                    'photo_process_step' => $task->task?->photo_process_step ?? $task->photo_process_step,
+                    'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
+                    'underlying_task_id' => $task->task_id,
                 ];
             }
 

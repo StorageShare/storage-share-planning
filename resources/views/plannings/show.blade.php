@@ -1083,6 +1083,43 @@
                                                                 @endif
                                                             </td>
                                                         </tr>
+                                                        {{-- Foto Workflow Sectie --}}
+                                                        @if($planningTask->task_id)
+                                                            <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
+                                                                <td colspan="5" class="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                                                                    <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                                                                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                                            <div class="flex-1">
+                                                                                <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h4>
+                                                                                <p class="text-xs text-blue-700 dark:text-blue-400">Rondsturen naar alle klanten en proces starten.</p>
+                                                                            </div>
+                                                                            <form action="{{ route('photo-workflow.distribute', ['task' => $planningTask->task_id]) }}" method="POST" class="flex-1 max-w-xl">
+                                                                                @csrf
+                                                                                <div class="flex flex-col sm:flex-row gap-2 items-end">
+                                                                                    <div class="flex-1 w-full">
+                                                                                        <label for="room_{{ $planningTask->id }}" class="sr-only">Ruimte nummer/naam</label>
+                                                                                        <input type="text" name="room" id="room_{{ $planningTask->id }}" value="{{ $planningTask->task->room ?? '' }}" required
+                                                                                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5"
+                                                                                               placeholder="Ruimte nr. (bijv. 101)">
+                                                                                    </div>
+                                                                                    <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
+                                                                                        Proces starten
+                                                                                    </button>
+                                                                                </div>
+                                                                                @if($planningTask->task->photo_process_step)
+                                                                                    <div class="mt-1 text-[10px] text-blue-600 dark:text-blue-400">
+                                                                                        Status: <strong>{{ $planningTask->task->photo_process_step }}</strong>
+                                                                                        @if($planningTask->task->photo_process_at)
+                                                                                            ({{ $planningTask->task->photo_process_at->format('d-m-Y H:i') }})
+                                                                                        @endif
+                                                                                    </div>
+                                                                                @endif
+                                                                            </form>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        @endif
                                                     @endforeach
                                                         </tbody>
                                                         <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">

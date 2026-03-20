@@ -50,6 +50,9 @@ class Task extends Model
         'recurring_interval_type',
         'recurring_interval_value',
         'parent_recurring_task_id',
+        'room',
+        'photo_process_step',
+        'photo_process_at',
     ];
 
     /**
@@ -65,6 +68,7 @@ class Task extends Model
         'is_recurring' => 'boolean',
         'is_photo_required' => 'boolean',
         'recurring_interval_value' => 'integer',
+        'photo_process_at' => 'datetime',
     ];
 
     /**

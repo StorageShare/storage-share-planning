@@ -21,6 +21,7 @@ use App\Http\Controllers\DefaultVehicleTaskController;
 use App\Http\Controllers\PlanningVehicleTaskController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyPlanningController;
+use App\Http\Controllers\TaskPhotoProcessController;
 
 Route::get('/_xdebug', function () {
     phpinfo(); // leave it for now
@@ -163,6 +164,14 @@ Route::middleware('auth')->group(function () {
 
     // Default Vehicle Tasks (for quick selection)
     Route::get('default-vehicle-tasks/active', [DefaultVehicleTaskController::class, 'active'])->name('default-vehicle-tasks.active');
+
+    // Photo Workflow Routes
+    Route::prefix('photo-workflow')->name('photo-workflow.')->group(function () {
+        Route::post('distribute/{task}', [TaskPhotoProcessController::class, 'distribute'])->name('distribute');
+        Route::get('create-sticker-task/{task}', [TaskPhotoProcessController::class, 'createStickerTask'])->name('create-sticker-task');
+        Route::get('create-new-photo-task/{task}', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('create-new-photo-task');
+        Route::get('create-evacuation-task/{task}', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('create-evacuation-task');
+    });
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {
