@@ -8,6 +8,8 @@ use App\Mail\InternalCheckRequestMail;
 use App\Mail\RoomPhotoDistributedMail;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class TaskPhotoProcessController extends Controller
@@ -27,21 +29,55 @@ class TaskPhotoProcessController extends Controller
             'photo_process_at' => now(),
         ]);
 
-        // Placeholder for API connection with backend to send to all customers
-        // TODO: Implement API connection with backend to send photo to all customers.
-        // The backend API is not yet available.
+        $photo = $task->taskPhotos()->latest('uploaded_at')->first();
 
-        // Internal mail for tracking (optional, but good for demo)
-        // In a real scenario, this might be sent to customers.
-        // Mail::to('huur@storage-share.nl')->send(new RoomPhotoDistributedMail($task));
+        if (!$photo) {
+            return back()->with('error', 'Geen foto gevonden voor deze taak om rond te sturen.');
+        }
 
-        return back()->with('success', 'Foto is succesvol gemarkeerd voor rondsturen. Het proces is gestart.');
+        // API connection with backend to send to all customers
+        $apiUrl = config('services.storage_share_api.url') . '/photo-process/distribute';
+        $apiToken = config('services.storage_share_api.token');
+
+        try {
+            $response = Http::withToken($apiToken)
+                ->post($apiUrl, [
+                    'stalling_location_id' => $task->location->external_id,
+                    'photo_url' => $photo->url,
+                    'room_identifier' => $task->room,
+                    'planning_task_id' => $task->id,
+                    'follow_up' => [
+                        'first_in_days' => 7,
+                        'second_in_days' => 14,
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                $notificationId = $response->json('notification_id');
+                $task->update([
+                    'photo_process_notification_id' => $notificationId,
+                ]);
+            } else {
+                Log::error('PhotoProcess: API call failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return back()->with('error', 'Er is iets misgegaan bij het aanroepen van de API: ' . $response->json('message', 'Onbekende fout'));
+            }
+        } catch (\Exception $e) {
+            Log::error('PhotoProcess: API connection error', [
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Kon geen verbinding maken met de API.');
+        }
+
+        return back()->with('success', 'Foto is succesvol rondgestuurd naar alle huurders via de API.');
     }
 
     /**
      * Create a task for sticking a sticker.
      */
-    public function createStickerTask(Task $task)
+    public function createStickerTask(Request $request, Task $task)
     {
         $newTask = Task::create([
             'location_id' => $task->location_id,
@@ -58,6 +94,21 @@ class TaskPhotoProcessController extends Controller
 
         // Mark the original task process as continued
         $task->update(['photo_process_step' => 'STICKER_TASK_CREATED']);
+
+        // Notify API that a sticker task has been created
+        if ($task->photo_process_notification_id) {
+            $apiUrl = config('services.storage_share_api.url') . '/photo-process/' . $task->photo_process_notification_id . '/sticker-planned';
+            $apiToken = config('services.storage_share_api.token');
+
+            try {
+                Http::withToken($apiToken)->post($apiUrl, [
+                    'planning_task_id' => $newTask->id,
+                    'resend_in_days' => 14, // 2 weeks wait after sticker
+                ]);
+            } catch (\Exception $e) {
+                Log::error('PhotoProcess: Failed to notify API of sticker task', ['error' => $e->getMessage()]);
+            }
+        }
 
         return view('photo-workflow.task-created', ['task' => $newTask]);
     }

@@ -28,6 +28,9 @@ class ProcessPhotoWorkflowCommand extends Command
      */
     public function handle()
     {
+        $this->info('Deze cronjob is nu redundant omdat de follow-ups door de storage-share-api worden afgehandeld.');
+        return;
+
         $this->info('Starten van foto workflow verwerking...');
 
         // 1. Check voor taken waar een foto is rondgestuurd (1 week geleden)

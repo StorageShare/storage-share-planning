@@ -37,6 +37,12 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::get('tasks/review/{type}/{id}', [TaskReviewController::class, 'show'])->name('admin.tasks.show');
     Route::post('tasks/review-skipped/{planning_task}', [TaskReviewController::class, 'reviewSkipped'])->name('admin.tasks.review-skipped');
 
+    // Photo process routes
+    Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
+    Route::post('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker');
+    Route::post('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo');
+    Route::post('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation');
+
     // Plannings review overview (admin only)
     Route::get('plannings/review', [PlanningController::class, 'review'])->name('plannings.review');
 

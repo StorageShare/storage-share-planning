@@ -40,6 +40,11 @@ return [
         'token' => env('EXTERNAL_LOCATIONS_API_TOKEN'),
     ],
 
+    'storage_share_api' => [
+        'url' => env('STORAGE_SHARE_API_URL', 'http://storage-share-api.test/api'),
+        'token' => env('STORAGE_SHARE_API_TOKEN'),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

@@ -53,6 +53,7 @@ class Task extends Model
         'room',
         'photo_process_step',
         'photo_process_at',
+        'photo_process_notification_id',
     ];
 
     /**
