@@ -39,9 +39,9 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
 
     // Photo process routes
     Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
-    Route::post('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker');
-    Route::post('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo');
-    Route::post('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation');
+    Route::get('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker-task');
+    Route::get('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo-task');
+    Route::get('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation-task');
 
     // Plannings review overview (admin only)
     Route::get('plannings/review', [PlanningController::class, 'review'])->name('plannings.review');
@@ -171,13 +171,6 @@ Route::middleware('auth')->group(function () {
     // Default Vehicle Tasks (for quick selection)
     Route::get('default-vehicle-tasks/active', [DefaultVehicleTaskController::class, 'active'])->name('default-vehicle-tasks.active');
 
-    // Photo Workflow Routes
-    Route::prefix('photo-workflow')->name('photo-workflow.')->group(function () {
-        Route::post('distribute/{task}', [TaskPhotoProcessController::class, 'distribute'])->name('distribute');
-        Route::get('create-sticker-task/{task}', [TaskPhotoProcessController::class, 'createStickerTask'])->name('create-sticker-task');
-        Route::get('create-new-photo-task/{task}', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('create-new-photo-task');
-        Route::get('create-evacuation-task/{task}', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('create-evacuation-task');
-    });
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {
