@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Mail\InternalCheckRequestMail;
-use App\Mail\RoomPhotoDistributedMail;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
