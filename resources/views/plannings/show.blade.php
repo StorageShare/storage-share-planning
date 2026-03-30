@@ -1087,7 +1087,25 @@
                                                         @if($planningTask->task_id)
                                                             <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
                                                                 <td colspan="5" class="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-                                                                    <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                                                                    <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm"
+                                                                         x-data="{
+                                                                            rooms: [],
+                                                                            loading: false,
+                                                                            async init() {
+                                                                                this.loading = true;
+                                                                                try {
+                                                                                    const response = await fetch('{{ route('photo-workflow.rooms', ['task' => $planningTask->task_id]) }}');
+                                                                                    const data = await response.json();
+                                                                                    if (data.success) {
+                                                                                        this.rooms = data.rooms;
+                                                                                    }
+                                                                                } catch (e) {
+                                                                                    console.error('Failed to fetch rooms', e);
+                                                                                } finally {
+                                                                                    this.loading = false;
+                                                                                }
+                                                                            }
+                                                                         }">
                                                                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                                             <div class="flex-1">
                                                                                 <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h4>
@@ -1098,9 +1116,30 @@
                                                                                 <div class="flex flex-col sm:flex-row gap-2 items-end">
                                                                                     <div class="flex-1 w-full">
                                                                                         <label for="room_{{ $planningTask->id }}" class="sr-only">Ruimte nummer/naam</label>
-                                                                                        <input type="text" name="room" id="room_{{ $planningTask->id }}" value="{{ $planningTask->task->room ?? '' }}" required
-                                                                                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5"
-                                                                                               placeholder="Ruimte nr. (bijv. 101)">
+
+                                                                                        <template x-if="rooms.length > 0">
+                                                                                            <select name="room" id="room_{{ $planningTask->id }}" required
+                                                                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5">
+                                                                                                <option value="">Selecteer ruimte...</option>
+                                                                                                <template x-for="room in rooms" :key="room">
+                                                                                                    <option :value="room" x-text="room" :selected="room === '{{ $planningTask->task->room ?? '' }}'"></option>
+                                                                                                </template>
+                                                                                            </select>
+                                                                                        </template>
+
+                                                                                        <template x-if="rooms.length === 0">
+                                                                                            <div class="relative">
+                                                                                                <input type="text" name="room" id="room_{{ $planningTask->id }}" value="{{ $planningTask->task->room ?? '' }}" required
+                                                                                                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5"
+                                                                                                       :placeholder="loading ? 'Ruimtes laden...' : 'Ruimte nr. (bijv. 101)'">
+                                                                                                <div x-show="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
+                                                                                                    <svg class="animate-spin h-3 w-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                                                    </svg>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </template>
                                                                                     </div>
                                                                                     <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
                                                                                         Proces starten

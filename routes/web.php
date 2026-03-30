@@ -39,6 +39,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
 
     // Photo process routes
     Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
+    Route::get('tasks/{task}/rooms', [TaskPhotoProcessController::class, 'getRooms'])->name('photo-workflow.rooms');
     Route::get('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker-task');
     Route::get('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo-task');
     Route::get('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation-task');

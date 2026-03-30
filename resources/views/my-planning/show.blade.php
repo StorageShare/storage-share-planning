@@ -997,9 +997,31 @@
                                                             <div class="flex flex-col sm:flex-row gap-3 items-end">
                                                                 <div class="w-full">
                                                                     <label :for="`room_${task.task_id}`" class="block text-[10px] font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Ruimte nummer/naam</label>
-                                                                    <input type="text" name="room" :id="`room_${task.task_id}`" :value="task.room || ''" required
-                                                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
-                                                                           placeholder="Bijv. 101 of A-02">
+
+                                                                    {{-- Dropdown if rooms are loaded, otherwise fallback to text input --}}
+                                                                    <template x-if="roomsCache[task.underlying_task_id] && roomsCache[task.underlying_task_id].length > 0">
+                                                                        <select name="room" :id="`room_${task.task_id}`" required
+                                                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200">
+                                                                            <option value="">Selecteer ruimte...</option>
+                                                                            <template x-for="room in roomsCache[task.underlying_task_id]" :key="room">
+                                                                                <option :value="room" x-text="room" :selected="room === task.room"></option>
+                                                                            </template>
+                                                                        </select>
+                                                                    </template>
+
+                                                                    <template x-if="!roomsCache[task.underlying_task_id] || roomsCache[task.underlying_task_id].length === 0">
+                                                                        <div class="relative">
+                                                                            <input type="text" name="room" :id="`room_${task.task_id}`" :value="task.room || ''" required
+                                                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+                                                                                   :placeholder="roomsLoading[task.underlying_task_id] ? 'Ruimtes laden...' : 'Bijv. 101 of A-02'">
+                                                                            <div x-show="roomsLoading[task.underlying_task_id]" class="absolute right-3 top-1/2 -translate-y-1/2">
+                                                                                <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                                </svg>
+                                                                            </div>
+                                                                        </div>
+                                                                    </template>
                                                                 </div>
                                                                 <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
                                                                     Proces starten
@@ -1417,6 +1439,10 @@
                 submittingEndChecklist: false, // Track checklist submission state
                 draggingTaskId: null, // For DnD state on task photo uploader
 
+                // Room dropdown state for photo process
+                roomsCache: {}, // { taskId: [room1, room2, ...] }
+                roomsLoading: {}, // { taskId: true/false }
+
                 // Vehicle tasks state
                 vehicleDefaults: [],
                 vehicleDefaultsLoading: false,
@@ -1496,6 +1522,34 @@
                 toggleTask(locationIndex, taskIndex) {
                     const key = `${locationIndex}-${taskIndex}`;
                     this.expandedTasks[key] = !this.expandedTasks[key];
+
+                    // If expanded and it has a photo process, fetch rooms
+                    if (this.expandedTasks[key]) {
+                        const task = this.locationSteps[locationIndex].tasks[taskIndex];
+                        if (task && task.underlying_task_id) {
+                            this.fetchRooms(task.underlying_task_id);
+                        }
+                    }
+                },
+
+                async fetchRooms(taskId) {
+                    if (this.roomsCache[taskId] || this.roomsLoading[taskId]) return;
+
+                    this.roomsLoading[taskId] = true;
+                    try {
+                        const response = await axios.get(`/tasks/${taskId}/rooms`);
+                        if (response.data && response.data.success) {
+                            this.roomsCache[taskId] = response.data.rooms;
+                        } else {
+                            console.error('Failed to fetch rooms:', response.data.message);
+                            this.roomsCache[taskId] = []; // Mark as fetched to avoid retrying
+                        }
+                    } catch (error) {
+                        console.error('Error fetching rooms:', error);
+                        this.roomsCache[taskId] = []; // Fallback to manual entry
+                    } finally {
+                        this.roomsLoading[taskId] = false;
+                    }
                 },
 
                 isTaskExpanded(locationIndex, taskIndex) {

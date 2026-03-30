@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Task;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +71,37 @@ class TaskPhotoProcessController extends Controller
         }
 
         return back()->with('success', 'Foto is succesvol rondgestuurd naar alle huurders via de API.');
+    }
+
+    /**
+     * Get rooms for the location via storage-share-api.
+     */
+    public function getRooms(Task $task): JsonResponse
+    {
+        $externalId = $task->location->external_id;
+
+        if (!$externalId) {
+            return response()->json(['success' => false, 'message' => 'Locatie heeft geen extern ID.'], 400);
+        }
+
+        $apiUrl = config('services.storage_share_api.url') . '/spaces/' . $externalId . '/rooms';
+        $apiToken = config('services.storage_share_api.token');
+
+        try {
+            $response = Http::withToken($apiToken)->get($apiUrl);
+
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'API fout: ' . $response->status()
+            ], $response->status());
+        } catch (\Exception $e) {
+            Log::error('PhotoProcess: API error fetching rooms', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Fout bij verbinden met API.'], 500);
+        }
     }
 
     /**

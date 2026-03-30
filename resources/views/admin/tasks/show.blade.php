@@ -407,7 +407,25 @@
 
                     {{-- Foto Workflow Sectie --}}
                     @if($task->type === 'task' || $task->type === 'planning_task')
-                        <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10">
+                        <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10"
+                             x-data="{
+                                rooms: [],
+                                loading: false,
+                                async init() {
+                                    this.loading = true;
+                                    try {
+                                        const response = await fetch('{{ route('photo-workflow.rooms', ['task' => ($task->type === 'task' ? $task->item->id : $task->item->task_id ?? $task->item->id)]) }}');
+                                        const data = await response.json();
+                                        if (data.success) {
+                                            this.rooms = data.rooms;
+                                        }
+                                    } catch (e) {
+                                        console.error('Failed to fetch rooms', e);
+                                    } finally {
+                                        this.loading = false;
+                                    }
+                                }
+                             }">
                             <h3 class="text-lg font-medium text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h3>
                             <p class="mt-1 text-sm text-blue-700 dark:text-blue-400">Gebruik dit formulier om de foto van de ruimte rond te sturen naar alle klanten en het automatische opvolgingsproces te starten.</p>
 
@@ -416,9 +434,30 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                                     <div>
                                         <label for="room" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ruimte nummer/naam</label>
-                                        <input type="text" name="room" id="room" value="{{ $task->item->room ?? '' }}" required
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
-                                               placeholder="Bijv. 101 of A-02">
+
+                                        <template x-if="rooms.length > 0">
+                                            <select name="room" id="room" required
+                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200">
+                                                <option value="">Selecteer ruimte...</option>
+                                                <template x-for="room in rooms" :key="room">
+                                                    <option :value="room" x-text="room" :selected="room === '{{ $task->item->room ?? '' }}'"></option>
+                                                </template>
+                                            </select>
+                                        </template>
+
+                                        <template x-if="rooms.length === 0">
+                                            <div class="relative">
+                                                <input type="text" name="room" id="room" value="{{ $task->item->room ?? '' }}" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+                                                       :placeholder="loading ? 'Ruimtes laden...' : 'Bijv. 101 of A-02'">
+                                                <div x-show="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </div>
                                     <div>
                                         <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
