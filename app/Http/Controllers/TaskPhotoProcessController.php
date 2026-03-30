@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,7 +79,15 @@ class TaskPhotoProcessController extends Controller
      */
     public function getRooms(Task $task): JsonResponse
     {
-        $externalId = $task->location->external_id;
+        return $this->getRoomsByLocation($task->location);
+    }
+
+    /**
+     * Get rooms for the location via storage-share-api.
+     */
+    public function getRoomsByLocation(Location $location): JsonResponse
+    {
+        $externalId = $location->external_id;
 
         if (!$externalId) {
             return response()->json(['success' => false, 'message' => 'Locatie heeft geen extern ID.'], 400);
