@@ -532,7 +532,8 @@
                                                     this.loadingRooms = false;
                                                 }
                                             }
-                                         }">
+                                         }"
+                                         x-init="fetchRooms()">
                                         <div class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
                                             {{ $locationIndex + 1 }}
                                         </div>
@@ -1111,8 +1112,7 @@
                                                         @if($planningTask->task_id)
                                                             <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
                                                                 <td colspan="5" class="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-                                                                    <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm"
-                                                                         x-data="{ init() { $nextTick(() => { fetchRooms() }) } }">
+                                                                    <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
                                                                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                                             <div class="flex-1">
                                                                                 <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h4>
