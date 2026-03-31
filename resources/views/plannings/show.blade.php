@@ -284,7 +284,6 @@
                                                                 @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                     <button type="button"
                                                                             class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                            x-data="{}"
                                                                             @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
                                                                         <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
                                                                     </button>
@@ -292,7 +291,6 @@
                                                                 @if (count($photoUrls) > 3)
                                                                     <button type="button"
                                                                             class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                            x-data="{}"
                                                                             @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
                                                                         <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
                                                                         <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
@@ -508,32 +506,7 @@
                                     @endif
 
                                     {{-- Location --}}
-                                    <div class="flex items-start text-sm"
-                                         x-data="{
-                                            rooms: [],
-                                            loadingRooms: false,
-                                            roomsError: false,
-                                            async fetchRooms() {
-                                                if (this.rooms.length > 0 || this.loadingRooms) return;
-                                                this.loadingRooms = true;
-                                                this.roomsError = false;
-                                                try {
-                                                    const response = await fetch('{{ route('photo-workflow.location-rooms', ['location' => $location->id]) }}');
-                                                    const data = await response.json();
-                                                    if (data.success) {
-                                                        this.rooms = data.rooms;
-                                                    } else {
-                                                        this.roomsError = true;
-                                                    }
-                                                } catch (e) {
-                                                    console.error('Failed to fetch rooms', e);
-                                                    this.roomsError = true;
-                                                } finally {
-                                                    this.loadingRooms = false;
-                                                }
-                                            }
-                                         }"
-                                         x-init="fetchRooms()">
+                                    <div class="flex items-start text-sm">
                                         <div class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
                                             {{ $locationIndex + 1 }}
                                         </div>
@@ -791,7 +764,32 @@
                             $totalMinutesForLocation = 0; // Initialize total minutes for this location
                         @endphp
 
-                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg"
+                             x-data="{
+                                rooms: [],
+                                loadingRooms: false,
+                                roomsError: false,
+                                async fetchRooms() {
+                                    if (this.rooms.length > 0 || this.loadingRooms) return;
+                                    this.loadingRooms = true;
+                                    this.roomsError = false;
+                                    try {
+                                        const response = await fetch('{{ route('photo-workflow.location-rooms', ['location' => $location->id]) }}');
+                                        const data = await response.json();
+                                        if (data.success) {
+                                            this.rooms = data.rooms;
+                                        } else {
+                                            this.roomsError = true;
+                                        }
+                                    } catch (e) {
+                                        console.error('Failed to fetch rooms', e);
+                                        this.roomsError = true;
+                                    } finally {
+                                        this.loadingRooms = false;
+                                    }
+                                }
+                             }"
+                             x-init="fetchRooms()">
                             <div class="p-6">
                                 <div class="flex justify-between items-center mb-4">
                                     <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Taken voor Locatie: {{ $location->name }}</h3>
@@ -895,8 +893,7 @@
                                                                         <div class="mb-2 text-right">
                                                                             <div class="text-left text-sm text-gray-500 dark:text-gray-400 block max-w-xs md:max-w-sm lg:max-w-md break-anywhere">Notities: {{ \Illuminate\Support\Str::limit($latestCompletion->comment, 100) }}</div>
                                                                             <button type="button"
-                                                                                x-data
-                                                                                x-on:click.prevent="$dispatch('open-modal', 'view-comment-{{ $planningTask->id }}')"
+                                                                                            x-on:click.prevent="$dispatch('open-modal', 'view-comment-{{ $planningTask->id }}')"
                                                                                 class="mt-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium">
                                                                                 Lees volledig
                                                                             </button>
@@ -921,7 +918,6 @@
                                                                                 @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                                     <button type="button"
                                                                                             class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                            x-data="{}"
                                                                                             @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
                                                                                         <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
                                                                                     </button>
@@ -929,7 +925,6 @@
                                                                                 @if (count($photoUrls) > 3)
                                                                                     <button type="button"
                                                                                             class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                            x-data="{}"
                                                                                             @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
                                                                                         <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
                                                                                         <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
@@ -958,7 +953,6 @@
                                                                                 <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                             </form>
                                                                             <x-danger-button
-                                                                                x-data
                                                                                 x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
                                                                                 class="!py-1 !px-2 !text-xs"
                                                                             >Afkeuren</x-danger-button>
@@ -1029,7 +1023,6 @@
                                                                     @endif
                                                                 @elseif (!$planningTask->completed_at)
                                                                     <x-primary-button
-                                                                        x-data=""
                                                                         x-on:click.prevent="$dispatch('open-modal', 'complete-task-{{ $planningTask->id }}')">
                                                                         {{ __('Voltooien') }}
                                                                     </x-primary-button>
@@ -1075,7 +1068,6 @@
                                                                     </x-modal>
                                                                 @else
                                                                     <x-danger-button
-                                                                        x-data=""
                                                                         x-on:click.prevent="$dispatch('open-modal', 'reopen-task-{{ $planningTask->id }}')">
                                                                         {{ __('Heropenen') }}
                                                                     </x-danger-button>
@@ -1115,8 +1107,8 @@
                                                                     <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
                                                                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                                             <div class="flex-1">
-                                                                                <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h4>
-                                                                                <p class="text-xs text-blue-700 dark:text-blue-400">Rondsturen naar alle klanten en proces starten.</p>
+                                                                                <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Niet verhuurde ruimte vol workflow</h4>
+                                                                                <p class="text-xs text-blue-700 dark:text-blue-400">Start het proces om alle klanten te mailen over de spullen in deze ruimte.</p>
                                                                             </div>
                                                                             <form action="{{ route('photo-workflow.distribute', ['task' => $planningTask->task_id]) }}" method="POST" class="flex-1 max-w-xl">
                                                                                 @csrf
@@ -1227,7 +1219,6 @@
                                                                     @foreach ($photoUrls as $idx => $url)
                                                                         <button type="button"
                                                                                 class="block w-20 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                x-data="{}"
                                                                                 @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
                                                                             <img src="{{ $url }}" alt="Opmerking foto" class="w-full h-full object-cover">
                                                                         </button>
@@ -1336,7 +1327,6 @@
                                                                         @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                             <button type="button"
                                                                                     class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    x-data="{}"
                                                                                     @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
                                                                                 <img src="{{ $url }}" alt="Checklist foto" class="w-full h-full object-cover">
                                                                             </button>
@@ -1344,7 +1334,6 @@
                                                                         @if (count($photoUrls) > 3)
                                                                             <button type="button"
                                                                                     class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    x-data="{}"
                                                                                     @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
                                                                                 <img src="{{ $photoUrls[3] }}" alt="Meer checklist foto’s" class="w-full h-full object-cover opacity-70">
                                                                                 <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>

@@ -108,7 +108,7 @@
                                     }
                                 }
                              }">
-                            <h3 class="text-lg font-medium text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h3>
+                            <h3 class="text-lg font-medium text-blue-900 dark:text-blue-300">Niet verhuurde ruimte vol workflow</h3>
                             <p class="mt-1 text-sm text-blue-700 dark:text-blue-400">Gebruik dit formulier om de foto van de ruimte rond te sturen naar alle klanten en het automatische opvolgingsproces te starten.</p>
 
                             <form action="{{ route('photo-workflow.distribute', ['task' => $planning_task->task_id]) }}" method="POST" class="mt-4">

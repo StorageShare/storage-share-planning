@@ -989,7 +989,7 @@
                                                 {{-- Photo Workflow Section --}}
                                                 <template x-if="task.underlying_task_id">
                                                     <div class="mt-4 p-4 border-t border-gray-200 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg">
-                                                        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Foto Workflow (Niet verhuurde ruimte vol)</h3>
+                                                        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Niet verhuurde ruimte vol workflow</h3>
                                                         <p class="mt-1 text-xs text-blue-700 dark:text-blue-400">Gebruik dit formulier om de foto van de ruimte rond te sturen naar alle klanten en het automatische opvolgingsproces te starten.</p>
 
                                                         <form :action="`/photo-workflow/distribute/${task.underlying_task_id}`" method="POST" class="mt-3">
