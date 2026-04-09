@@ -9,6 +9,7 @@ class TaskCompletionPhoto extends Model
 {
     protected $fillable = [
         'task_completion_id',
+        'room',
         'file_path',
     ];
 

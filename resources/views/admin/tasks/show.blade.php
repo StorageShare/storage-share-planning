@@ -96,10 +96,35 @@
                                             @if ($completion->photos && $completion->photos->count() > 0)
                                                 @php
                                                     $completionPhotos = $completion->photos->map(fn($photo) => \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path))->values()->all();
+                                                    $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
+                                                    $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
                                                 @endphp
-                                                <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ completionPhotos: @json($completionPhotos) }'>
+                                                <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"
+                                                     x-data="{
+                                                        completionPhotos: @json($completionPhotos),
+                                                        photoIds: @json($completionPhotoIds),
+                                                        photoRooms: @json($completionPhotoRooms),
+                                                        onRoomLinked(detail) {
+                                                            if (detail.photoType === 'completion') {
+                                                                const idx = this.photoIds.indexOf(detail.photoId);
+                                                                if (idx !== -1) {
+                                                                    this.photoRooms[idx] = detail.room;
+                                                                }
+                                                            }
+                                                        }
+                                                     }"
+                                                     @room-linked.window="onRoomLinked($event.detail)">
                                                     @foreach ($completion->photos as $index => $photo)
-                                                        <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: completionPhotos, startIndex: {{ $index }} })">
+                                                        <button type="button" class="focus:outline-none"
+                                                                @click="$dispatch('open-image-modal', {
+                                                                    imageUrls: completionPhotos,
+                                                                    photoIds: photoIds,
+                                                                    photoType: 'completion',
+                                                                    startIndex: {{ $index }},
+                                                                    taskId: {{ $task->id }},
+                                                                    locationId: {{ $task->location_id ?? 'null' }},
+                                                                    currentRooms: photoRooms
+                                                                })">
                                                             <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path) }}" alt="Completion Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-32 w-32">
                                                         </button>
                                                     @endforeach
@@ -196,12 +221,31 @@
 
                                 <div>
                                     <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Ingediende Foto:</h4>
+                                    @php
+                                        $photoId = null;
+                                        $photoRoom = '';
+                                        if ($type === 'task') {
+                                            $latestPhoto = $task->planningTasks->flatMap->planningTaskPhotos->sortByDesc('created_at')->first();
+                                            $photoId = $latestPhoto?->id;
+                                            $photoRoom = $latestPhoto?->room ?? '';
+                                        }
+                                    @endphp
                                     @if($task->photo_url)
-                                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden"
+                                             x-data="{ currentRoom: '{{ $photoRoom }}' }"
+                                             @room-linked.window="if($event.detail.photoId == {{ $photoId ?? 'null' }} && $event.detail.photoType === 'task') currentRoom = $event.detail.room">
                                             <img src="{{ $task->photo_url }}"
                                                  alt="{{ $task->title }}"
                                                  class="w-full h-64 object-contain bg-gray-50 dark:bg-gray-700 cursor-pointer"
-                                                 @click="$dispatch('open-image-modal', { imageUrls: ['{{ $task->photo_url }}'], startIndex: 0 })">
+                                                 @click="$dispatch('open-image-modal', {
+                                                    imageUrls: ['{{ $task->photo_url }}'],
+                                                    photoIds: [{{ $photoId ?? 'null' }}],
+                                                    photoType: 'task',
+                                                    startIndex: 0,
+                                                    taskId: {{ $task->id }},
+                                                    locationId: {{ $task->location_id ?? 'null' }},
+                                                    currentRooms: [currentRoom]
+                                                 })">
                                         </div>
                                     @else
                                         <p class="text-sm italic text-gray-500 dark:text-gray-400">Geen foto beschikbaar</p>
@@ -323,7 +367,7 @@
                                         @endphp
                                         <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ skipPhotos: @json($skipPhotos) }'>
                                             @foreach ($skipCompletion->photos as $index => $photo)
-                                                <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: skipPhotos, startIndex: {{ $index }} })">
+                                                <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: skipPhotos, startIndex: {{ $index }}, photoIds: [], photoType: 'task', currentRooms: [] })">
                                                     <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path) }}" alt="Skip Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-24 w-24">
                                                 </button>
                                             @endforeach
@@ -412,6 +456,7 @@
                                 rooms: [],
                                 loadingRooms: false,
                                 roomsError: false,
+                                selectedRoom: '{{ $task->room ?? '' }}',
                                 async init() {
                                     this.loadingRooms = true;
                                     this.roomsError = false;
@@ -442,10 +487,11 @@
 
                                         <template x-if="rooms.length > 0">
                                             <select name="room" id="room" required
+                                                    x-model="selectedRoom"
                                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200">
                                                 <option value="">Selecteer ruimte...</option>
                                                 <template x-for="room in rooms" :key="room">
-                                                    <option :value="room" x-text="room" :selected="room === '{{ $task->item->room ?? '' }}'"></option>
+                                                    <option :value="room" x-text="room"></option>
                                                 </template>
                                             </select>
                                         </template>

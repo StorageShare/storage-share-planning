@@ -279,19 +279,59 @@
                                                         </div>
                                                     @endif
                                                     @if (!empty($photoUrls))
-                                                        <div class="mt-2">
+                                                        @php
+                                                            $planningPhotoIds = [];
+                                                            $planningPhotoRooms = [];
+                                                            $photoType = 'task';
+
+                                                            if ($vpt->planningTaskPhotos->isNotEmpty()) {
+                                                                $planningPhotoIds = $vpt->planningTaskPhotos->pluck('id')->values()->all();
+                                                                $planningPhotoRooms = $vpt->planningTaskPhotos->pluck('room')->values()->all();
+                                                                $photoType = 'task';
+                                                            } elseif ($latestCompletion && $latestCompletion->photos->isNotEmpty()) {
+                                                                $planningPhotoIds = $latestCompletion->photos->pluck('id')->values()->all();
+                                                                $planningPhotoRooms = $latestCompletion->photos->pluck('room')->values()->all();
+                                                                $photoType = 'planning_completion';
+                                                            }
+                                                        @endphp
+                                                        <div class="mt-2" x-data="{
+                                                            photoIds: @json($planningPhotoIds),
+                                                            photoRooms: @json($planningPhotoRooms),
+                                                            photoType: '{{ $photoType }}'
+                                                        }" @room-linked.window="
+                                                            if($event.detail.photoType === photoType) {
+                                                                const idx = photoIds.indexOf($event.detail.photoId);
+                                                                if(idx !== -1) photoRooms[idx] = $event.detail.room;
+                                                            }
+                                                        ">
                                                             <div class="flex items-center gap-2">
                                                                 @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                     <button type="button"
                                                                             class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                            @click="$dispatch('open-image-modal', {
+                                                                                imageUrls: @js($photoUrls),
+                                                                                photoIds: typeof photoIds !== 'undefined' ? photoIds : [],
+                                                                                photoType: typeof photoType !== 'undefined' ? photoType : 'task',
+                                                                                startIndex: {{ $idx }},
+                                                                                taskId: {{ $vpt->task_id ?? 'null' }},
+                                                                                locationId: {{ $location->id ?? 'null' }},
+                                                                                currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                            })">
                                                                         <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
                                                                     </button>
                                                                 @endforeach
                                                                 @if (count($photoUrls) > 3)
                                                                     <button type="button"
                                                                             class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
+                                                                            @click="$dispatch('open-image-modal', {
+                                                                                imageUrls: @js($photoUrls),
+                                                                                photoIds: typeof photoIds !== 'undefined' ? photoIds : [],
+                                                                                photoType: typeof photoType !== 'undefined' ? photoType : 'task',
+                                                                                startIndex: 3,
+                                                                                taskId: {{ $vpt->task_id ?? 'null' }},
+                                                                                locationId: {{ $location->id ?? 'null' }},
+                                                                                currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                            })">
                                                                         <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
                                                                         <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
                                                                     </button>
@@ -887,7 +927,22 @@
                                                                 @if ($statusValue === 'review')
                                                                     @php
                                                                         $latestCompletion = $planningTask->completions->first();
-                                                                        $photoUrls = $latestCompletion ? $latestCompletion->photos->pluck('url')->all() : [];
+                                                                        $photoUrls = [];
+                                                                        $photoIds = [];
+                                                                        $photoRooms = [];
+                                                                        $photoType = 'task'; // Default to PlanningTaskPhoto
+
+                                                                        if ($planningTask->planningTaskPhotos->isNotEmpty()) {
+                                                                            $photoUrls = $planningTask->planningTaskPhotos->pluck('url')->all();
+                                                                            $photoIds = $planningTask->planningTaskPhotos->pluck('id')->values()->all();
+                                                                            $photoRooms = $planningTask->planningTaskPhotos->pluck('room')->values()->all();
+                                                                            $photoType = 'task';
+                                                                        } elseif ($latestCompletion && $latestCompletion->photos->isNotEmpty()) {
+                                                                            $photoUrls = $latestCompletion->photos->pluck('url')->all();
+                                                                            $photoIds = $latestCompletion->photos->pluck('id')->values()->all();
+                                                                            $photoRooms = $latestCompletion->photos->pluck('room')->values()->all();
+                                                                            $photoType = 'planning_completion';
+                                                                        }
                                                                     @endphp
                                                                     @if($latestCompletion && $latestCompletion->comment)
                                                                         <div class="mb-2 text-right">
@@ -912,25 +967,50 @@
                                                                             </div>
                                                                         </x-modal>
                                                                     @endif
-                                                                    @if (!empty($photoUrls))
-                                                                        <div class="mb-2">
-                                                                            <div class="flex items-center justify-end gap-2">
-                                                                                @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
-                                                                                    <button type="button"
-                                                                                            class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
-                                                                                        <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
-                                                                                    </button>
-                                                                                @endforeach
-                                                                                @if (count($photoUrls) > 3)
-                                                                                    <button type="button"
-                                                                                            class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                            @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
-                                                                                        <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
-                                                                                        <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
-                                                                                    </button>
-                                                                                @endif
-                                                                            </div>
+                                                            @if (!empty($photoUrls))
+                                                                <div class="mb-2" x-data="{
+                                                                    photoIds: @json($photoIds),
+                                                                    photoRooms: @json($photoRooms),
+                                                                    photoType: '{{ $photoType }}'
+                                                                }" @room-linked.window="
+                                                                    if($event.detail.photoType === photoType) {
+                                                                        const idx = photoIds.indexOf($event.detail.photoId);
+                                                                        if(idx !== -1) photoRooms[idx] = $event.detail.room;
+                                                                    }
+                                                                ">
+                                                                    <div class="flex items-center justify-end gap-2">
+                                                                        @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
+                                                                            <button type="button"
+                                                                                    class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                    @click="$dispatch('open-image-modal', {
+                                                                                        imageUrls: @js($photoUrls),
+                                                                                        photoIds: typeof photoIds !== 'undefined' ? photoIds : [],
+                                                                                        photoType: typeof photoType !== 'undefined' ? photoType : 'task',
+                                                                                        startIndex: {{ $idx }},
+                                                                                        taskId: {{ $planningTask->task_id ?? 'null' }},
+                                                                                        locationId: {{ $location->id ?? 'null' }},
+                                                                                        currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                    })">
+                                                                                <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
+                                                                            </button>
+                                                                        @endforeach
+                                                                        @if (count($photoUrls) > 3)
+                                                                            <button type="button"
+                                                                                    class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                    @click="$dispatch('open-image-modal', {
+                                                                                        imageUrls: @js($photoUrls),
+                                                                                        photoIds: typeof photoIds !== 'undefined' ? photoIds : [],
+                                                                                        photoType: typeof photoType !== 'undefined' ? photoType : 'task',
+                                                                                        startIndex: 3,
+                                                                                        taskId: {{ $planningTask->task_id ?? 'null' }},
+                                                                                        locationId: {{ $location->id ?? 'null' }},
+                                                                                        currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                    })">
+                                                                                <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
+                                                                                <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
+                                                                            </button>
+                                                                        @endif
+                                                                    </div>
                                                                             <div class="mt-2 text-right">
                                                                                 <a href="{{ route('plannings.tasks.photos.download', $planningTask) }}"
                                                                                    class="inline-flex items-center text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
@@ -1100,85 +1180,6 @@
                                                                 @endif
                                                             </td>
                                                         </tr>
-                                                        {{-- Foto Workflow Sectie --}}
-                                                        @if($planningTask->task_id)
-                                                            <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
-                                                                <td colspan="5" class="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-                                                                    <div class="p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
-                                                                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                                            <div class="flex-1">
-                                                                                <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Niet verhuurde ruimte vol workflow</h4>
-                                                                                <p class="text-xs text-blue-700 dark:text-blue-400">Start het proces om alle klanten te mailen over de spullen in deze ruimte.</p>
-                                                                            </div>
-                                                                            <form action="{{ route('photo-workflow.distribute', ['task' => $planningTask->task_id]) }}" method="POST" class="flex-1 max-w-xl">
-                                                                                @csrf
-                                                                                <div class="flex flex-col sm:flex-row gap-2 items-end">
-                                                                                    <div class="flex-1 w-full">
-                                                                                        <label for="room_{{ $planningTask->id }}" class="sr-only">Ruimte nummer/naam</label>
-
-                                                                                        <template x-if="rooms.length > 0">
-                                                                                            <select name="room" id="room_{{ $planningTask->id }}" required
-                                                                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5">
-                                                                                                <option value="">Selecteer ruimte...</option>
-                                                                                                <template x-for="room in rooms" :key="room">
-                                                                                                    <option :value="room" x-text="room" :selected="room === '{{ $planningTask->task->room ?? '' }}'"></option>
-                                                                                                </template>
-                                                                                            </select>
-                                                                                        </template>
-
-                                                                                        <template x-if="loadingRooms">
-                                                                                            <div class="relative">
-                                                                                                <input type="text" disabled
-                                                                                                       class="block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-xs dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 py-1.5"
-                                                                                                       placeholder="Ruimtes laden...">
-                                                                                                <div class="absolute right-3 top-1/2 -translate-y-1/2">
-                                                                                                    <svg class="animate-spin h-3 w-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                                                                    </svg>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </template>
-
-                                                                                        <template x-if="!loadingRooms && roomsError">
-                                                                                            <div class="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                                                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                                                                </svg>
-                                                                                                <span>Fout bij het laden van ruimtes. Neem contact op met support.</span>
-                                                                                            </div>
-                                                                                        </template>
-
-                                                                                        <template x-if="!loadingRooms && !roomsError && rooms.length === 0">
-                                                                                            <div class="mt-1 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                                                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                                                                                </svg>
-                                                                                                <span>Geen beschikbare ruimtes gevonden voor deze locatie.</span>
-                                                                                            </div>
-                                                                                        </template>
-                                                                                    </div>
-                                                                                    <button type="submit"
-                                                                                        :disabled="loadingRooms || roomsError || rooms.length === 0"
-                                                                                        :class="(!loadingRooms && !roomsError && rooms.length > 0) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
-                                                                                        class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
-                                                                                        Proces starten
-                                                                                    </button>
-                                                                                </div>
-                                                                                @if($planningTask->task->photo_process_step)
-                                                                                    <div class="mt-1 text-[10px] text-blue-600 dark:text-blue-400">
-                                                                                        Status: <strong>{{ $planningTask->task->photo_process_step }}</strong>
-                                                                                        @if($planningTask->task->photo_process_at)
-                                                                                            ({{ $planningTask->task->photo_process_at->format('d-m-Y H:i') }})
-                                                                                        @endif
-                                                                                    </div>
-                                                                                @endif
-                                                                            </form>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        @endif
                                                     @endforeach
                                                         </tbody>
                                                         <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
@@ -1219,7 +1220,7 @@
                                                                     @foreach ($photoUrls as $idx => $url)
                                                                         <button type="button"
                                                                                 class="block w-20 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                                @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: [], photoType: 'task', currentRooms: [] })">
                                                                             <img src="{{ $url }}" alt="Opmerking foto" class="w-full h-full object-cover">
                                                                         </button>
                                                                     @endforeach
@@ -1327,14 +1328,14 @@
                                                                         @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                             <button type="button"
                                                                                     class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }} })">
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: [], photoType: 'task', currentRooms: [] })">
                                                                                 <img src="{{ $url }}" alt="Checklist foto" class="w-full h-full object-cover">
                                                                             </button>
                                                                         @endforeach
                                                                         @if (count($photoUrls) > 3)
                                                                             <button type="button"
                                                                                     class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3 })">
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3, photoIds: [], photoType: 'task', currentRooms: [] })">
                                                                                 <img src="{{ $photoUrls[3] }}" alt="Meer checklist foto’s" class="w-full h-full object-cover opacity-70">
                                                                                 <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
                                                                             </button>

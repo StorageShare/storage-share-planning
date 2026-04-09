@@ -4,7 +4,104 @@
     x-data="{
         show: false,
         imageUrls: [],
+        photoIds: [],
         currentIndex: 0,
+        currentRooms: [],
+        taskId: null,
+        photoId: null,
+        photoType: 'task', // 'task' or 'completion'
+        locationId: null,
+        selectedRoom: '',
+        rooms: [],
+        loadingRooms: false,
+        roomsError: false,
+        isLinking: false,
+
+        async init() {
+            this.$watch('show', value => {
+                if (!value) {
+                    this.taskId = null;
+                    this.photoId = null;
+                    this.photoIds = [];
+                    this.currentRooms = [];
+                    this.locationId = null;
+                    this.selectedRoom = '';
+                    this.rooms = [];
+                }
+            });
+        },
+
+        async fetchRooms() {
+            if (!this.locationId || this.loadingRooms) return;
+            // If we already have rooms for this location, don't fetch again,
+            // but we still might need to re-apply the selected room if the list was already loaded.
+            if (this.rooms.length > 0) {
+                this.reApplySelectedRoom();
+                return;
+            }
+
+            this.loadingRooms = true;
+            this.roomsError = false;
+            try {
+                const response = await axios.get(`/locations/${this.locationId}/rooms`);
+                if (response.data && response.data.success) {
+                    this.rooms = response.data.rooms;
+                    this.reApplySelectedRoom();
+                } else {
+                    this.roomsError = true;
+                }
+            } catch (e) {
+                console.error('Error fetching rooms:', e);
+                this.roomsError = true;
+            } finally {
+                this.loadingRooms = false;
+            }
+        },
+
+        reApplySelectedRoom() {
+            // Re-apply selectedRoom to ensure it's picked up by the select element after rooms are loaded
+            const current = this.selectedRoom;
+            this.selectedRoom = '';
+            this.$nextTick(() => {
+                this.selectedRoom = current;
+            });
+        },
+
+        async linkRoom() {
+            if (!this.photoId || !this.selectedRoom || this.isLinking) return;
+            this.isLinking = true;
+            try {
+                let url;
+                if (this.photoType === 'completion') {
+                    url = `/photo-workflow/completion-photos/${this.photoId}/link-room`;
+                } else if (this.photoType === 'planning_completion') {
+                    url = `/photo-workflow/planning-completion-photos/${this.photoId}/link-room`;
+                } else {
+                    url = `/photo-workflow/photos/${this.photoId}/link-room`;
+                }
+
+                const response = await axios.post(url, {
+                    room: this.selectedRoom
+                });
+
+                // Update currentRooms locally
+                if (this.currentIndex >= 0 && this.currentIndex < this.currentRooms.length) {
+                    this.currentRooms[this.currentIndex] = this.selectedRoom;
+                }
+
+                this.$dispatch('notify', { type: 'success', message: 'Ruimte succesvol gekoppeld.' });
+
+                // Update the local state in the caller if possible
+                this.$dispatch('room-linked', { photoId: this.photoId, photoType: this.photoType, room: this.selectedRoom });
+
+            } catch (e) {
+                console.error('Error linking room:', e);
+                this.$dispatch('notify', { type: 'error', message: 'Fout bij koppelen ruimte.' });
+            } finally {
+                this.isLinking = false;
+            }
+        },
+
         async downloadCurrent() {
             try {
                 const url = this.imageUrls[this.currentIndex];
@@ -107,12 +204,24 @@
     x-on:open-image-modal.window="
         show = true;
         imageUrls = $event.detail.imageUrls;
+        photoIds = $event.detail.photoIds || [];
+        photoType = $event.detail.photoType || 'task';
         currentIndex = $event.detail.startIndex || 0;
+        photoId = photoIds[currentIndex] || null;
+        taskId = $event.detail.taskId || null;
+        locationId = $event.detail.locationId || null;
+        currentRooms = $event.detail.currentRooms || [];
+        selectedRoom = currentRooms[currentIndex] || ($event.detail.currentRoom || '');
+
+        if (locationId) {
+            fetchRooms();
+        }
+
         $nextTick(() => $refs.modalPanel.focus());
     "
     x-on:keydown.escape.window="show = false"
-    x-on:keydown.left.window="if(show && imageUrls.length > 1) currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;"
-    x-on:keydown.right.window="if(show && imageUrls.length > 1) currentIndex = (currentIndex + 1) % imageUrls.length;"
+    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom(); }"
+    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom(); }"
     x-show="show"
     style="display: none;"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -140,28 +249,69 @@
         </div>
 
         <!-- Action bar -->
-        <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex items-center justify-end gap-2 z-20">
-            <button type="button"
-                    @click.stop="downloadCurrent()"
-                    class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
-                Download foto
-            </button>
-            <button type="button"
-                    @click.stop="copyCurrent()"
-                    class="inline-flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs font-semibold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2"><path d="M8 7a3 3 0 013-3h6a3 3 0 013 3v8a3 3 0 01-3 3h-2v-2h2a1 1 0 001-1V7a1 1 0 00-1-1h-6a1 1 0 00-1 1v2H8a1 1 0 00-1 1v8a1 1 0 001 1h2v2H8a3 3 0 01-3-3V10a3 3 0 013-3z"/><path d="M12 11a1 1 0 011-1h6a1 1 0 011 1v10a1 1 0 01-1 1h-6a1 1 0 01-1-1V11z"/></svg>
-                Kopieer foto
-            </button>
+        <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex flex-wrap items-center justify-between gap-3 z-20">
+            <!-- Left side: Room selection -->
+            <div class="flex items-center gap-2 flex-grow max-w-sm" x-show="taskId && locationId">
+                @if(auth()->user()?->canExecutePlannings() || auth()->user()?->canTriggerPhotoWorkflow())
+                    <template x-if="rooms.length > 0">
+                        <div class="flex items-center gap-2 w-full">
+                            <select x-model="selectedRoom"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5">
+                                <option value="">Selecteer ruimte...</option>
+                                <template x-for="room in rooms" :key="room">
+                                    <option :value="room" x-text="room" :selected="room === selectedRoom"></option>
+                                </template>
+                            </select>
+                            <button type="button"
+                                    @click="linkRoom()"
+                                    :disabled="!selectedRoom || isLinking"
+                                    :class="(!selectedRoom || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
+                                    class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap">
+                                <span x-show="!isLinking">Koppel ruimte</span>
+                                <span x-show="isLinking">Bezig...</span>
+                            </button>
+                        </div>
+                    </template>
+                    <template x-if="loadingRooms">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Ruimtes laden...</span>
+                    </template>
+                @endif
+            </div>
+
+            <!-- Right side: General actions -->
+            <div class="flex items-center justify-end gap-2 ml-auto">
+                @if(auth()->user()?->canTriggerPhotoWorkflow())
+                    <form x-show="taskId && selectedRoom" :action="`/photo-workflow/tasks/${taskId}/distribute`" method="POST" class="inline-block">
+                        @csrf
+                        <input type="hidden" name="room" :value="selectedRoom">
+                        <button type="submit"
+                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Proces starten
+                        </button>
+                    </form>
+                @endif
+                <button type="button"
+                        @click.stop="downloadCurrent()"
+                        class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                    Download
+                </button>
+                <button type="button"
+                        @click.stop="copyCurrent()"
+                        class="inline-flex items-center px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs font-semibold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2"><path d="M8 7a3 3 0 013-3h6a3 3 0 013 3v8a3 3 0 01-3 3h-2v-2h2a1 1 0 001-1V7a1 1 0 00-1-1h-6a1 1 0 00-1 1v2H8a1 1 0 00-1 1v8a1 1 0 001 1h2v2H8a3 3 0 01-3-3V10a3 3 0 013-3z"/><path d="M12 11a1 1 0 011-1h6a1 1 0 011 1v10a1 1 0 01-1 1h-6a1 1 0 01-1-1V11z"/></svg>
+                    Kopieer
+                </button>
+            </div>
         </div>
 
         <!-- Navigation Buttons -->
         <template x-if="imageUrls.length > 1">
             <div class="absolute inset-0 flex items-center justify-between px-4 z-10 pointer-events-none">
-                <button @click.stop="currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
+                <button @click.stop="currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom();" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                <button @click.stop="currentIndex = (currentIndex + 1) % imageUrls.length" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
+                <button @click.stop="currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom();" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </button>
             </div>

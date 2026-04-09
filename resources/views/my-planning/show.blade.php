@@ -10,7 +10,8 @@
             <div x-data="locationPlanning"
                 data-location-steps='{{ json_encode($locationSteps, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}'
                 data-planning-id="{{ $planning->id }}"
-                x-init="init($root)">
+                x-init="init($root)"
+                @room-linked.window="onRoomLinked($event.detail)">
 
                 {{-- Collapsed Summary (visible on steps after summary) --}}
                 <div x-show="shouldShowCollapsedSummary()" class="bg-gray-50 dark:bg-gray-700 overflow-hidden shadow-sm sm:rounded-lg mb-4" x-data="{ summaryExpanded: false }">
@@ -863,8 +864,8 @@
                                                     <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Foto's bij taak:</h4>
                                                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                                         <template x-for="(photo, photoIndex) in task.backlog_photos" :key="photoIndex">
-                                                            <button type="button" class="focus:outline-none group" @click="openImageModal(task.backlog_photos, photoIndex)">
-                                                                <img :src="photo" alt="Taak foto" class="w-full h-24 object-cover rounded-lg shadow cursor-pointer hover:opacity-75 transition">
+                                                            <button type="button" class="focus:outline-none group" @click="openImageModal(task.backlog_photos.map(p => p.url), photoIndex, task.underlying_task_id, (location ? location.location_id : null), (task.room || ''), task.backlog_photos.map(p => p.id))">
+                                                                <img :src="photo.url" alt="Taak foto" class="w-full h-24 object-cover rounded-lg shadow cursor-pointer hover:opacity-75 transition">
                                                             </button>
                                                         </template>
                                                     </div>
@@ -899,9 +900,9 @@
                                                         </div>
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="photo in task.photos" :key="photo">
-                                                                    <button @click="openImageModal([photo], 0)">
-                                                                        <img :src="photo" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                                                                <template x-for="(photo, pIdx) in task.photos" :key="pIdx">
+                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion')">
+                                                                        <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
                                                                     </button>
                                                                 </template>
                                                             </div>
@@ -939,9 +940,9 @@
                                                         </div>
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="photo in task.photos" :key="photo">
-                                                                    <button @click="openImageModal([photo], 0)">
-                                                                        <img :src="photo" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+                                                                <template x-for="(photo, pIdx) in task.photos" :key="pIdx">
+                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion')">
+                                                                        <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
                                                                 </template>
                                                             </div>
@@ -976,9 +977,9 @@
                                                         <h5 class="font-bold text-gray-800 dark:text-gray-200">Foto's bij overslaan:</h5>
                                                         <div class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="photo in task.skip_photos" :key="photo">
-                                                                    <button @click="openImageModal([photo], 0)">
-                                                                        <img :src="photo" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+                                                                <template x-for="(photo, pIdx) in task.skip_photos" :key="pIdx">
+                                                                    <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion')">
+                                                                        <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
                                                                 </template>
                                                             </div>
@@ -986,78 +987,6 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- Photo Workflow Section --}}
-                                                <template x-if="task.underlying_task_id">
-                                                    <div class="mt-4 p-4 border-t border-gray-200 dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/10 rounded-lg">
-                                                        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-300">Niet verhuurde ruimte vol workflow</h3>
-                                                        <p class="mt-1 text-xs text-blue-700 dark:text-blue-400">Gebruik dit formulier om de foto van de ruimte rond te sturen naar alle klanten en het automatische opvolgingsproces te starten.</p>
-
-                                                        <form :action="`/photo-workflow/distribute/${task.underlying_task_id}`" method="POST" class="mt-3">
-                                                            @csrf
-                                                            <div class="flex flex-col sm:flex-row gap-3 items-end">
-                                                                <div class="w-full">
-                                                                    <label :for="`room_${task.task_id}`" class="block text-[10px] font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Ruimte nummer/naam</label>
-
-                                                                    <template x-if="location && location.location_id && locationRooms[location.location_id] && locationRooms[location.location_id].length > 0">
-                                                                        <select name="room" :id="`room_${task.task_id}`" required
-                                                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200">
-                                                                            <option value="">Selecteer ruimte...</option>
-                                                                            <template x-for="room in locationRooms[location.location_id]" :key="room">
-                                                                                <option :value="room" x-text="room" :selected="room === task.room"></option>
-                                                                            </template>
-                                                                        </select>
-                                                                    </template>
-
-                                                                    <template x-if="location && location.location_id && locationRoomsLoading[location.location_id]">
-                                                                        <div class="relative">
-                                                                            <input type="text" disabled
-                                                                                   class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"
-                                                                                   placeholder="Ruimtes laden...">
-                                                                            <div class="absolute right-3 top-1/2 -translate-y-1/2">
-                                                                                <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                                                </svg>
-                                                                            </div>
-                                                                        </div>
-                                                                    </template>
-
-                                                                    <template x-if="location && location.location_id && locationRoomsError[location.location_id]">
-                                                                        <div class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                                            </svg>
-                                                                            <span>Fout bij het laden van ruimtes. Neem contact op met support.</span>
-                                                                        </div>
-                                                                    </template>
-
-                                                                    <template x-if="location && location.location_id && !locationRoomsLoading[location.location_id] && !locationRoomsError[location.location_id] && (!locationRooms[location.location_id] || locationRooms[location.location_id].length === 0)">
-                                                                        <div class="mt-1 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                                                            </svg>
-                                                                            <span>Geen beschikbare ruimtes gevonden voor deze locatie.</span>
-                                                                        </div>
-                                                                    </template>
-                                                                </div>
-                                                                <button type="submit"
-                                                                    :disabled="!location || !location.location_id || locationRoomsLoading[location.location_id] || locationRoomsError[location.location_id] || !locationRooms[location.location_id] || locationRooms[location.location_id].length === 0"
-                                                                    :class="(location && location.location_id && !locationRoomsLoading[location.location_id] && !locationRoomsError[location.location_id] && locationRooms[location.location_id] && locationRooms[location.location_id].length > 0) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
-                                                                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
-                                                                    Proces starten
-                                                                </button>
-                                                            </div>
-                                                            <template x-if="task.photo_process_step">
-                                                                <div class="mt-2 text-[10px] text-blue-600 dark:text-blue-400">
-                                                                    Status: <strong x-text="task.photo_process_step"></strong>
-                                                                    <span x-show="task.photo_process_at" x-text="` (${task.photo_process_at})`"></span>
-                                                                </div>
-                                                            </template>
-                                                        </form>
-                                                    </div>
-                                                </template>
-
-                                                {{-- Task Form --}}
                                                 <div x-show="task.status === 'open'" class="space-y-4">
 
                                                     <div>
@@ -1170,8 +1099,8 @@
                                                             <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
                                                             <div x-show="comment.photos && comment.photos.length > 0" class="mt-3 flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in comment.photos" :key="pIdx">
-                                                                    <button @click="openImageModal(comment.photos, pIdx)">
-                                                                        <img :src="photo" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
+                                                                    <button @click="openImageModal(comment.photos.map(p => p.url), pIdx, null, (location ? location.location_id : null), '', comment.photos.map(p => p.id), 'completion')">
+                                                                        <img :src="photo.url" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
                                                                     </button>
                                                                 </template>
                                                             </div>
@@ -1459,11 +1388,6 @@
                 submittingEndChecklist: false, // Track checklist submission state
                 draggingTaskId: null, // For DnD state on task photo uploader
 
-                // Room dropdown state for photo process
-                locationRooms: {}, // { locationId: [room1, room2, ...] }
-                locationRoomsLoading: {}, // { locationId: true/false }
-                locationRoomsError: {}, // { locationId: true/false }
-
                 // Vehicle tasks state
                 vehicleDefaults: [],
                 vehicleDefaultsLoading: false,
@@ -1543,38 +1467,6 @@
                 toggleTask(locationIndex, taskIndex) {
                     const key = `${locationIndex}-${taskIndex}`;
                     this.expandedTasks[key] = !this.expandedTasks[key];
-
-                    // If expanded and it has a photo process, fetch rooms for the location (once per location)
-                    if (this.expandedTasks[key]) {
-                        const step = this.locationSteps[locationIndex];
-                        const task = step.tasks[taskIndex];
-                        const locationId = step.location_id;
-                        if (task && task.underlying_task_id && locationId) {
-                            this.fetchRoomsForLocation(locationId);
-                        }
-                    }
-                },
-
-                async fetchRoomsForLocation(locationId) {
-                    if (!locationId) return;
-                    if (this.locationRooms[locationId] || this.locationRoomsLoading[locationId]) return;
-
-                    this.locationRoomsLoading[locationId] = true;
-                    this.locationRoomsError[locationId] = false;
-                    try {
-                        const response = await axios.get(`/locations/${locationId}/rooms`);
-                        if (response.data && response.data.success) {
-                            this.locationRooms[locationId] = response.data.rooms;
-                        } else {
-                            console.error('Failed to fetch rooms:', response.data.message);
-                            this.locationRoomsError[locationId] = true;
-                        }
-                    } catch (error) {
-                        console.error('Error fetching rooms:', error);
-                        this.locationRoomsError[locationId] = true;
-                    } finally {
-                        this.locationRoomsLoading[locationId] = false;
-                    }
                 },
 
                 isTaskExpanded(locationIndex, taskIndex) {
@@ -1670,10 +1562,31 @@
                     completion.photos.splice(index, 1);
                 },
 
-                openImageModal(imageUrls, startIndex) {
+                onRoomLinked(detail) {
+                    const { taskId, room } = detail;
+                    this.selectedRooms[taskId] = room;
+
+                    // Also update the room in the locationSteps tasks
+                    this.locationSteps.forEach(step => {
+                        if (step.tasks) {
+                            step.tasks.forEach(task => {
+                                if (task.underlying_task_id == taskId) {
+                                    task.room = room;
+                                }
+                            });
+                        }
+                    });
+                },
+
+                openImageModal(imageUrls, startIndex, taskId = null, locationId = null, currentRoom = '', photoIds = [], photoType = 'task') {
                     this.$dispatch('open-image-modal', {
                         imageUrls,
-                        startIndex
+                        startIndex,
+                        taskId,
+                        locationId,
+                        currentRoom,
+                        photoIds,
+                        photoType
                     });
                 },
 

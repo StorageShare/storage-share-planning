@@ -17,6 +17,7 @@ class PlanningTaskPhoto extends Model
 
     protected $fillable = [
         'planning_task_id',
+        'room',
         'path',
         'original_name',
         'mime_type',

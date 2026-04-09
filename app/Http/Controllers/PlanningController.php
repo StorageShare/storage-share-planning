@@ -351,6 +351,7 @@ class PlanningController extends Controller
                     'specificLocation',
                     // Also eager-load vehicleTask to show vehicle-related planning tasks without N+1
                     'vehicleTask',
+                    'planningTaskPhotos',
                     'completions' => function ($completionQuery) {
                         $completionQuery->with(['user', 'photos'])->orderBy('created_at', 'desc');
                     },

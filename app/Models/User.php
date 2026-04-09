@@ -91,6 +91,11 @@ class User extends Authenticatable
         return $this->role === Role::ADMIN || $this->role === Role::FACILITIES_COORDINATOR;
     }
 
+    public function canTriggerPhotoWorkflow(): bool
+    {
+        return $this->role === Role::ADMIN || $this->role === Role::FACILITIES_COORDINATOR;
+    }
+
     public function canExecutePlannings(): bool
     {
         return $this->isAdmin() || $this->isAlgemeenMedewerker();

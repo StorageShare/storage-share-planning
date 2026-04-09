@@ -186,7 +186,6 @@ class MyPlanningController extends Controller
             $tasksForBacklog = [];
             foreach ($sortedTasks as $task) {
                 $latestCompletion = $task->completions->sortByDesc('created_at')->first();
-                $backlogPhotos = $task->task != null && $task->task->taskPhotos->count() > 0 ? $task->task->taskPhotos->map(fn($photo) => $photo->url)->toArray() : [];
 
                 // Check if task was skipped - only use skip data if task status is actually 'skipped'
                 $skipCompletion = $task->completions->where('review_outcome', 'skipped')->sortByDesc('created_at')->first();
@@ -198,8 +197,10 @@ class MyPlanningController extends Controller
                     'task_id' => $task->id,
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
-                    'photos' => $latestCompletion ? $latestCompletion->photos->pluck('url') : [],
-                    'backlog_photos' => $backlogPhotos,
+                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'backlog_photos' => $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
+                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
                     'room' => $task->task?->room ?? $task->room,
@@ -213,7 +214,7 @@ class MyPlanningController extends Controller
             $commentsForBacklog = $planning->comments->whereNull('location_id')->map(fn($c) => [
                 'id' => $c->id,
                 'comment' => $c->comment,
-                'photos' => $c->photos->pluck('url'),
+                'photos' => $c->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]),
                 'created_at' => $c->created_at->format('H:i'),
             ])->values()->all();
 
@@ -258,7 +259,6 @@ class MyPlanningController extends Controller
             $tasksForLocation = [];
             foreach ($sortedLocationTasks as $task) {
                 $latestCompletion = $task->completions->sortByDesc('created_at')->first();
-                $backlogPhotos = $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($photo) => $photo->url)->toArray() : [];
 
                 // Check if task was skipped - only use skip data if task status is actually 'skipped'
                 $skipCompletion = $task->completions->where('review_outcome', 'skipped')->sortByDesc('created_at')->first();
@@ -270,10 +270,10 @@ class MyPlanningController extends Controller
                     'task_id' => $task->id,
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
-                    'photos' => $latestCompletion ? $latestCompletion->photos->pluck('url') : [],
-                    'backlog_photos' => $backlogPhotos,
+                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'backlog_photos' => $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
-                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->pluck('url') : [],
+                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
                     'room' => $task->task?->room ?? $task->room,
@@ -287,7 +287,7 @@ class MyPlanningController extends Controller
             $commentsForLocation = $planning->comments->where('location_id', $location->id)->map(fn($c) => [
                 'id' => $c->id,
                 'comment' => $c->comment,
-                'photos' => $c->photos->pluck('url'),
+                'photos' => $c->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]),
                 'created_at' => $c->created_at->format('H:i'),
             ])->values()->all();
 

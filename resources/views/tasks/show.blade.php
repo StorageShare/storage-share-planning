@@ -71,7 +71,9 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6"
+                         x-data="{ currentRoom: '{{ $task->room ?? '' }}' }"
+                         @room-linked.window="if($event.detail.taskId == {{ $task->id }}) currentRoom = $event.detail.room">
                         <div class="md:col-span-2 bg-white dark:bg-gray-900/50 p-6 rounded-lg shadow">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Details Taak</h3>
                             <dl class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -171,9 +173,16 @@
                                 @php
                                     $taskPhotos = $task->taskPhotos->map(fn($photo) => $photo->url)->values()->all();
                                 @endphp
-                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" x-data='{ taskPhotos: @json($taskPhotos) }'>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" x-data="{ taskPhotos: @json($taskPhotos) }">
                                     @foreach($task->taskPhotos as $index => $photo)
-                                        <button type="button" class="focus:outline-none group" @click="$dispatch('open-image-modal', { imageUrls: taskPhotos, startIndex: {{ $index }} })">
+                                        <button type="button" class="focus:outline-none group"
+                                                @click="$dispatch('open-image-modal', {
+                                                    imageUrls: taskPhotos,
+                                                    startIndex: {{ $index }},
+                                                    taskId: {{ $task->id }},
+                                                    locationId: {{ $task->location_id ?? 'null' }},
+                                                    currentRoom: currentRoom
+                                                })">
                                             <img src="{{ $photo->url }}" alt="Taakfoto {{ $photo->id }}" class="rounded-md object-cover h-32 w-full cursor-pointer hover:opacity-75 transition">
                                         </button>
                                     @endforeach
@@ -217,13 +226,20 @@
                                             @php
                                             $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
                                             @endphp
-                                            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2" x-data='{ completionPhotos: @json($completionPhotos) }'>
-                                                @foreach($completion->photos as $index => $photo)
-                                                <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: completionPhotos, startIndex: {{ $index }} })">
-                                                    <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
-                                                </button>
-                                                @endforeach
-                                            </div>
+                                                <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2" x-data="{ completionPhotos: @json($completionPhotos) }">
+                                                    @foreach($completion->photos as $index => $photo)
+                                                    <button type="button" class="focus:outline-none"
+                                                            @click="$dispatch('open-image-modal', {
+                                                                imageUrls: completionPhotos,
+                                                                startIndex: {{ $index }},
+                                                                taskId: {{ $task->id }},
+                                                                locationId: {{ $task->location_id ?? 'null' }},
+                                                                currentRoom: currentRoom
+                                                            })">
+                                                        <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
+                                                    </button>
+                                                    @endforeach
+                                                </div>
                                         </div>
                                         @endif
                                     </div>
@@ -262,9 +278,16 @@
                                                 $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
                                             @endphp
                                             <h4 class="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">Bijgevoegde foto's</h4>
-                                            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2" x-data='{ completionPhotos: @json($completionPhotos) }'>
+                                            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2" x-data="{ completionPhotos: @json($completionPhotos) }">
                                                 @foreach($completion->photos as $index => $photo)
-                                                    <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: completionPhotos, startIndex: {{ $index }} })">
+                                                    <button type="button" class="focus:outline-none"
+                                                            @click="$dispatch('open-image-modal', {
+                                                                imageUrls: completionPhotos,
+                                                                startIndex: {{ $index }},
+                                                                taskId: {{ $task->id }},
+                                                                locationId: {{ $task->location_id ?? 'null' }},
+                                                                currentRoom: currentRoom
+                                                            })">
                                                         <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-32 w-32 cursor-pointer hover:opacity-75 transition">
                                                     </button>
                                                 @endforeach

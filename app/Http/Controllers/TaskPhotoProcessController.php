@@ -6,11 +6,15 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
+use App\Models\PlanningTaskPhoto;
+use App\Models\TaskCompletionPhoto;
+use App\Models\PlanningTaskCompletionPhoto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class TaskPhotoProcessController extends Controller
 {
@@ -19,6 +23,10 @@ class TaskPhotoProcessController extends Controller
      */
     public function distribute(Request $request, Task $task)
     {
+        if (!auth()->user()->canTriggerPhotoWorkflow()) {
+            abort(403, 'U heeft geen toestemming om dit proces te starten.');
+        }
+
         $request->validate([
             'room' => 'required|string',
         ]);
@@ -29,7 +37,22 @@ class TaskPhotoProcessController extends Controller
             'photo_process_at' => now(),
         ]);
 
-        $photo = $task->taskPhotos()->latest('uploaded_at')->first();
+        $photo = $task->planningTasks->flatMap->planningTaskPhotos->sortByDesc('created_at')->first(fn($p) => $p->room === $request->room);
+
+        if (!$photo) {
+            // Fallback: check completion photos too
+            $photo = $task->planningTasks->flatMap->completions->flatMap->photos->sortByDesc('created_at')->first(fn($p) => $p->room === $request->room);
+        }
+
+        if (!$photo) {
+            // Fallback: just take the latest photo of this task if no specific room photo found
+            $photo = $task->planningTasks->flatMap->planningTaskPhotos->sortByDesc('created_at')->first();
+        }
+
+        if (!$photo) {
+            // Fallback: just take the latest completion photo of this task
+            $photo = $task->planningTasks->flatMap->completions->flatMap->photos->sortByDesc('created_at')->first();
+        }
 
         if (!$photo) {
             return back()->with('error', 'Geen foto gevonden voor deze taak om rond te sturen.');
@@ -43,8 +66,8 @@ class TaskPhotoProcessController extends Controller
             $response = Http::withToken($apiToken)
                 ->post($apiUrl, [
                     'stalling_location_id' => $task->location->external_id,
-                    'photo_url' => $photo->url,
-                    'room_identifier' => $task->room,
+                    'photo_url' => $photo->url ?? Storage::disk('public')->url($photo->file_path),
+                    'room_identifier' => $request->room,
                     'planning_task_id' => $task->id,
                     'follow_up' => [
                         'first_in_days' => 7,
@@ -72,6 +95,78 @@ class TaskPhotoProcessController extends Controller
         }
 
         return back()->with('success', 'Foto is succesvol rondgestuurd naar alle huurders via de API.');
+    }
+
+    /**
+     * Link a room to a specific photo.
+     */
+    public function linkRoomToPhoto(Request $request, PlanningTaskPhoto $photo)
+    {
+        if (!auth()->user()->canExecutePlannings()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        $photo->update([
+            'room' => $request->room,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
+        }
+
+        return back()->with('success', 'Ruimte succesvol gekoppeld aan de foto.');
+    }
+
+    /**
+     * Link a room to a specific completion photo.
+     */
+    public function linkRoomToCompletionPhoto(Request $request, TaskCompletionPhoto $photo)
+    {
+        if (!auth()->user()->canExecutePlannings()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        $photo->update([
+            'room' => $request->room,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
+        }
+
+        return back()->with('success', 'Ruimte succesvol gekoppeld aan de foto.');
+    }
+
+    /**
+     * Link a room to a specific planning completion photo.
+     */
+    public function linkRoomToPlanningCompletionPhoto(Request $request, PlanningTaskCompletionPhoto $photo)
+    {
+        if (!auth()->user()->canExecutePlannings()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        $photo->update([
+            'room' => $request->room,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
+        }
+
+        return back()->with('success', 'Ruimte succesvol gekoppeld aan de foto.');
     }
 
     /**

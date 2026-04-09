@@ -17,6 +17,7 @@ class PlanningTaskCompletionPhoto extends Model
 
     protected $fillable = [
         'completion_id',
+        'room',
         'file_path',
     ];
 

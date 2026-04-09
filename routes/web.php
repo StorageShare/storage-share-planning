@@ -37,14 +37,6 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::get('tasks/review/{type}/{id}', [TaskReviewController::class, 'show'])->name('admin.tasks.show');
     Route::post('tasks/review-skipped/{planning_task}', [TaskReviewController::class, 'reviewSkipped'])->name('admin.tasks.review-skipped');
 
-    // Photo process routes
-    Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
-    Route::get('tasks/{task}/rooms', [TaskPhotoProcessController::class, 'getRooms'])->name('photo-workflow.rooms');
-    Route::get('locations/{location}/rooms', [TaskPhotoProcessController::class, 'getRoomsByLocation'])->name('photo-workflow.location-rooms');
-    Route::get('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker-task');
-    Route::get('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo-task');
-    Route::get('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation-task');
-
     // Plannings review overview (admin only)
     Route::get('plannings/review', [PlanningController::class, 'review'])->name('plannings.review');
 
@@ -87,6 +79,12 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
     Route::post('plannings/{planning}/send-notifications', [PlanningController::class, 'sendNotifications'])->name('plannings.send-notifications');
     Route::post('plannings/{planning}/complete', [PlanningController::class, 'complete'])->name('plannings.complete');
 
+    // Photo distribution workflow (admins and facilities coordinators)
+    Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
+    Route::get('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker-task');
+    Route::get('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo-task');
+    Route::get('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation-task');
+
     // Update actual timers (admins + can_manage_plannings)
     Route::patch('plannings/{planning}/timers/location/{location}', [PlanningController::class, 'updateLocationActualTime'])->name('plannings.timers.location.update');
     Route::patch('plannings/{planning}/timers/travel-to/{location}', [PlanningController::class, 'updateTravelToTime'])->name('plannings.timers.travel_to.update');
@@ -117,6 +115,11 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     // Route for reopening a task
     Route::post('plannings/{planning}/tasks/{planning_task}/reopen', [PlanningTaskController::class, 'reopen'])->name('plannings.tasks.reopen');
 
+    // Photo process routes accessible by executors
+    Route::post('photo-workflow/photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToPhoto'])->name('photo-workflow.photo.link-room');
+    Route::post('photo-workflow/completion-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToCompletionPhoto'])->name('photo-workflow.completion-photo.link-room');
+    Route::post('photo-workflow/planning-completion-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToPlanningCompletionPhoto'])->name('photo-workflow.planning-completion-photo.link-room');
+
     // Download all photos for a planning task as ZIP
     Route::get('plannings/tasks/{planning_task}/photos/download', [PlanningTaskController::class, 'downloadPhotos'])->name('plannings.tasks.photos.download');
 
@@ -143,6 +146,10 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Room fetching for photo distribution (accessible by all authenticated users)
+    Route::get('tasks/{task}/rooms', [TaskPhotoProcessController::class, 'getRooms'])->name('photo-workflow.rooms');
+    Route::get('locations/{location}/rooms', [TaskPhotoProcessController::class, 'getRoomsByLocation'])->name('photo-workflow.location-rooms');
+
     // Serve media files from the public storage via Laravel to avoid web server 403s
     Route::get('media/{path}', function (string $path) {
         abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($path), 404);
