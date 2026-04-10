@@ -20,6 +20,7 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\DefaultVehicleTaskController;
 use App\Http\Controllers\PlanningVehicleTaskController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MediaLibraryController;
 use App\Http\Controllers\MyPlanningController;
 use App\Http\Controllers\TaskPhotoProcessController;
 
@@ -92,6 +93,9 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
 
     // Only admins can view plannings via /plannings routes
     Route::resource('plannings', PlanningController::class)->only(['index', 'show']);
+
+    // Media Library
+    Route::get('media-library', [MediaLibraryController::class, 'index'])->name('media-library.index');
 });
 
 // Routes voor gebruikers die planningen kunnen uitvoeren (Admin + Algemeen Medewerker)

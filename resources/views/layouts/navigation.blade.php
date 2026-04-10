@@ -36,6 +36,10 @@
                         <x-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
                             {{ __('Planningen') }}
                         </x-nav-link>
+
+                        <x-nav-link :href="route('media-library.index')" :active="request()->routeIs('media-library.*')">
+                            {{ __('Mediabibliotheek') }}
+                        </x-nav-link>
                     @endif
 
                     @if (Auth::user()->isAdmin())
@@ -265,6 +269,9 @@
             @if (Auth::user()->canManagePlannings())
                 <x-responsive-nav-link :href="route('plannings.index')" :active="request()->routeIs('plannings.*')">
                     {{ __('Planningen') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('media-library.index')" :active="request()->routeIs('media-library.*')">
+                    {{ __('Mediabibliotheek') }}
                 </x-responsive-nav-link>
             @endif
             @if (Auth::user()->isAdmin())
