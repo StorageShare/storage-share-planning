@@ -88,6 +88,13 @@
             if (this.selectedRoom) {
                 this.tomSelectInstance.setValue(this.selectedRoom, true);
             }
+
+            // Sync TomSelect when selectedRoom changes from outside (e.g. navigation)
+            this.$watch('selectedRoom', (value) => {
+                if (this.tomSelectInstance && this.tomSelectInstance.getValue() !== value) {
+                    this.tomSelectInstance.setValue(value, true);
+                }
+            });
         },
 
         reApplySelectedRoom() {
@@ -105,7 +112,8 @@
 
         async linkRoom() {
             if (!this.photoId || !this.selectedRoom || this.isLinking) {
-                console.warn('[ModalImage] linkRoom aborted:', { photoId: this.photoId, selectedRoom: this.selectedRoom, isLinking: this.isLinking });
+                if (!this.photoId) console.warn('[ModalImage] linkRoom aborted: photoId is missing');
+                if (!this.selectedRoom) console.warn('[ModalImage] linkRoom aborted: selectedRoom is missing');
                 return;
             }
             this.isLinking = true;
@@ -265,8 +273,8 @@
         $nextTick(() => $refs.modalPanel.focus());
     "
     x-on:keydown.escape.window="show = false"
-    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; if(tomSelectInstance) tomSelectInstance.setValue(selectedRoom, true); }"
-    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; if(tomSelectInstance) tomSelectInstance.setValue(selectedRoom, true); }"
+    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
+    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
     x-show="show"
     style="display: none;"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -353,10 +361,10 @@
         <!-- Navigation Buttons -->
         <template x-if="imageUrls.length > 1">
             <div class="absolute inset-0 flex items-center justify-between px-4 z-10 pointer-events-none">
-                <button @click.stop="currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom();" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
+                <button @click.stop="currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || '';" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                <button @click.stop="currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom();" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
+                <button @click.stop="currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || '';" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </button>
             </div>

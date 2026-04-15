@@ -344,7 +344,8 @@
                                                                                 startIndex: {{ $idx }},
                                                                                 taskId: {{ $vpt->task_id ?? 'null' }},
                                                                                 locationId: {{ $location->id ?? 'null' }},
-                                                                                currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
+                                                                                debug: true
                                                                             })">
                                                                         <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
                                                                     </button>
@@ -359,7 +360,8 @@
                                                                                 startIndex: 3,
                                                                                 taskId: {{ $vpt->task_id ?? 'null' }},
                                                                                 locationId: {{ $location->id ?? 'null' }},
-                                                                                currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
+                                                                                debug: true
                                                                             })">
                                                                         <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
                                                                         <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
@@ -1018,7 +1020,8 @@
                                                                                         startIndex: {{ $idx }},
                                                                                         taskId: {{ $planningTask->task_id ?? 'null' }},
                                                                                         locationId: {{ $location->id ?? 'null' }},
-                                                                                        currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                        currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
+                                                                                        debug: true
                                                                                     })">
                                                                                 <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
                                                                             </button>
@@ -1033,7 +1036,8 @@
                                                                                         startIndex: 3,
                                                                                         taskId: {{ $planningTask->task_id ?? 'null' }},
                                                                                         locationId: {{ $location->id ?? 'null' }},
-                                                                                        currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                        currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
+                                                                                        debug: true
                                                                                     })">
                                                                                 <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
                                                                                 <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
