@@ -23,6 +23,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command(SyncExternalLocationsCommand::class)->daily();
+        $schedule->command(\App\Console\Commands\SendPlanningNotificationsCommand::class)->dailyAt('16:00');
     }
 
     /**
