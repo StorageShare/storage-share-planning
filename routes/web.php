@@ -79,6 +79,7 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
     Route::delete('plannings/{planning}', [PlanningController::class, 'destroy'])->name('plannings.destroy');
     Route::post('plannings/{planning}/send-notifications', [PlanningController::class, 'sendNotifications'])->name('plannings.send-notifications');
     Route::post('plannings/{planning}/complete', [PlanningController::class, 'complete'])->name('plannings.complete');
+    Route::patch('plannings/{planning}/internal-notes', [PlanningController::class, 'updateInternalNotes'])->name('plannings.internal-notes.update');
 
     // Photo distribution workflow (admins and facilities coordinators)
     Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');

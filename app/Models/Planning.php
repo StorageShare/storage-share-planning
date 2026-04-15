@@ -25,6 +25,7 @@ class Planning extends Model
     protected $fillable = [
         'planned_date',
         'notes',
+        'internal_notes',
         'status',
         'created_by',
         'start_address',

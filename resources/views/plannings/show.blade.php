@@ -212,6 +212,35 @@
                         </div>
                     @endif
 
+                    {{-- Internal Notes Section --}}
+                    @if(auth()->user()?->canManagePlannings() && strtolower($planning->status ?? '') === 'completed')
+                        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Interne Terugkoppeling</h3>
+                            <form action="{{ route('plannings.internal-notes.update', $planning) }}" method="POST">
+                                @csrf
+                                @method('PATCH')
+                                <div class="mt-1">
+                                    <textarea id="internal_notes" name="internal_notes" rows="3"
+                                              class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-md"
+                                              placeholder="Plaats hier een interne notitie over de terugkoppeling van deze planning...">{{ old('internal_notes', $planning->internal_notes) }}</textarea>
+                                </div>
+                                <div class="mt-2 flex justify-end">
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-sm font-medium">
+                                        Interne notitie opslaan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    @elseif($planning->internal_notes && auth()->user()?->canManagePlannings())
+                         <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Interne Terugkoppeling</h3>
+                            <div class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-md border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                {{ $planning->internal_notes }}
+                            </div>
+                        </div>
+                    @endif
+
                     {{-- Vehicle Tasks section --}}
                     @php
                         $vehiclePlanningTasks = $planning->planningTasks->filter(function($pt){ return (bool)($pt->is_vehicle_task ?? false); });

@@ -651,6 +651,22 @@ class PlanningController extends Controller
     }
 
     /**
+     * Update internal notes for a planning.
+     */
+    public function updateInternalNotes(Request $request, Planning $planning): RedirectResponse
+    {
+        $validated = $request->validate([
+            'internal_notes' => 'nullable|string',
+        ]);
+
+        $planning->update([
+            'internal_notes' => $validated['internal_notes'],
+        ]);
+
+        return redirect()->back()->with('success', 'Interne notitie succesvol bijgewerkt.');
+    }
+
+    /**
      * Get timer data for a specific location in a planning.
      */
     public function getLocationTimer(Planning $planning, int|string $locationId): JsonResponse
