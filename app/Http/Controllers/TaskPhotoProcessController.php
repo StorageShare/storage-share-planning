@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\PlanningTaskPhoto;
 use App\Models\TaskCompletionPhoto;
 use App\Models\PlanningTaskCompletionPhoto;
+use App\Models\TaskPhoto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -101,6 +102,30 @@ class TaskPhotoProcessController extends Controller
      * Link a room to a specific photo.
      */
     public function linkRoomToPhoto(Request $request, PlanningTaskPhoto $photo)
+    {
+        if (!auth()->user()->canExecutePlannings()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        $photo->update([
+            'room' => $request->room,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
+        }
+
+        return back()->with('success', 'Ruimte succesvol gekoppeld aan de foto.');
+    }
+
+    /**
+     * Link a room to a specific task photo.
+     */
+    public function linkRoomToTaskPhoto(Request $request, TaskPhoto $photo)
     {
         if (!auth()->user()->canExecutePlannings()) {
             abort(403);

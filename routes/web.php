@@ -121,6 +121,7 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
 
     // Photo process routes accessible by executors
     Route::post('photo-workflow/photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToPhoto'])->name('photo-workflow.photo.link-room');
+    Route::post('photo-workflow/task-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToTaskPhoto'])->name('photo-workflow.task-photo.link-room');
     Route::post('photo-workflow/completion-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToCompletionPhoto'])->name('photo-workflow.completion-photo.link-room');
     Route::post('photo-workflow/planning-completion-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToPlanningCompletionPhoto'])->name('photo-workflow.planning-completion-photo.link-room');
 

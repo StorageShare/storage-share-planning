@@ -72,8 +72,8 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6"
-                         x-data="{ currentRoom: '{{ $task->room ?? '' }}' }"
-                         @room-linked.window="if($event.detail.taskId == {{ $task->id }}) currentRoom = $event.detail.room">
+                         x-data='{ currentRoom: "{{ $task->room ?? "" }}" }'
+                         @room-linked.window="if($event.detail.taskId == {{ $task->id }}) $data.currentRoom = $event.detail.room">
                         <div class="md:col-span-2 bg-white dark:bg-gray-900/50 p-6 rounded-lg shadow">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Details Taak</h3>
                             <dl class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -172,12 +172,18 @@
                             @if($task->taskPhotos && $task->taskPhotos->count() > 0)
                                 @php
                                     $taskPhotos = $task->taskPhotos->map(fn($photo) => $photo->url)->values()->all();
+                                    $taskPhotoIds = $task->taskPhotos->pluck('id')->values()->all();
                                 @endphp
-                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" x-data="{ taskPhotos: @json($taskPhotos) }">
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" x-data='{
+                                    taskPhotos: @json($taskPhotos),
+                                    photoIds: @json($taskPhotoIds)
+                                }'>
                                     @foreach($task->taskPhotos as $index => $photo)
                                         <button type="button" class="focus:outline-none group"
                                                 @click="$dispatch('open-image-modal', {
-                                                    imageUrls: taskPhotos,
+                                                    imageUrls: $data.taskPhotos,
+                                                    photoIds: $data.photoIds,
+                                                    photoType: 'task_photo',
                                                     startIndex: {{ $index }},
                                                     taskId: {{ $task->id }},
                                                     locationId: {{ $task->location_id ?? 'null' }},
@@ -225,12 +231,18 @@
                                             <h5 class="text-md font-semibold text-gray-800 dark:text-gray-200">Bijgevoegde foto's</h5>
                                             @php
                                             $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
+                                            $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                             @endphp
-                                                <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2" x-data="{ completionPhotos: @json($completionPhotos) }">
+                                                <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2" x-data='{
+                                                    completionPhotos: @json($completionPhotos),
+                                                    photoIds: @json($completionPhotoIds)
+                                                }'>
                                                     @foreach($completion->photos as $index => $photo)
                                                     <button type="button" class="focus:outline-none"
                                                             @click="$dispatch('open-image-modal', {
-                                                                imageUrls: completionPhotos,
+                                                                imageUrls: $data.completionPhotos,
+                                                                photoIds: $data.photoIds,
+                                                                photoType: 'completion',
                                                                 startIndex: {{ $index }},
                                                                 taskId: {{ $task->id }},
                                                                 locationId: {{ $task->location_id ?? 'null' }},
@@ -276,13 +288,19 @@
                                         @if($completion->photos->isNotEmpty())
                                             @php
                                                 $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
+                                                $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                             @endphp
                                             <h4 class="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">Bijgevoegde foto's</h4>
-                                            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2" x-data="{ completionPhotos: @json($completionPhotos) }">
+                                            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2" x-data='{
+                                                completionPhotos: @json($completionPhotos),
+                                                photoIds: @json($completionPhotoIds)
+                                            }'>
                                                 @foreach($completion->photos as $index => $photo)
                                                     <button type="button" class="focus:outline-none"
                                                             @click="$dispatch('open-image-modal', {
-                                                                imageUrls: completionPhotos,
+                                                                imageUrls: $data.completionPhotos,
+                                                                photoIds: $data.photoIds,
+                                                                photoType: 'completion',
                                                                 startIndex: {{ $index }},
                                                                 taskId: {{ $task->id }},
                                                                 locationId: {{ $task->location_id ?? 'null' }},

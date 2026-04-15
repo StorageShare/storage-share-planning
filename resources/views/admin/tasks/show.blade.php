@@ -100,30 +100,30 @@
                                                     $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
                                                 @endphp
                                                 <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"
-                                                     x-data="{
+                                                     x-data='{
                                                         completionPhotos: @json($completionPhotos),
                                                         photoIds: @json($completionPhotoIds),
                                                         photoRooms: @json($completionPhotoRooms),
                                                         onRoomLinked(detail) {
-                                                            if (detail.photoType === 'completion') {
-                                                                const idx = this.photoIds.indexOf(detail.photoId);
+                                                            if (detail.photoType === "completion") {
+                                                                const idx = $data.photoIds.indexOf(detail.photoId);
                                                                 if (idx !== -1) {
-                                                                    this.photoRooms[idx] = detail.room;
+                                                                    $data.photoRooms[idx] = detail.room;
                                                                 }
                                                             }
                                                         }
-                                                     }"
+                                                     }'
                                                      @room-linked.window="onRoomLinked($event.detail)">
                                                     @foreach ($completion->photos as $index => $photo)
                                                         <button type="button" class="focus:outline-none"
                                                                 @click="$dispatch('open-image-modal', {
-                                                                    imageUrls: completionPhotos,
-                                                                    photoIds: photoIds,
+                                                                    imageUrls: $data.completionPhotos,
+                                                                    photoIds: $data.photoIds,
                                                                     photoType: 'completion',
                                                                     startIndex: {{ $index }},
                                                                     taskId: {{ $task->id }},
                                                                     locationId: {{ $task->location_id ?? 'null' }},
-                                                                    currentRooms: photoRooms
+                                                                    currentRooms: $data.photoRooms
                                                                 })">
                                                             <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path) }}" alt="Completion Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-32 w-32">
                                                         </button>
@@ -232,19 +232,19 @@
                                     @endphp
                                     @if($task->photo_url)
                                         <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden"
-                                             x-data="{ currentRoom: '{{ $photoRoom }}' }"
-                                             @room-linked.window="if($event.detail.photoId == {{ $photoId ?? 'null' }} && $event.detail.photoType === 'task') currentRoom = $event.detail.room">
+                                             x-data='{ currentRoom: "{{ $photoRoom }}" }'
+                                             @room-linked.window="if($event.detail.photoId == {{ $photoId ?? 'null' }} && ($event.detail.photoType === 'task' || $event.detail.photoType === 'task_photo')) $data.currentRoom = $event.detail.room">
                                             <img src="{{ $task->photo_url }}"
                                                  alt="{{ $task->title }}"
                                                  class="w-full h-64 object-contain bg-gray-50 dark:bg-gray-700 cursor-pointer"
                                                  @click="$dispatch('open-image-modal', {
                                                     imageUrls: ['{{ $task->photo_url }}'],
                                                     photoIds: [{{ $photoId ?? 'null' }}],
-                                                    photoType: 'task',
+                                                    photoType: '{{ $type === 'task' ? 'task' : 'task_photo' }}',
                                                     startIndex: 0,
                                                     taskId: {{ $task->id }},
                                                     locationId: {{ $task->location_id ?? 'null' }},
-                                                    currentRooms: [currentRoom]
+                                                    currentRooms: [$data.currentRoom]
                                                  })">
                                         </div>
                                     @else
@@ -367,7 +367,7 @@
                                         @endphp
                                         <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ skipPhotos: @json($skipPhotos) }'>
                                             @foreach ($skipCompletion->photos as $index => $photo)
-                                                <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: skipPhotos, startIndex: {{ $index }}, photoIds: [], photoType: 'task', currentRooms: [] })">
+                                                <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: skipPhotos, startIndex: {{ $index }}, photoIds: [], photoType: '{{ $type === 'task' ? 'task' : 'task_photo' }}', currentRooms: [] })">
                                                     <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path) }}" alt="Skip Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-24 w-24">
                                                 </button>
                                             @endforeach

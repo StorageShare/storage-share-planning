@@ -16,10 +16,15 @@
         loadingRooms: false,
         roomsError: false,
         isLinking: false,
+        tomSelectInstance: null,
 
         async init() {
             this.$watch('show', value => {
                 if (!value) {
+                    if (this.tomSelectInstance) {
+                        this.tomSelectInstance.destroy();
+                        this.tomSelectInstance = null;
+                    }
                     this.taskId = null;
                     this.photoId = null;
                     this.photoIds = [];
@@ -46,7 +51,9 @@
                 const response = await axios.get(`/locations/${this.locationId}/rooms`);
                 if (response.data && response.data.success) {
                     this.rooms = response.data.rooms;
-                    this.reApplySelectedRoom();
+                    this.$nextTick(() => {
+                        this.initTomSelect();
+                    });
                 } else {
                     this.roomsError = true;
                 }
@@ -58,7 +65,36 @@
             }
         },
 
+        initTomSelect() {
+            const selectEl = this.$refs.roomSelect;
+            if (!selectEl) return;
+
+            if (this.tomSelectInstance) {
+                this.tomSelectInstance.destroy();
+            }
+
+            this.tomSelectInstance = new TomSelect(selectEl, {
+                create: true,
+                maxItems: 1,
+                placeholder: 'Selecteer of typ ruimte...',
+                onChange: (value) => {
+                    this.selectedRoom = value;
+                },
+                onInitialize: function() {
+                    // Force dark mode compatibility if needed
+                }
+            });
+
+            if (this.selectedRoom) {
+                this.tomSelectInstance.setValue(this.selectedRoom, true);
+            }
+        },
+
         reApplySelectedRoom() {
+            if (this.tomSelectInstance) {
+                this.tomSelectInstance.setValue(this.selectedRoom, true);
+                return;
+            }
             // Re-apply selectedRoom to ensure it's picked up by the select element after rooms are loaded
             const current = this.selectedRoom;
             this.selectedRoom = '';
@@ -68,7 +104,10 @@
         },
 
         async linkRoom() {
-            if (!this.photoId || !this.selectedRoom || this.isLinking) return;
+            if (!this.photoId || !this.selectedRoom || this.isLinking) {
+                console.warn('[ModalImage] linkRoom aborted:', { photoId: this.photoId, selectedRoom: this.selectedRoom, isLinking: this.isLinking });
+                return;
+            }
             this.isLinking = true;
             try {
                 let url;
@@ -76,9 +115,15 @@
                     url = `/photo-workflow/completion-photos/${this.photoId}/link-room`;
                 } else if (this.photoType === 'planning_completion') {
                     url = `/photo-workflow/planning-completion-photos/${this.photoId}/link-room`;
+                } else if (this.photoType === 'task_photo') {
+                    url = `/photo-workflow/task-photos/${this.photoId}/link-room`;
+                } else if (this.photoType === 'planning' || this.photoType === 'task') {
+                    url = `/photo-workflow/photos/${this.photoId}/link-room`;
                 } else {
                     url = `/photo-workflow/photos/${this.photoId}/link-room`;
                 }
+
+                console.info('[ModalImage] Linking room...', { url, room: this.selectedRoom });
 
                 const response = await axios.post(url, {
                     room: this.selectedRoom
@@ -220,8 +265,8 @@
         $nextTick(() => $refs.modalPanel.focus());
     "
     x-on:keydown.escape.window="show = false"
-    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom(); }"
-    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; reApplySelectedRoom(); }"
+    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; if(tomSelectInstance) tomSelectInstance.setValue(selectedRoom, true); }"
+    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; if(tomSelectInstance) tomSelectInstance.setValue(selectedRoom, true); }"
     x-show="show"
     style="display: none;"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -253,25 +298,25 @@
             <!-- Left side: Room selection -->
             <div class="flex items-center gap-2 flex-grow max-w-sm" x-show="taskId && locationId">
                 @if(auth()->user()?->canExecutePlannings() || auth()->user()?->canTriggerPhotoWorkflow())
-                    <template x-if="rooms.length > 0">
-                        <div class="flex items-center gap-2 w-full">
-                            <select x-model="selectedRoom"
-                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 py-1.5">
+                    <div x-show="rooms.length > 0 || !loadingRooms" class="flex items-center gap-2 w-full">
+                        <div class="w-full text-gray-900">
+                            <select x-ref="roomSelect"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                 <option value="">Selecteer ruimte...</option>
                                 <template x-for="room in rooms" :key="room">
                                     <option :value="room" x-text="room" :selected="room === selectedRoom"></option>
                                 </template>
                             </select>
-                            <button type="button"
-                                    @click="linkRoom()"
-                                    :disabled="!selectedRoom || isLinking"
-                                    :class="(!selectedRoom || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
-                                    class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap">
-                                <span x-show="!isLinking">Koppel ruimte</span>
-                                <span x-show="isLinking">Bezig...</span>
-                            </button>
                         </div>
-                    </template>
+                        <button type="button"
+                                @click="linkRoom()"
+                                :disabled="!selectedRoom || isLinking"
+                                :class="(!selectedRoom || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
+                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap">
+                            <span x-show="!isLinking">Koppel</span>
+                            <span x-show="isLinking">...</span>
+                        </button>
+                    </div>
                     <template x-if="loadingRooms">
                         <span class="text-xs text-gray-500 dark:text-gray-400">Ruimtes laden...</span>
                     </template>
