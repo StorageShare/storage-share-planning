@@ -324,8 +324,8 @@
                                                             }
                                                         @endphp
                                                         <div class="mt-2" x-data="{
-                                                            photoIds: @json($planningPhotoIds),
-                                                            photoRooms: @json($planningPhotoRooms),
+                                                            photoIds: {{ json_encode($planningPhotoIds) }},
+                                                            photoRooms: {{ json_encode($planningPhotoRooms) }},
                                                             photoType: '{{ $photoType }}'
                                                         }" @room-linked.window="
                                                             if($event.detail.photoType === photoType) {
@@ -1000,8 +1000,8 @@
                                                                     @endif
                                                             @if (!empty($photoUrls))
                                                                 <div class="mb-2" x-data="{
-                                                                    photoIds: @json($photoIds),
-                                                                    photoRooms: @json($photoRooms),
+                                                                    photoIds: {{ json_encode($photoIds) }},
+                                                                    photoRooms: {{ json_encode($photoRooms) }},
                                                                     photoType: '{{ $photoType }}'
                                                                 }" @room-linked.window="
                                                                     if($event.detail.photoType === photoType) {
@@ -1243,6 +1243,7 @@
                                             @foreach ($commentsForLocation as $comment)
                                                 @php
                                                     $photoUrls = $comment->photos->pluck('url')->all();
+                                                    $photoIds = $comment->photos->pluck('id')->all();
                                                 @endphp
                                                 <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
                                                     <div class="flex items-start justify-between">
@@ -1253,7 +1254,7 @@
                                                                     @foreach ($photoUrls as $idx => $url)
                                                                         <button type="button"
                                                                                 class="block w-20 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: [], photoType: 'task', currentRooms: [] })">
+                                                                                @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: @js($photoIds), photoType: 'task', currentRooms: [] })">
                                                                             <img src="{{ $url }}" alt="Opmerking foto" class="w-full h-full object-cover">
                                                                         </button>
                                                                     @endforeach
@@ -1351,8 +1352,12 @@
                                                                     $photoUrls = $item->photos && $item->photos->count() > 0
                                                                         ? $item->photos->pluck('url')->all()
                                                                         : [];
+                                                                    $photoIds = $item->photos && $item->photos->count() > 0
+                                                                        ? $item->photos->pluck('id')->all()
+                                                                        : [];
                                                                     if (empty($photoUrls) && $item->photo_path) {
                                                                         $photoUrls = [\Illuminate\Support\Facades\Storage::disk('public')->url($item->photo_path)];
+                                                                        $photoIds = [null];
                                                                     }
                                                                 @endphp
 
@@ -1361,14 +1366,14 @@
                                                                         @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                             <button type="button"
                                                                                     class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: [], photoType: 'task', currentRooms: [] })">
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: @js($photoIds), photoType: 'task', currentRooms: [] })">
                                                                                 <img src="{{ $url }}" alt="Checklist foto" class="w-full h-full object-cover">
                                                                             </button>
                                                                         @endforeach
                                                                         @if (count($photoUrls) > 3)
                                                                             <button type="button"
                                                                                     class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3, photoIds: [], photoType: 'task', currentRooms: [] })">
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3, photoIds: @js($photoIds), photoType: 'task', currentRooms: [] })">
                                                                                 <img src="{{ $photoUrls[3] }}" alt="Meer checklist foto’s" class="w-full h-full object-cover opacity-70">
                                                                                 <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
                                                                             </button>

@@ -16,6 +16,7 @@
         loadingRooms: false,
         roomsError: false,
         isLinking: false,
+        justLinked: false,
         tomSelectInstance: null,
 
         async init() {
@@ -143,6 +144,11 @@
                 }
 
                 this.$dispatch('notify', { type: 'success', message: 'Ruimte succesvol gekoppeld.' });
+
+                this.justLinked = true;
+                setTimeout(() => {
+                    this.justLinked = false;
+                }, 3000);
 
                 // Update the local state in the caller if possible
                 this.$dispatch('room-linked', { photoId: this.photoId, photoType: this.photoType, room: this.selectedRoom });
@@ -307,7 +313,7 @@
             <div class="flex items-center gap-2 flex-grow max-w-sm" x-show="taskId && locationId">
                 @if(auth()->user()?->canExecutePlannings() || auth()->user()?->canTriggerPhotoWorkflow())
                     <div x-show="rooms.length > 0 || !loadingRooms" class="flex items-center gap-2 w-full">
-                        <div class="w-full text-gray-900">
+                        <div class="w-full text-gray-900" :class="justLinked ? 'ring-2 ring-green-500 rounded-md transition-all duration-300' : ''">
                             <select x-ref="roomSelect"
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                 <option value="">Selecteer ruimte...</option>
@@ -318,11 +324,15 @@
                         </div>
                         <button type="button"
                                 @click="linkRoom()"
-                                :disabled="!selectedRoom || isLinking"
-                                :class="(!selectedRoom || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'"
-                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap">
-                            <span x-show="!isLinking">Koppel</span>
+                                :disabled="!selectedRoom || isLinking || justLinked"
+                                :class="justLinked ? 'bg-green-600' : ((!selectedRoom || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700')"
+                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300 whitespace-nowrap">
+                            <span x-show="!isLinking && !justLinked">Koppel</span>
                             <span x-show="isLinking">...</span>
+                            <span x-show="justLinked" class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                Gekoppeld
+                            </span>
                         </button>
                     </div>
                     <template x-if="loadingRooms">

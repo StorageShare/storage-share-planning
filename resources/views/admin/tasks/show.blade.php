@@ -101,9 +101,9 @@
                                                 @endphp
                                                 <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"
                                                      x-data='{
-                                                        completionPhotos: @json($completionPhotos),
-                                                        photoIds: @json($completionPhotoIds),
-                                                        photoRooms: @json($completionPhotoRooms),
+                                                        completionPhotos: {{ json_encode($completionPhotos) }},
+                                                        photoIds: {{ json_encode($completionPhotoIds) }},
+                                                        photoRooms: {{ json_encode($completionPhotoRooms) }},
                                                         onRoomLinked(detail) {
                                                             if (detail.photoType === "completion") {
                                                                 const idx = $data.photoIds.indexOf(detail.photoId);
@@ -365,7 +365,7 @@
                                         @php
                                             $skipPhotos = $skipCompletion->photos->map(fn($photo) => \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path))->values()->all();
                                         @endphp
-                                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ skipPhotos: @json($skipPhotos) }'>
+                                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data='{ skipPhotos: {{ json_encode($skipPhotos) }} }'>
                                             @foreach ($skipCompletion->photos as $index => $photo)
                                                 <button type="button" class="focus:outline-none" @click="$dispatch('open-image-modal', { imageUrls: skipPhotos, startIndex: {{ $index }}, photoIds: [], photoType: '{{ $type === 'task' ? 'task' : 'task_photo' }}', currentRooms: [] })">
                                                     <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path) }}" alt="Skip Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-24 w-24">

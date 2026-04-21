@@ -74,9 +74,9 @@
                                     $planningPhotoRooms = $planning_task->planningTaskPhotos->pluck('room')->values()->all();
                                 @endphp
                                     <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data="{
-                                    planningPhotos: @json($planningPhotos),
-                                    photoIds: @json($planningPhotoIds),
-                                    photoRooms: @json($planningPhotoRooms)
+                                    planningPhotos: {{ json_encode($planningPhotos) }},
+                                    photoIds: {{ json_encode($planningPhotoIds) }},
+                                    photoRooms: {{ json_encode($planningPhotoRooms) }}
                                 }" @room-linked.window="
                                     const idx = $data.photoIds.indexOf($event.detail.photoId);
                                     if(idx !== -1) $data.photoRooms[idx] = $event.detail.room;
@@ -237,9 +237,9 @@
                                             @endphp
                                             <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2"
                                                  x-data='{
-                                                    completionPhotos: @json($completionPhotos),
-                                                    photoIds: @json($completionPhotoIds),
-                                                    photoRooms: @json($completionPhotoRooms)
+                                                    completionPhotos: {{ json_encode($completionPhotos) }},
+                                                    photoIds: {{ json_encode($completionPhotoIds) }},
+                                                    photoRooms: {{ json_encode($completionPhotoRooms) }}
                                                  }'
                                                  @room-linked.window="
                                                     if($event.detail.photoType === 'completion') {
@@ -290,9 +290,9 @@
                                                 @endphp
                                                 <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2"
                                                      x-data='{
-                                                        completionPhotos: @json($completionPhotos),
-                                                        photoIds: @json($completionPhotoIds),
-                                                        photoRooms: @json($completionPhotoRooms)
+                                                        completionPhotos: {{ json_encode($completionPhotos) }},
+                                                        photoIds: {{ json_encode($completionPhotoIds) }},
+                                                        photoRooms: {{ json_encode($completionPhotoRooms) }}
                                                      }'
                                                      @room-linked.window="
                                                         if($event.detail.photoType === 'completion') {

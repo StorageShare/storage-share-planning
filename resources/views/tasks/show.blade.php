@@ -175,8 +175,8 @@
                                     $taskPhotoIds = $task->taskPhotos->pluck('id')->values()->all();
                                 @endphp
                                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" x-data='{
-                                    taskPhotos: @json($taskPhotos),
-                                    photoIds: @json($taskPhotoIds)
+                                    taskPhotos: {{ json_encode($taskPhotos) }},
+                                    photoIds: {{ json_encode($taskPhotoIds) }}
                                 }'>
                                     @foreach($task->taskPhotos as $index => $photo)
                                         <button type="button" class="focus:outline-none group"
@@ -234,8 +234,8 @@
                                             $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                             @endphp
                                                 <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2" x-data='{
-                                                    completionPhotos: @json($completionPhotos),
-                                                    photoIds: @json($completionPhotoIds)
+                                                    completionPhotos: {{ json_encode($completionPhotos) }},
+                                                    photoIds: {{ json_encode($completionPhotoIds) }}
                                                 }'>
                                                     @foreach($completion->photos as $index => $photo)
                                                     <button type="button" class="focus:outline-none"
@@ -292,8 +292,8 @@
                                             @endphp
                                             <h4 class="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">Bijgevoegde foto's</h4>
                                             <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2" x-data='{
-                                                completionPhotos: @json($completionPhotos),
-                                                photoIds: @json($completionPhotoIds)
+                                                completionPhotos: {{ json_encode($completionPhotos) }},
+                                                photoIds: {{ json_encode($completionPhotoIds) }}
                                             }'>
                                                 @foreach($completion->photos as $index => $photo)
                                                     <button type="button" class="focus:outline-none"
