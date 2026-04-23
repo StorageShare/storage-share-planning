@@ -15,6 +15,21 @@ class PlanningComment extends Model
         'comment',
     ];
 
+    protected $appends = [
+        'photos_json',
+    ];
+
+    /**
+     * Get the photos for JSON.
+     */
+    public function getPhotosJsonAttribute()
+    {
+        return $this->photos->map(fn($p) => [
+            'id' => $p->id,
+            'url' => $p->url
+        ]);
+    }
+
     /**
      * Get the planning associated with the comment.
      * @return BelongsTo<Planning, $this>

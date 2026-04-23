@@ -56,6 +56,57 @@ class PlanningTask extends Model
     ];
 
     /**
+     * @var list<string>
+     */
+    protected $appends = [
+        'photos',
+        'skip_photos',
+    ];
+
+    /**
+     * Get the photos associated with the task completion.
+     */
+    public function getPhotosAttribute(): array
+    {
+        $latestCompletion = $this->completions()
+            ->where(function ($query) {
+                $query->where('review_outcome', '!=', 'reopened')
+                    ->orWhereNull('review_outcome');
+            })
+            ->latest()
+            ->first();
+
+        if ($latestCompletion) {
+            return $latestCompletion->photos->map(fn($p) => [
+                'id' => $p->id,
+                'url' => $p->url
+            ])->toArray();
+        }
+
+        return [];
+    }
+
+    /**
+     * Get the skip photos associated with the task.
+     */
+    public function getSkipPhotosAttribute(): array
+    {
+        $latestSkip = $this->completions()
+            ->where('review_outcome', 'skipped')
+            ->latest()
+            ->first();
+
+        if ($latestSkip) {
+            return $latestSkip->photos->map(fn($p) => [
+                'id' => $p->id,
+                'url' => $p->url
+            ])->toArray();
+        }
+
+        return [];
+    }
+
+    /**
      * Get the planning that owns the planning task.
      *
      * @return BelongsTo<Planning, $this>

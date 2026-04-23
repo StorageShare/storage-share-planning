@@ -494,7 +494,7 @@ class PlanningTaskController extends Controller
         // Check if this location is now completed and notify if needed
         $this->checkLocationCompletionAndNotify($planning_task);
 
-        return response()->json(['task' => $planning_task]);
+        return response()->json(['task' => $planning_task->fresh(['completions.photos'])]);
     }
 
     /**
@@ -520,7 +520,7 @@ class PlanningTaskController extends Controller
 
         $planning->checkAndUpdateStatus();
 
-        return response()->json(['task' => $planning_task]);
+        return response()->json(['task' => $planning_task->fresh(['completions.photos'])]);
     }
 
     /**
@@ -625,7 +625,7 @@ class PlanningTaskController extends Controller
         // Check if this location is now completed and notify if needed
         $this->checkLocationCompletionAndNotify($planning_task);
 
-        return response()->json(['task' => $planning_task->fresh()]);
+        return response()->json(['task' => $planning_task->fresh(['completions.photos'])]);
     }
 
     /**
@@ -699,8 +699,7 @@ class PlanningTaskController extends Controller
         $this->checkLocationCompletionAndNotify($planning_task);
 
         return response()->json([
-            'task' => $planning_task->fresh(),
-            'skip_photos' => $skipPhotos
+            'task' => $planning_task->fresh(['completions.photos']),
         ]);
     }
 
@@ -731,14 +730,9 @@ class PlanningTaskController extends Controller
         }
 
         $planning->checkAndUpdateStatus();
-        $planning_task->load(['completions.photos']);
-        $latestCompletion = $planning_task->completions->where('review_outcome', '!=', 'reopened')->sortByDesc('created_at')->first();
-        $photos = $latestCompletion ? $latestCompletion->photos->pluck('url')->toArray() : [];
 
         return response()->json([
-            'task' => array_merge($planning_task->fresh()->toArray(), [
-                'photos' => $photos
-            ])
+            'task' => $planning_task->fresh(['completions.photos']),
         ]);
     }
 
@@ -783,14 +777,9 @@ class PlanningTaskController extends Controller
         $comment->load('photos');
 
         return response()->json([
-            'comment' => [
-                'id' => $comment->id,
-                'comment' => $comment->comment,
-                'photos' => $comment->photos->pluck('url'),
-                'location_id' => $comment->location_id,
-                'user_id' => $comment->user_id,
+            'comment' => array_merge($comment->toArray(), [
                 'created_at' => $comment->created_at->format('H:i'),
-            ]
+            ])
         ]);
     }
 
@@ -843,14 +832,9 @@ class PlanningTaskController extends Controller
         $comment->load('photos');
 
         return response()->json([
-            'comment' => [
-                'id' => $comment->id,
-                'comment' => $comment->comment,
-                'photos' => $comment->photos->pluck('url'),
-                'location_id' => $comment->location_id,
-                'user_id' => $comment->user_id,
+            'comment' => array_merge($comment->toArray(), [
                 'created_at' => $comment->created_at->format('H:i'),
-            ]
+            ])
         ]);
     }
 

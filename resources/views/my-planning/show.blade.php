@@ -900,7 +900,7 @@
                                                         </div>
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in task.photos" :key="pIdx">
+                                                                <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
                                                                     <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion')">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
                                                                     </button>
@@ -940,7 +940,7 @@
                                                         </div>
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in task.photos" :key="pIdx">
+                                                                <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
                                                                     <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion')">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
@@ -977,7 +977,7 @@
                                                         <h5 class="font-bold text-gray-800 dark:text-gray-200">Foto's bij overslaan:</h5>
                                                         <div class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in task.skip_photos" :key="pIdx">
+                                                                <template x-for="(photo, pIdx) in task.skip_photos" :key="photo.id ?? pIdx">
                                                                     <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion')">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
@@ -1097,9 +1097,9 @@
                                                     <div class="flex-1">
                                                         <div x-show="editingCommentId !== comment.id">
                                                             <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
-                                                            <div x-show="comment.photos && comment.photos.length > 0" class="mt-3 flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in comment.photos" :key="pIdx">
-                                                                    <button @click="openImageModal(comment.photos.map(p => p.url), pIdx, null, (location ? location.location_id : null), '', comment.photos.map(p => p.id), 'completion')">
+                                                            <div x-show="comment.photos_json && comment.photos_json.length > 0" class="mt-3 flex flex-wrap gap-2">
+                                                                <template x-for="(photo, pIdx) in comment.photos_json" :key="photo.id ?? pIdx">
+                                                                    <button @click="openImageModal(comment.photos_json.map(p => p.url), pIdx, null, (location ? location.location_id : null), '', comment.photos_json.map(p => p.id), 'completion')">
                                                                         <img :src="photo.url" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
                                                                     </button>
                                                                 </template>
@@ -1728,7 +1728,7 @@
                     })
                     .then(response => {
                         comment.comment = response.data.comment.comment;
-                        comment.photos = response.data.comment.photos;
+                        comment.photos_json = response.data.comment.photos_json;
                         this.editingCommentId = null;
                         this.editCommentNotes = '';
                         this.editCommentPhotos = [];
@@ -1770,13 +1770,13 @@
                             const updatedTask = response.data.task;
                             task.status = updatedTask.status;
                             task.completed_notes = completion.notes;
-                            task.photos = response.data.task.photos || [];
+                            task.photos = updatedTask.photos || [];
 
                             // Update corresponding tasks in call steps
                             this.updateTaskInCallSteps(task.task_id, {
                                 status: updatedTask.status,
                                 completed_notes: completion.notes,
-                                photos: response.data.task.photos || []
+                                photos: updatedTask.photos || []
                             });
 
                             // Clear form
@@ -1854,7 +1854,7 @@
                                     if (task) {
                                         task.status = 'skipped';
                                         task.skip_reason = this.skipCompletion.reason;
-                                        task.skip_photos = response.data.skip_photos || [];
+                                        task.skip_photos = response.data.task.skip_photos || [];
                                     }
                                 }
                             });
@@ -1863,7 +1863,7 @@
                             this.updateTaskInCallSteps(this.skipTaskId, {
                                 status: 'skipped',
                                 skip_reason: this.skipCompletion.reason,
-                                skip_photos: response.data.skip_photos || []
+                                skip_photos: response.data.task.skip_photos || []
                             });
 
                             this.isSkipModalOpen = false;
