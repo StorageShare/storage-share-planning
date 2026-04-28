@@ -83,6 +83,7 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
 
     // Photo distribution workflow (admins and facilities coordinators)
     Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
+    Route::post('comment-photos/{photo}/distribute', [TaskPhotoProcessController::class, 'distributeCommentPhoto'])->name('photo-workflow.comment-photo.distribute');
     Route::get('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker-task');
     Route::get('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo-task');
     Route::get('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation-task');
@@ -125,6 +126,7 @@ Route::middleware(['auth', 'can_execute_plannings'])->group(function () {
     Route::post('photo-workflow/task-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToTaskPhoto'])->name('photo-workflow.task-photo.link-room');
     Route::post('photo-workflow/completion-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToCompletionPhoto'])->name('photo-workflow.completion-photo.link-room');
     Route::post('photo-workflow/planning-completion-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToPlanningCompletionPhoto'])->name('photo-workflow.planning-completion-photo.link-room');
+    Route::post('photo-workflow/comment-photos/{photo}/link-room', [TaskPhotoProcessController::class, 'linkRoomToCommentPhoto'])->name('photo-workflow.comment-photo.link-room');
 
     // Download all photos for a planning task as ZIP
     Route::get('plannings/tasks/{planning_task}/photos/download', [PlanningTaskController::class, 'downloadPhotos'])->name('plannings.tasks.photos.download');

@@ -408,7 +408,9 @@ class PlanningController extends Controller
             'on_location_seconds' => (int)$actualOnLocationSeconds,
         ];
 
-        return view($this->viewName('plannings.show'), compact('planning', 'travelTimes', 'timeOverview', 'onLocationTimers', 'travelToTimers', 'travelBackTimer', 'actualTotals'));
+        $allLocations = Location::orderBy('name')->get(['id', 'name']);
+
+        return view($this->viewName('plannings.show'), compact('planning', 'travelTimes', 'timeOverview', 'onLocationTimers', 'travelToTimers', 'travelBackTimer', 'actualTotals', 'allLocations'));
     }
 
     /**

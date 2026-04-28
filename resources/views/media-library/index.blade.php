@@ -7,7 +7,8 @@
 
     <div class="py-12" x-data="mediaLibrary({
         initialLocationId: '{{ $locationId }}',
-        initialRoom: '{{ $room }}'
+        initialRoom: '{{ $room }}',
+        allLocations: {{ json_encode($locations->map(fn($l) => ['id' => $l->id, 'name' => $l->name])) }}
     })">
         <div class="max-w-8xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
@@ -123,6 +124,8 @@
                     }
                 },
 
+                allLocations: config.allLocations || [],
+
                 onLocationChange() {
                     this.selectedRoom = '';
                     this.rooms = [];
@@ -153,7 +156,8 @@
                         startIndex: 0,
                         taskId: taskId,
                         locationId: locationId,
-                        currentRoom: room
+                        currentRoom: room,
+                        allLocations: this.allLocations
                     });
                 }
             }

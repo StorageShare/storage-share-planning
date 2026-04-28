@@ -488,11 +488,15 @@ class MyPlanningController extends Controller
             'total_minutes' => $totalTaskMinutes + ($travelTimes ? $travelTimes['total_duration_minutes'] : 0),
         ];
 
+        // Pass all locations to the view for the photo workflow
+        $allLocations = \App\Models\Location::orderBy('name')->get(['id', 'name']);
+
         return view($this->viewName('my-planning.show'), [
             'planning' => $planning,
             'locationSteps' => $locationSteps,
             'travelTimes' => $travelTimes,
-            'timeOverview' => $timeOverview
+            'timeOverview' => $timeOverview,
+            'allLocations' => $allLocations
         ]);
     }
 

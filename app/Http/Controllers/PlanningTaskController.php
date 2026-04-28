@@ -741,12 +741,19 @@ class PlanningTaskController extends Controller
      */
     public function storeExtraTask(Request $request, Planning $planning, int|string $location_id, ImageService $imageService): JsonResponse
     {
+        // Prevent PHP max_execution_time timeouts during multi-photo uploads
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300);
+        }
+
         $user = Auth::user();
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'notes' => 'required|string',
             'photos.*' => 'nullable|image|max:10240',
+            'rooms.*' => 'nullable|string',
+            'photo_locations.*' => 'nullable|exists:locations,id',
         ]);
 
         $comment = $planning->comments()->create([
@@ -756,7 +763,9 @@ class PlanningTaskController extends Controller
         ]);
 
         if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
+            $rooms = $request->input('rooms', []);
+            $photoLocations = $request->input('photo_locations', []);
+            foreach ($request->file('photos') as $index => $photo) {
                 try {
                     $filename = uniqid('pc_'.$comment->id.'_', true).'.'.$photo->getClientOriginalExtension();
                     $path = $imageService->saveCompressedImage(
@@ -765,11 +774,19 @@ class PlanningTaskController extends Controller
                         $filename,
                         'public'
                     );
-                    $comment->photos()->create(['file_path' => $path]);
+                    $comment->photos()->create([
+                        'file_path' => $path,
+                        'room' => $rooms[$index] ?? null,
+                        'location_id' => $photoLocations[$index] ?? null,
+                    ]);
                 } catch (\Exception $e) {
                     Log::error('Error compressing image: '.$e->getMessage());
                     $path = $photo->store('planning-comment-photos/'.$comment->id, 'public');
-                    $comment->photos()->create(['file_path' => $path]);
+                    $comment->photos()->create([
+                        'file_path' => $path,
+                        'room' => $rooms[$index] ?? null,
+                        'location_id' => $photoLocations[$index] ?? null,
+                    ]);
                 }
             }
         }
@@ -804,6 +821,8 @@ class PlanningTaskController extends Controller
         $validated = $request->validate([
             'notes' => 'required|string',
             'photos.*' => 'nullable|image|max:10240',
+            'rooms.*' => 'nullable|string',
+            'photo_locations.*' => 'nullable|exists:locations,id',
         ]);
 
         $comment->update([
@@ -811,7 +830,9 @@ class PlanningTaskController extends Controller
         ]);
 
         if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
+            $rooms = $request->input('rooms', []);
+            $photoLocations = $request->input('photo_locations', []);
+            foreach ($request->file('photos') as $index => $photo) {
                 try {
                     $filename = uniqid('pc_'.$comment->id.'_', true).'.'.$photo->getClientOriginalExtension();
                     $path = $imageService->saveCompressedImage(
@@ -820,11 +841,19 @@ class PlanningTaskController extends Controller
                         $filename,
                         'public'
                     );
-                    $comment->photos()->create(['file_path' => $path]);
+                    $comment->photos()->create([
+                        'file_path' => $path,
+                        'room' => $rooms[$index] ?? null,
+                        'location_id' => $photoLocations[$index] ?? null,
+                    ]);
                 } catch (\Exception $e) {
                     Log::error('Error compressing image: '.$e->getMessage());
                     $path = $photo->store('planning-comment-photos/'.$comment->id, 'public');
-                    $comment->photos()->create(['file_path' => $path]);
+                    $comment->photos()->create([
+                        'file_path' => $path,
+                        'room' => $rooms[$index] ?? null,
+                        'location_id' => $photoLocations[$index] ?? null,
+                    ]);
                 }
             }
         }

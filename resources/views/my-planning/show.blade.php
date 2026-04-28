@@ -9,6 +9,7 @@
         <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             <div x-data="locationPlanning"
                 data-location-steps='{{ json_encode($locationSteps, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}'
+                data-all-locations='{{ json_encode($allLocations ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}'
                 data-planning-id="{{ $planning->id }}"
                 x-init="init($root)"
                 @room-linked.window="onRoomLinked($event.detail)">
@@ -520,7 +521,7 @@
                                                                 <template x-if="item.photos && item.photos.length > 0">
                                                                     <template x-for="(p, idx) in item.photos" :key="p.id ?? p.photo_url ?? idx">
                                                                         <div class="relative group">
-                                                                            <button type="button" class="block focus:outline-none" @click="openImageModal(item.photos.map(pp => pp.photo_url ?? pp.url ?? pp), idx)">
+                                                                            <button type="button" class="block focus:outline-none" @click="openImageModal(item.photos.map(pp => pp.photo_url ?? pp.url ?? pp), idx, null, (currentLocation.location_id !== 'backlog' ? currentLocation.location_id : null), '', item.photos.map(pp => pp.id), 'checklist_photo', item.photos.map(pp => pp.location_id), item.photos.map(pp => pp.room))">
                                                                                 <img :src="p.photo_url ?? p.url ?? p" class="w-full h-36 object-cover rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer group-hover:opacity-90 transition" :alt="`Foto ${idx+1} voor ${item.title}`">
                                                                             </button>
                                                                             <button x-show="item.status === 'pending'" @click.prevent="removeSinglePhoto(item, p)" class="absolute -top-2 -right-2 z-10 bg-white dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-800 text-red-600 rounded-full p-1 shadow">
@@ -532,7 +533,7 @@
 
                                                                 <!-- Legacy single photo fallback -->
                                                                 <template x-if="(!item.photos || item.photos.length === 0) && item.photo_url">
-                                                                    <button @click="openImageModal([item.photo_url], 0)" class="block">
+                                                                    <button @click="openImageModal([item.photo_url], 0, null, (currentLocation.location_id !== 'backlog' ? currentLocation.location_id : null), '', [], 'checklist_photo')" class="block">
                                                                         <img :src="item.photo_url" :alt="`Foto voor ${item.title}`" class="w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition">
                                                                     </button>
                                                                 </template>
@@ -864,7 +865,7 @@
                                                     <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Foto's bij taak:</h4>
                                                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                                         <template x-for="(photo, photoIndex) in task.backlog_photos" :key="photoIndex">
-                                                            <button type="button" class="focus:outline-none group" @click="openImageModal(task.backlog_photos.map(p => p.url), photoIndex, task.underlying_task_id, (location ? location.location_id : null), (task.room || ''), task.backlog_photos.map(p => p.id))">
+                                                            <button type="button" class="focus:outline-none group" @click="openImageModal(task.backlog_photos.map(p => p.url), photoIndex, task.underlying_task_id, (location ? location.location_id : null), (task.room || ''), task.backlog_photos.map(p => p.id), 'task_photo', task.backlog_photos.map(p => p.location_id), task.backlog_photos.map(p => p.room))">
                                                                 <img :src="photo.url" alt="Taak foto" class="w-full h-24 object-cover rounded-lg shadow cursor-pointer hover:opacity-75 transition">
                                                             </button>
                                                         </template>
@@ -901,7 +902,7 @@
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion')">
+                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
                                                                     </button>
                                                                 </template>
@@ -941,7 +942,7 @@
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion')">
+                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
                                                                 </template>
@@ -978,7 +979,7 @@
                                                         <div class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in task.skip_photos" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion')">
+                                                                    <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion', task.skip_photos.map(p => p.location_id), task.skip_photos.map(p => p.room))">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
                                                                 </template>
@@ -1099,15 +1100,21 @@
                                                             <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
                                                             <div x-show="comment.photos_json && comment.photos_json.length > 0" class="mt-3 flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in comment.photos_json" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(comment.photos_json.map(p => p.url), pIdx, null, (location ? location.location_id : null), '', comment.photos_json.map(p => p.id), 'completion')">
-                                                                        <img :src="photo.url" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
-                                                                    </button>
+                                                                    <div class="relative group">
+                                                                        <button @click="openImageModal(comment.photos_json.map(p => p.url), pIdx, null, null, '', comment.photos_json.map(p => p.id), 'planning_comment', comment.photos_json.map(p => p.location_id), comment.photos_json.map(p => p.room))">
+                                                                            <img :src="photo.url" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
+                                                                        </button>
+                                                                        <template x-if="photo.location_id || photo.room">
+                                                                            <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 rounded-b shadow-sm truncate text-center pointer-events-none"
+                                                                                x-text="(photo.location_id ? getLocationName(photo.location_id) + (photo.room ? ': ' : '') : '') + (photo.room || '')"></div>
+                                                                        </template>
+                                                                    </div>
                                                                 </template>
                                                             </div>
                                                         </div>
 
                                                         {{-- Edit Comment Form --}}
-                                                        <div x-show="editingCommentId === comment.id" class="space-y-3">
+                                                        <div x-show="editingCommentId === comment.id" class="space-y-3" @paste="onEditCommentPaste($event)">
                                                             <textarea
                                                                 x-model="editCommentNotes"
                                                                 class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 sm:text-sm"
@@ -1128,10 +1135,10 @@
                                                                     <span class="text-xs text-gray-500" x-text="`${editCommentPhotos.length} geselecteerd`"></span>
                                                                 </div>
 
-                                                                <div x-show="editCommentPhotos.length > 0" class="mt-2 flex flex-wrap gap-2">
+                                                                <div x-show="editCommentPhotos.length > 0" class="mt-4 flex flex-wrap gap-2">
                                                                     <template x-for="(file, fIndex) in editCommentPhotos" :key="'edit-photo-' + fIndex">
                                                                         <div class="relative group">
-                                                                            <img :src="URL.createObjectURL(file)" class="w-12 h-12 object-cover rounded shadow-sm">
+                                                                            <img :src="URL.createObjectURL(file)" class="w-16 h-16 object-cover rounded shadow-sm">
                                                                             <button @click="removeEditCommentQueuedFile(fIndex)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 transition">
                                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1224,9 +1231,9 @@
                                                     <div x-show="extraTaskPhotos.length > 0" class="mt-4 flex flex-wrap gap-2">
                                                         <template x-for="(file, fIndex) in extraTaskPhotos" :key="fIndex">
                                                             <div class="relative group">
-                                                                <img :src="URL.createObjectURL(file)" class="w-20 h-20 object-cover rounded-lg border dark:border-gray-600">
+                                                                <img :src="URL.createObjectURL(file)" class="w-16 h-16 object-cover rounded border dark:border-gray-600 shadow-sm">
                                                                 <button @click="removeExtraQueuedFile(fIndex)"
-                                                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600">
+                                                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 transition">
                                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                                     </svg>
@@ -1367,6 +1374,11 @@
                 extraTaskTitle: '',
                 extraTaskNotes: '',
                 extraTaskPhotos: [],
+                extraTaskRooms: [],
+                extraTaskPhotoLocations: [],
+                allLocations: [], // List of all locations in this planning
+                locationRooms: {}, // Cache rooms per location
+                isLoadingRooms: false,
                 extraTaskErrors: {},
                 isSkipModalOpen: false,
                 skipCompletion: {
@@ -1400,11 +1412,44 @@
                 editingCommentId: null,
                 editCommentNotes: '',
                 editCommentPhotos: [],
+                editCommentRooms: [],
+                editCommentPhotoLocations: [],
                 isUpdatingComment: false,
+
+                getLocationName(locationId) {
+                    if (!locationId) return '';
+                    const loc = this.allLocations.find(l => l.id == locationId);
+                    return loc ? loc.name : '';
+                },
 
                 async init() {
                     this.locationSteps = JSON.parse(this.$root.dataset.locationSteps);
                     this.planningId = this.$root.dataset.planningId;
+
+                    // Initialize allLocations from the server-provided list or fallback to planning locations
+                    const serverLocations = JSON.parse(this.$root.dataset.allLocations || '[]');
+                    if (serverLocations.length > 0) {
+                        this.allLocations = serverLocations;
+                    } else {
+                        this.allLocations = this.locationSteps
+                            .filter(step => step.type === 'location' && step.location_id)
+                            .map(step => ({
+                                id: step.location_id,
+                                name: step.title
+                            }));
+                    }
+
+                    this.$watch('extraTaskPhotoLocations', (value) => {
+                        value.forEach(locId => {
+                            if (locId) this.fetchLocationRooms(locId);
+                        });
+                    }, { deep: true });
+
+                    this.$watch('editCommentPhotoLocations', (value) => {
+                        value.forEach(locId => {
+                            if (locId) this.fetchLocationRooms(locId);
+                        });
+                    }, { deep: true });
 
                     // Initialize task completions
                     this.locationSteps.forEach((location, locationIndex) => {
@@ -1551,6 +1596,22 @@
                     }
                 },
 
+                onEditCommentPaste(event) {
+                    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items;
+                    if (!items) return;
+
+                    const files = [];
+                    for (const item of items) {
+                        if (item.type.indexOf('image') !== -1) {
+                            const blob = item.getAsFile();
+                            if (blob) files.push(blob);
+                        }
+                    }
+                    if (files.length > 0) {
+                        this.queueEditCommentPhotoFiles({ files: files });
+                    }
+                },
+
                 clearTaskQueuedFiles(taskId) {
                     const completion = this.getTaskCompletion(taskId);
                     completion.photos = [];
@@ -1563,22 +1624,59 @@
                 },
 
                 onRoomLinked(detail) {
-                    const { taskId, room } = detail;
-                    this.selectedRooms[taskId] = room;
+                    const { photoId, photoType, room, locationId } = detail;
 
-                    // Also update the room in the locationSteps tasks
-                    this.locationSteps.forEach(step => {
-                        if (step.tasks) {
-                            step.tasks.forEach(task => {
-                                if (task.underlying_task_id == taskId) {
-                                    task.room = room;
+                    if (photoType === 'planning_comment' || photoType === 'comment_photo') {
+                        // Find and update the photo in the relevant comment
+                        this.locationSteps.forEach(step => {
+                            if (step.comments) {
+                                step.comments.forEach(comment => {
+                                    if (comment.photos_json) {
+                                        comment.photos_json.forEach(photo => {
+                                            if (photo.id == photoId) {
+                                                photo.room = room;
+                                                photo.location_id = locationId;
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+
+                        // Also check backlog comments
+                        if (this.backlogComments) {
+                            this.backlogComments.forEach(comment => {
+                                if (comment.photos_json) {
+                                    comment.photos_json.forEach(photo => {
+                                        if (photo.id == photoId) {
+                                            photo.room = room;
+                                            photo.location_id = locationId;
+                                        }
+                                    });
                                 }
                             });
                         }
-                    });
+                        return;
+                    }
+
+                    const { taskId } = detail;
+                    if (taskId) {
+                        this.selectedRooms[taskId] = room;
+
+                        // Also update the room in the locationSteps tasks
+                        this.locationSteps.forEach(step => {
+                            if (step.tasks) {
+                                step.tasks.forEach(task => {
+                                    if (task.underlying_task_id == taskId) {
+                                        task.room = room;
+                                    }
+                                });
+                            }
+                        });
+                    }
                 },
 
-                openImageModal(imageUrls, startIndex, taskId = null, locationId = null, currentRoom = '', photoIds = [], photoType = 'task') {
+                openImageModal(imageUrls, startIndex, taskId = null, locationId = null, currentRoom = '', photoIds = [], photoType = 'task', currentLocationIds = [], currentRooms = []) {
                     this.$dispatch('open-image-modal', {
                         imageUrls,
                         startIndex,
@@ -1586,7 +1684,10 @@
                         locationId,
                         currentRoom,
                         photoIds,
-                        photoType
+                        photoType,
+                        allLocations: this.allLocations,
+                        currentLocationIds: currentLocationIds,
+                        currentRooms: currentRooms
                     });
                 },
 
@@ -1604,6 +1705,8 @@
                             continue;
                         }
                         this.extraTaskPhotos.push(file);
+                        this.extraTaskRooms.push(''); // Initialize room for this photo
+                        this.extraTaskPhotoLocations.push(this.currentLocation.location_id !== 'backlog' ? this.currentLocation.location_id : '');
                     }
 
                     if (event.target) {
@@ -1613,6 +1716,28 @@
 
                 removeExtraQueuedFile(index) {
                     this.extraTaskPhotos.splice(index, 1);
+                    this.extraTaskRooms.splice(index, 1);
+                    this.extraTaskPhotoLocations.splice(index, 1);
+                },
+
+                fetchLocationRooms(locationId = null) {
+                    if (!locationId) {
+                        locationId = this.currentLocation.location_id;
+                    }
+                    if (!locationId || locationId === 'backlog') return;
+
+                    if (this.locationRooms[locationId]) return;
+
+                    this.isLoadingRooms = true;
+                    axios.get(`/locations/${locationId}/rooms`)
+                        .then(response => {
+                            this.locationRooms[locationId] = response.data;
+                            this.isLoadingRooms = false;
+                        })
+                        .catch(error => {
+                            console.error('Fout bij ophalen van kamers:', error);
+                            this.isLoadingRooms = false;
+                        });
                 },
 
                 submitExtraTask() {
@@ -1630,8 +1755,10 @@
                     const formData = new FormData();
                     formData.append('title', this.extraTaskTitle || 'Opmerking');
                     formData.append('notes', this.extraTaskNotes);
-                    this.extraTaskPhotos.forEach(photo => {
+                    this.extraTaskPhotos.forEach((photo, index) => {
                         formData.append('photos[]', photo);
+                        formData.append('rooms[]', this.extraTaskRooms[index] || '');
+                        formData.append('photo_locations[]', this.extraTaskPhotoLocations[index] || '');
                     });
 
                     axios.post(url, formData, {
@@ -1652,6 +1779,8 @@
                             this.extraTaskTitle = '';
                             this.extraTaskNotes = '';
                             this.extraTaskPhotos = [];
+                            this.extraTaskRooms = [];
+                            this.extraTaskPhotoLocations = [];
                             this.showExtraForm = false;
                             this.isSubmittingExtra = false;
 
@@ -1673,12 +1802,16 @@
                     this.editingCommentId = comment.id;
                     this.editCommentNotes = comment.comment;
                     this.editCommentPhotos = [];
+                    this.editCommentRooms = [];
+                    this.editCommentPhotoLocations = [];
                 },
 
                 cancelEditingComment() {
                     this.editingCommentId = null;
                     this.editCommentNotes = '';
                     this.editCommentPhotos = [];
+                    this.editCommentRooms = [];
+                    this.editCommentPhotoLocations = [];
                 },
 
                 queueEditCommentPhotoFiles(event) {
@@ -1695,6 +1828,8 @@
                             continue;
                         }
                         this.editCommentPhotos.push(file);
+                        this.editCommentRooms.push(''); // Initialize room for this photo
+                        this.editCommentPhotoLocations.push(this.currentLocation.location_id !== 'backlog' ? this.currentLocation.location_id : '');
                     }
 
                     if (event.target) {
@@ -1704,6 +1839,8 @@
 
                 removeEditCommentQueuedFile(index) {
                     this.editCommentPhotos.splice(index, 1);
+                    this.editCommentRooms.splice(index, 1);
+                    this.editCommentPhotoLocations.splice(index, 1);
                 },
 
                 updateComment(comment) {
@@ -1717,8 +1854,10 @@
                     const formData = new FormData();
                     formData.append('_method', 'PUT');
                     formData.append('notes', this.editCommentNotes);
-                    this.editCommentPhotos.forEach(photo => {
+                    this.editCommentPhotos.forEach((photo, index) => {
                         formData.append('photos[]', photo);
+                        formData.append('rooms[]', this.editCommentRooms[index] || '');
+                        formData.append('photo_locations[]', this.editCommentPhotoLocations[index] || '');
                     });
 
                     axios.post(`/planning-comments/${comment.id}`, formData, {
@@ -1732,6 +1871,8 @@
                         this.editingCommentId = null;
                         this.editCommentNotes = '';
                         this.editCommentPhotos = [];
+                        this.editCommentRooms = [];
+                        this.editCommentPhotoLocations = [];
                         this.isUpdatingComment = false;
                     })
                     .catch(error => {

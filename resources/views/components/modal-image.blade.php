@@ -7,12 +7,14 @@
         photoIds: [],
         currentIndex: 0,
         currentRooms: [],
+        currentLocationIds: [],
         taskId: null,
         photoId: null,
         photoType: 'task', // 'task' or 'completion'
         locationId: null,
         selectedRoom: '',
         rooms: [],
+        allLocations: [], // Add allLocations to state
         loadingRooms: false,
         roomsError: false,
         isLinking: false,
@@ -30,21 +32,24 @@
                     this.photoId = null;
                     this.photoIds = [];
                     this.currentRooms = [];
+                    this.currentLocationIds = [];
                     this.locationId = null;
                     this.selectedRoom = '';
                     this.rooms = [];
+                    this.allLocations = [];
+                }
+            });
+
+            this.$watch('locationId', (value) => {
+                if (value) {
+                    this.rooms = []; // Clear current rooms when location changes
+                    this.fetchRooms();
                 }
             });
         },
 
         async fetchRooms() {
             if (!this.locationId || this.loadingRooms) return;
-            // If we already have rooms for this location, don't fetch again,
-            // but we still might need to re-apply the selected room if the list was already loaded.
-            if (this.rooms.length > 0) {
-                this.reApplySelectedRoom();
-                return;
-            }
 
             this.loadingRooms = true;
             this.roomsError = false;
@@ -57,10 +62,14 @@
                     });
                 } else {
                     this.roomsError = true;
+                    this.rooms = [];
+                    this.initTomSelect(); // Re-init even if empty to clear previous options
                 }
             } catch (e) {
                 console.error('Error fetching rooms:', e);
                 this.roomsError = true;
+                this.rooms = [];
+                this.initTomSelect();
             } finally {
                 this.loadingRooms = false;
             }
@@ -74,21 +83,19 @@
                 this.tomSelectInstance.destroy();
             }
 
+            // Prepare options for TomSelect
+            const options = this.rooms.map(room => ({ value: room, text: room }));
+
             this.tomSelectInstance = new TomSelect(selectEl, {
                 create: true,
                 maxItems: 1,
                 placeholder: 'Selecteer of typ ruimte...',
+                options: options,
+                items: this.selectedRoom ? [this.selectedRoom] : [],
                 onChange: (value) => {
                     this.selectedRoom = value;
-                },
-                onInitialize: function() {
-                    // Force dark mode compatibility if needed
                 }
             });
-
-            if (this.selectedRoom) {
-                this.tomSelectInstance.setValue(this.selectedRoom, true);
-            }
 
             // Sync TomSelect when selectedRoom changes from outside (e.g. navigation)
             this.$watch('selectedRoom', (value) => {
@@ -124,6 +131,8 @@
                     url = `/photo-workflow/completion-photos/${this.photoId}/link-room`;
                 } else if (this.photoType === 'planning_completion') {
                     url = `/photo-workflow/planning-completion-photos/${this.photoId}/link-room`;
+                } else if (this.photoType === 'planning_comment' || this.photoType === 'comment_photo') {
+                    url = `/photo-workflow/comment-photos/${this.photoId}/link-room`;
                 } else if (this.photoType === 'task_photo') {
                     url = `/photo-workflow/task-photos/${this.photoId}/link-room`;
                 } else if (this.photoType === 'planning' || this.photoType === 'task') {
@@ -135,15 +144,19 @@
                 console.info('[ModalImage] Linking room...', { url, room: this.selectedRoom });
 
                 const response = await axios.post(url, {
-                    room: this.selectedRoom
+                    room: this.selectedRoom,
+                    location_id: this.locationId
                 });
 
-                // Update currentRooms locally
+                // Update currentRooms and currentLocationIds locally
                 if (this.currentIndex >= 0 && this.currentIndex < this.currentRooms.length) {
                     this.currentRooms[this.currentIndex] = this.selectedRoom;
                 }
+                if (this.currentIndex >= 0 && this.currentIndex < this.currentLocationIds.length) {
+                    this.currentLocationIds[this.currentIndex] = this.locationId;
+                }
 
-                this.$dispatch('notify', { type: 'success', message: 'Ruimte succesvol gekoppeld.' });
+                this.$dispatch('notify', { type: 'success', message: 'Locatie en ruimte succesvol gekoppeld.' });
 
                 this.justLinked = true;
                 setTimeout(() => {
@@ -151,7 +164,7 @@
                 }, 3000);
 
                 // Update the local state in the caller if possible
-                this.$dispatch('room-linked', { photoId: this.photoId, photoType: this.photoType, room: this.selectedRoom });
+                this.$dispatch('room-linked', { photoId: this.photoId, photoType: this.photoType, room: this.selectedRoom, locationId: this.locationId });
 
             } catch (e) {
                 console.error('Error linking room:', e);
@@ -268,7 +281,9 @@
         currentIndex = $event.detail.startIndex || 0;
         photoId = photoIds[currentIndex] || null;
         taskId = $event.detail.taskId || null;
-        locationId = $event.detail.locationId || null;
+        allLocations = $event.detail.allLocations || [];
+        currentLocationIds = $event.detail.currentLocationIds || [];
+        locationId = currentLocationIds[currentIndex] || ($event.detail.locationId || null);
         currentRooms = $event.detail.currentRooms || [];
         selectedRoom = currentRooms[currentIndex] || ($event.detail.currentRoom || '');
 
@@ -279,8 +294,8 @@
         $nextTick(() => $refs.modalPanel.focus());
     "
     x-on:keydown.escape.window="show = false"
-    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
-    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
+    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
+    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
     x-show="show"
     style="display: none;"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -309,35 +324,45 @@
 
         <!-- Action bar -->
         <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex flex-wrap items-center justify-between gap-3 z-20">
-            <!-- Left side: Room selection -->
-            <div class="flex items-center gap-2 flex-grow max-w-sm" x-show="taskId && locationId">
+            <!-- Left side: Location and Room selection -->
+            <div class="flex items-center gap-2 flex-grow max-w-2xl" x-show="(taskId && locationId) || photoType === 'planning_comment' || photoType === 'comment_photo'">
                 @if(auth()->user()?->canExecutePlannings() || auth()->user()?->canTriggerPhotoWorkflow())
-                    <div x-show="rooms.length > 0 || !loadingRooms" class="flex items-center gap-2 w-full">
-                        <div class="w-full text-gray-900" :class="justLinked ? 'ring-2 ring-green-500 rounded-md transition-all duration-300' : ''">
-                            <select x-ref="roomSelect"
+                    <div class="flex flex-wrap items-center gap-2 w-full">
+                        <!-- Location selection -->
+                        <div class="w-48" x-show="photoType === 'planning_comment' || photoType === 'comment_photo' || !locationId">
+                            <select x-model="locationId"
                                     class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
-                                <option value="">Selecteer ruimte...</option>
-                                <template x-for="room in rooms" :key="room">
-                                    <option :value="room" x-text="room" :selected="room === selectedRoom"></option>
+                                <option value="">Selecteer locatie...</option>
+                                <template x-for="loc in allLocations" :key="loc.id">
+                                    <option :value="loc.id" x-text="loc.name" :selected="loc.id == locationId"></option>
                                 </template>
                             </select>
                         </div>
-                        <button type="button"
-                                @click="linkRoom()"
-                                :disabled="!selectedRoom || isLinking || justLinked"
-                                :class="justLinked ? 'bg-green-600' : ((!selectedRoom || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700')"
-                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300 whitespace-nowrap">
-                            <span x-show="!isLinking && !justLinked">Koppel</span>
-                            <span x-show="isLinking">...</span>
-                            <span x-show="justLinked" class="flex items-center">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                                Gekoppeld
-                            </span>
-                        </button>
+
+                        <!-- Room selection -->
+                        <div x-show="locationId" class="flex items-center gap-2 flex-grow max-w-sm">
+                            <div class="w-full text-gray-900" :class="justLinked ? 'ring-2 ring-green-500 rounded-md transition-all duration-300' : ''">
+                                <select x-ref="roomSelect"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                </select>
+                            </div>
+                            <button type="button"
+                                    @click="linkRoom()"
+                                    :disabled="!selectedRoom || !locationId || isLinking || justLinked"
+                                    :class="justLinked ? 'bg-green-600' : ((!selectedRoom || !locationId || isLinking) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700')"
+                                    class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300 whitespace-nowrap">
+                                <span x-show="!isLinking && !justLinked">Koppel</span>
+                                <span x-show="isLinking">...</span>
+                                <span x-show="justLinked" class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                    Gekoppeld
+                                </span>
+                            </button>
+                        </div>
+                        <template x-if="locationId && loadingRooms">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Ruimtes laden...</span>
+                        </template>
                     </div>
-                    <template x-if="loadingRooms">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">Ruimtes laden...</span>
-                    </template>
                 @endif
             </div>
 
@@ -345,6 +370,15 @@
             <div class="flex items-center justify-end gap-2 ml-auto">
                 @if(auth()->user()?->canTriggerPhotoWorkflow())
                     <form x-show="taskId && selectedRoom" :action="`/photo-workflow/tasks/${taskId}/distribute`" method="POST" class="inline-block">
+                        @csrf
+                        <input type="hidden" name="room" :value="selectedRoom">
+                        <button type="submit"
+                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Proces starten
+                        </button>
+                    </form>
+
+                    <form x-show="!taskId && (photoType === 'planning_comment' || photoType === 'comment_photo') && photoId && selectedRoom" :action="`/photo-workflow/comment-photos/${photoId}/distribute`" method="POST" class="inline-block">
                         @csrf
                         <input type="hidden" name="room" :value="selectedRoom">
                         <button type="submit"
@@ -371,10 +405,10 @@
         <!-- Navigation Buttons -->
         <template x-if="imageUrls.length > 1">
             <div class="absolute inset-0 flex items-center justify-between px-4 z-10 pointer-events-none">
-                <button @click.stop="currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || '';" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
+                <button @click.stop="currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || '';" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                <button @click.stop="currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || '';" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
+                <button @click.stop="currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || '';" class="p-2 text-white bg-black bg-opacity-30 rounded-full hover:bg-opacity-50 focus:outline-none pointer-events-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </button>
             </div>

@@ -10,7 +10,9 @@ class PlanningCommentPhoto extends Model
 {
     protected $fillable = [
         'planning_comment_id',
+        'location_id',
         'file_path',
+        'room',
     ];
 
     protected $appends = [
@@ -23,6 +25,14 @@ class PlanningCommentPhoto extends Model
     public function planningComment(): BelongsTo
     {
         return $this->belongsTo(PlanningComment::class);
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     /**

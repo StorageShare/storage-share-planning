@@ -79,7 +79,9 @@ class PlanningTask extends Model
         if ($latestCompletion) {
             return $latestCompletion->photos->map(fn($p) => [
                 'id' => $p->id,
-                'url' => $p->url
+                'url' => $p->url,
+                'room' => $p->room,
+                'location_id' => $p->location_id,
             ])->toArray();
         }
 
@@ -99,7 +101,9 @@ class PlanningTask extends Model
         if ($latestSkip) {
             return $latestSkip->photos->map(fn($p) => [
                 'id' => $p->id,
-                'url' => $p->url
+                'url' => $p->url,
+                'room' => $p->room,
+                'location_id' => $p->location_id,
             ])->toArray();
         }
 

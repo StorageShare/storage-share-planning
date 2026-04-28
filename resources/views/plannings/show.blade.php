@@ -343,6 +343,7 @@
                                                                                 photoType: typeof photoType !== 'undefined' ? photoType : 'task',
                                                                                 startIndex: {{ $idx }},
                                                                                 taskId: {{ $vpt->task_id ?? 'null' }},
+                                                                                allLocations: @js($allLocations),
                                                                                 locationId: {{ $location->id ?? 'null' }},
                                                                                 currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
                                                                                 debug: true
@@ -359,6 +360,7 @@
                                                                                 photoType: typeof photoType !== 'undefined' ? photoType : 'task',
                                                                                 startIndex: 3,
                                                                                 taskId: {{ $vpt->task_id ?? 'null' }},
+                                                                                allLocations: @js($allLocations),
                                                                                 locationId: {{ $location->id ?? 'null' }},
                                                                                 currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
                                                                                 debug: true
@@ -1019,6 +1021,7 @@
                                                                                         photoType: typeof photoType !== 'undefined' ? photoType : 'task',
                                                                                         startIndex: {{ $idx }},
                                                                                         taskId: {{ $planningTask->task_id ?? 'null' }},
+                                                                                        allLocations: @js($allLocations),
                                                                                         locationId: {{ $location->id ?? 'null' }},
                                                                                         currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
                                                                                         debug: true
@@ -1035,6 +1038,7 @@
                                                                                         photoType: typeof photoType !== 'undefined' ? photoType : 'task',
                                                                                         startIndex: 3,
                                                                                         taskId: {{ $planningTask->task_id ?? 'null' }},
+                                                                                        allLocations: @js($allLocations),
                                                                                         locationId: {{ $location->id ?? 'null' }},
                                                                                         currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
                                                                                         debug: true
@@ -1249,14 +1253,29 @@
                                                     <div class="flex items-start justify-between">
                                                         <div class="flex-1">
                                                             <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{{ $comment->comment }}</p>
-                                                            @if (!empty($photoUrls))
+                                                            @if ($comment->photos->isNotEmpty())
                                                                 <div class="mt-3 flex flex-wrap gap-2">
-                                                                    @foreach ($photoUrls as $idx => $url)
-                                                                        <button type="button"
-                                                                                class="block w-20 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: @js($photoIds), photoType: 'task', currentRooms: [] })">
-                                                                            <img src="{{ $url }}" alt="Opmerking foto" class="w-full h-full object-cover">
-                                                                        </button>
+                                                                    @foreach ($comment->photos as $photo)
+                                                                        <div class="relative group">
+                                                                            <button type="button"
+                                                                                    class="block w-20 h-20 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                    @click="$dispatch('open-image-modal', {
+                                                                                        imageUrls: @js($comment->photos->pluck('url')->all()),
+                                                                                        startIndex: {{ $loop->index }},
+                                                                                        photoIds: @js($comment->photos->pluck('id')->all()),
+                                                                                        photoType: 'comment_photo',
+                                                                                        allLocations: @js($allLocations),
+                                                                                        currentLocationIds: @js($comment->photos->pluck('location_id')->all()),
+                                                                                        currentRooms: @js($comment->photos->pluck('room')->all())
+                                                                                    })">
+                                                                                <img src="{{ $photo->url }}" alt="Opmerking foto" class="w-full h-full object-cover">
+                                                                            </button>
+                                                                            @if ($photo->location_id || $photo->room)
+                                                                                <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 rounded-b shadow-sm truncate text-center pointer-events-none" title="{{ ($photo->location_id ? optional($photo->location)->name . ($photo->room ? ': ' : '') : '') . $photo->room }}">
+                                                                                    {{ ($photo->location_id ? optional($photo->location)->name . ($photo->room ? ': ' : '') : '') . $photo->room }}
+                                                                                </div>
+                                                                            @endif
+                                                                        </div>
                                                                     @endforeach
                                                                 </div>
                                                             @endif
@@ -1366,14 +1385,14 @@
                                                                         @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
                                                                             <button type="button"
                                                                                     class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: @js($photoIds), photoType: 'task', currentRooms: [] })">
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: {{ $idx }}, photoIds: @js($photoIds), photoType: 'task', allLocations: @js($allLocations), currentRooms: [] })">
                                                                                 <img src="{{ $url }}" alt="Checklist foto" class="w-full h-full object-cover">
                                                                             </button>
                                                                         @endforeach
                                                                         @if (count($photoUrls) > 3)
                                                                             <button type="button"
                                                                                     class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
-                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3, photoIds: @js($photoIds), photoType: 'task', currentRooms: [] })">
+                                                                                    @click="$dispatch('open-image-modal', { imageUrls: @js($photoUrls), startIndex: 3, photoIds: @js($photoIds), photoType: 'task', allLocations: @js($allLocations), currentRooms: [] })">
                                                                                 <img src="{{ $photoUrls[3] }}" alt="Meer checklist foto’s" class="w-full h-full object-cover opacity-70">
                                                                                 <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
                                                                             </button>

@@ -99,7 +99,7 @@ class TaskPhotoProcessController extends Controller
     }
 
     /**
-     * Link a room to a specific photo.
+     * Link a room and location to a specific photo.
      */
     public function linkRoomToPhoto(Request $request, PlanningTaskPhoto $photo)
     {
@@ -109,11 +109,15 @@ class TaskPhotoProcessController extends Controller
 
         $request->validate([
             'room' => 'required|string',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        $photo->update([
-            'room' => $request->room,
-        ]);
+        $data = ['room' => $request->room];
+        if ($request->has('location_id')) {
+            $data['location_id'] = $request->location_id;
+        }
+
+        $photo->update($data);
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
@@ -123,7 +127,7 @@ class TaskPhotoProcessController extends Controller
     }
 
     /**
-     * Link a room to a specific task photo.
+     * Link a room and location to a specific task photo.
      */
     public function linkRoomToTaskPhoto(Request $request, TaskPhoto $photo)
     {
@@ -133,11 +137,15 @@ class TaskPhotoProcessController extends Controller
 
         $request->validate([
             'room' => 'required|string',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        $photo->update([
-            'room' => $request->room,
-        ]);
+        $data = ['room' => $request->room];
+        if ($request->has('location_id')) {
+            $data['location_id'] = $request->location_id;
+        }
+
+        $photo->update($data);
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
@@ -147,7 +155,7 @@ class TaskPhotoProcessController extends Controller
     }
 
     /**
-     * Link a room to a specific completion photo.
+     * Link a room and location to a specific completion photo.
      */
     public function linkRoomToCompletionPhoto(Request $request, TaskCompletionPhoto $photo)
     {
@@ -157,11 +165,15 @@ class TaskPhotoProcessController extends Controller
 
         $request->validate([
             'room' => 'required|string',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        $photo->update([
-            'room' => $request->room,
-        ]);
+        $data = ['room' => $request->room];
+        if ($request->has('location_id')) {
+            $data['location_id'] = $request->location_id;
+        }
+
+        $photo->update($data);
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
@@ -171,7 +183,7 @@ class TaskPhotoProcessController extends Controller
     }
 
     /**
-     * Link a room to a specific planning completion photo.
+     * Link a room and location to a specific planning completion photo.
      */
     public function linkRoomToPlanningCompletionPhoto(Request $request, PlanningTaskCompletionPhoto $photo)
     {
@@ -181,17 +193,110 @@ class TaskPhotoProcessController extends Controller
 
         $request->validate([
             'room' => 'required|string',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        $photo->update([
-            'room' => $request->room,
-        ]);
+        $data = ['room' => $request->room];
+        if ($request->has('location_id')) {
+            $data['location_id'] = $request->location_id;
+        }
+
+        $photo->update($data);
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
         }
 
         return back()->with('success', 'Ruimte succesvol gekoppeld aan de foto.');
+    }
+
+    /**
+     * Link a room and location to a specific planning comment photo.
+     */
+    public function linkRoomToCommentPhoto(Request $request, \App\Models\PlanningCommentPhoto $photo)
+    {
+        if (!auth()->user()->canExecutePlannings()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+            'location_id' => 'nullable|exists:locations,id',
+        ]);
+
+        $data = ['room' => $request->room];
+        if ($request->has('location_id')) {
+            $data['location_id'] = $request->location_id;
+        }
+
+        $photo->update($data);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Ruimte succesvol gekoppeld aan de foto.']);
+        }
+
+        return back()->with('success', 'Ruimte succesvol gekoppeld aan de foto.');
+    }
+
+    /**
+     * Start the photo distribution process for a planning comment photo.
+     */
+    public function distributeCommentPhoto(Request $request, \App\Models\PlanningCommentPhoto $photo)
+    {
+        if (!auth()->user()->canTriggerPhotoWorkflow()) {
+            abort(403, 'U heeft geen toestemming om dit proces te starten.');
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        // Update photo room if it changed
+        if ($photo->room !== $request->room) {
+            $photo->update(['room' => $request->room]);
+        }
+
+        if (!$photo->location) {
+            return back()->with('error', 'Deze foto heeft geen gekoppelde locatie.');
+        }
+
+        if (!$photo->location->external_id) {
+            return back()->with('error', 'De gekoppelde locatie heeft geen extern ID.');
+        }
+
+        // API connection with backend to send to all customers
+        $apiUrl = config('services.storage_share_api.url') . '/photo-process/distribute';
+        $apiToken = config('services.storage_share_api.token');
+
+        try {
+            $response = Http::withToken($apiToken)
+                ->post($apiUrl, [
+                    'stalling_location_id' => $photo->location->external_id,
+                    'photo_url' => $photo->url,
+                    'room_identifier' => $request->room,
+                    // We don't have a specific task_id here, but we can pass the photo ID
+                    'planning_comment_photo_id' => $photo->id,
+                    'follow_up' => [
+                        'first_in_days' => 7,
+                        'second_in_days' => 14,
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                return back()->with('success', 'Foto is succesvol rondgestuurd naar alle huurders via de API.');
+            } else {
+                Log::error('PhotoProcess (Comment): API call failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return back()->with('error', 'Er is iets misgegaan bij het aanroepen van de API: ' . $response->json('message', 'Onbekende fout'));
+            }
+        } catch (\Exception $e) {
+            Log::error('PhotoProcess (Comment): API connection error', [
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Kon geen verbinding maken met de API.');
+        }
     }
 
     /**
@@ -220,7 +325,14 @@ class TaskPhotoProcessController extends Controller
             $response = Http::withToken($apiToken)->get($apiUrl);
 
             if ($response->successful()) {
-                return response()->json($response->json());
+                $data = $response->json();
+                if (isset($data['success']) && $data['success'] && isset($data['rooms'])) {
+                    return response()->json([
+                        'success' => true,
+                        'rooms' => $data['rooms']
+                    ]);
+                }
+                return response()->json($data);
             }
 
             return response()->json([

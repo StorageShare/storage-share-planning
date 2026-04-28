@@ -26,7 +26,9 @@ class PlanningComment extends Model
     {
         return $this->photos->map(fn($p) => [
             'id' => $p->id,
-            'url' => $p->url
+            'url' => $p->url,
+            'room' => $p->room,
+            'location_id' => $p->location_id
         ]);
     }
 
