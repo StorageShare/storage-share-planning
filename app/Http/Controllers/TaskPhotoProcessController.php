@@ -239,6 +239,82 @@ class TaskPhotoProcessController extends Controller
     }
 
     /**
+     * Start the photo distribution process for an external room (no specific task model).
+     */
+    public function distributeExternal(Request $request, string $externalId)
+    {
+        if (!auth()->user()->canTriggerPhotoWorkflow()) {
+            abort(403, 'U heeft geen toestemming om dit proces te starten.');
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        // Find the location
+        $location = Location::where('external_id', $externalId)->first();
+        if (!$location) {
+            return back()->with('error', 'Locatie niet gevonden.');
+        }
+
+        // We need at least one photo URL to distribute.
+        // We look for the latest completion photo for this room at this location.
+        $photo = \App\Models\PlanningTaskCompletionPhoto::whereHas('completion.planningTask', function ($query) use ($location, $request) {
+                $query->where('location_id', $location->id)
+                      ->where('room_identifier', $request->room);
+            })
+            ->latest()
+            ->first();
+
+        if (!$photo) {
+            // Try to find it in normal completion photos if room matches
+            $photo = \App\Models\TaskCompletionPhoto::whereHas('completion', function ($query) use ($location, $request) {
+                    $query->whereHas('planningTask', function($q) use ($location) {
+                        $q->where('location_id', $location->id);
+                    })->where('room', $request->room);
+                })
+                ->latest()
+                ->first();
+        }
+
+        if (!$photo) {
+            return back()->with('error', 'Geen foto gevonden voor deze ruimte om rond te sturen.');
+        }
+
+        // API connection with backend to send to all customers
+        $apiUrl = config('services.storage_share_api.url') . '/photo-process/distribute';
+        $apiToken = config('services.storage_share_api.token');
+
+        try {
+            $response = Http::withToken($apiToken)
+                ->post($apiUrl, [
+                    'stalling_location_id' => $externalId,
+                    'photo_url' => $photo->url,
+                    'room_identifier' => $request->room,
+                    'follow_up' => [
+                        'first_in_days' => 7,
+                        'second_in_days' => 14,
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                return back()->with('success', 'Foto is succesvol rondgestuurd naar alle huurders via de API.');
+            } else {
+                Log::error('PhotoProcess (External): API call failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return back()->with('error', 'Er is iets misgegaan bij het aanroepen van de API: ' . $response->json('message', 'Onbekende fout'));
+            }
+        } catch (\Exception $e) {
+            Log::error('PhotoProcess (External): API connection error', [
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Kon geen verbinding maken met de API.');
+        }
+    }
+
+    /**
      * Start the photo distribution process for a planning comment photo.
      */
     public function distributeCommentPhoto(Request $request, \App\Models\PlanningCommentPhoto $photo)

@@ -65,4 +65,48 @@ class ExternalLocationService
             return null;
         }
     }
+
+    /**
+     * Fetch inactive rooms for a specific external space from the API.
+     *
+     * @param string|int $externalId
+     * @return array<int, string>|null
+     */
+    public function fetchInactiveRooms($externalId): ?array
+    {
+        $baseUrl = Config::get('services.external_locations_api.url');
+        $apiToken = Config::get('services.external_locations_api.token');
+
+        // The base URL is likely ".../api/spaces", we want ".../api/spaces/{id}/inactive-rooms"
+        $apiUrl = dirname($baseUrl) . '/spaces/' . $externalId . '/inactive-rooms';
+
+        if (empty($baseUrl) || empty($apiToken)) {
+            Log::error('ExternalLocationService: API URL or Token not configured.');
+            return null;
+        }
+
+        try {
+            $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
+
+            if (! $response->successful()) {
+                Log::error('ExternalLocationService: Inactive rooms API request failed.', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'url' => $apiUrl
+                ]);
+                return null;
+            }
+
+            $data = $response->json();
+
+            if (isset($data['success']) && $data['success'] === true && isset($data['rooms'])) {
+                return $data['rooms'];
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('ExternalLocationService: Unexpected error fetching inactive rooms.', ['exception' => $e]);
+            return null;
+        }
+    }
 }

@@ -902,7 +902,7 @@
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
+                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room), task.external_id)">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
                                                                     </button>
                                                                 </template>
@@ -942,7 +942,7 @@
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
+                                                                    <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room), task.external_id)">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
                                                                 </template>
@@ -979,7 +979,7 @@
                                                         <div class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
                                                                 <template x-for="(photo, pIdx) in task.skip_photos" :key="photo.id ?? pIdx">
-                                                                    <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion', task.skip_photos.map(p => p.location_id), task.skip_photos.map(p => p.room))">
+                                                                    <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion', task.skip_photos.map(p => p.location_id), task.skip_photos.map(p => p.room), task.external_id)">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
                                                                 </template>

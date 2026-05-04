@@ -34,12 +34,16 @@ use Illuminate\View\View;
 
 class PlanningController extends Controller
 {
+    private \App\Services\ExternalLocationService $externalLocationService;
+
     public function __construct(
-        private ?TravelTimeService $travelTimeService = null
+        private ?TravelTimeService $travelTimeService = null,
+        ?\App\Services\ExternalLocationService $externalLocationService = null
     )
     {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
+        $this->externalLocationService = $externalLocationService ?: app(\App\Services\ExternalLocationService::class);
     }
 
     /**
@@ -318,6 +322,7 @@ class PlanningController extends Controller
                 'start_time' => $validated['start_time'],
                 'created_by' => \Illuminate\Support\Facades\Auth::id(),
                 'vehicle_id' => $validated['vehicle_id'],
+                'check_inactive_spaces' => $request->boolean('check_inactive_spaces'),
             ]);
 
             // Sync locations with order
@@ -519,6 +524,7 @@ class PlanningController extends Controller
                 'start_address' => $validated['start_address'],
                 'start_time' => $validated['start_time'],
                 'vehicle_id' => $validated['vehicle_id'],
+                'check_inactive_spaces' => $request->boolean('check_inactive_spaces'),
             ]);
 
             // Sync locations with order
@@ -1122,6 +1128,29 @@ class PlanningController extends Controller
                 ]);
             }
         }
+
+        // Logic for inactive spaces
+        if ($planning->check_inactive_spaces && !empty($validatedData['location_ids'])) {
+            $locations = Location::findMany($validatedData['location_ids']);
+            foreach ($locations as $location) {
+                if ($location->external_id) {
+                    $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($location->external_id);
+                    if ($inactiveRooms) {
+                        foreach ($inactiveRooms as $room) {
+                            $planning->planningTasks()->create([
+                                'location_id' => $location->id,
+                                'title' => 'Inactieve ruimte controleren: ' . $room,
+                                'description' => 'Controleer de inactieve ruimte op bijzonderheden.',
+                                'status' => \App\Enums\TaskStatus::OPEN,
+                                'priority' => \App\Enums\TaskPriority::NORMAL,
+                                'estimated_time_minutes' => 5, // Default 5 minutes per space
+                                'room_identifier' => $room,
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1275,6 +1304,45 @@ class PlanningController extends Controller
                     'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
                 ]);
             }
+        }
+
+        // Logic for adding/removing inactive space tasks
+        $current_inactive_planning_tasks = $planning->planningTasks()
+            ->whereNotNull('room_identifier')
+            ->get()
+            ->keyBy(fn($pt) => $pt->location_id . '-' . $pt->room_identifier);
+
+        $desired_inactive_task_state = collect();
+        if ($planning->check_inactive_spaces && !empty($validatedData['location_ids'])) {
+            $locations = Location::findMany($validatedData['location_ids']);
+            foreach ($locations as $location) {
+                if ($location->external_id) {
+                    $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($location->external_id);
+                    if ($inactiveRooms) {
+                        foreach ($inactiveRooms as $room) {
+                            $desired_inactive_task_state->put($location->id . '-' . $room, [
+                                'location_id' => $location->id,
+                                'room_identifier' => $room,
+                                'title' => 'Inactieve ruimte controleren: ' . $room,
+                                'description' => 'Controleer de inactieve ruimte op bijzonderheden.',
+                                'status' => \App\Enums\TaskStatus::OPEN,
+                                'priority' => \App\Enums\TaskPriority::NORMAL,
+                                'estimated_time_minutes' => 5,
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        $inactive_task_ids_to_delete = $current_inactive_planning_tasks->diffKeys($desired_inactive_task_state)->pluck('id');
+        if ($inactive_task_ids_to_delete->isNotEmpty()) {
+            $planning->planningTasks()->whereIn('id', $inactive_task_ids_to_delete)->delete();
+        }
+
+        $inactive_tasks_to_add_data = $desired_inactive_task_state->diffKeys($current_inactive_planning_tasks);
+        foreach ($inactive_tasks_to_add_data as $data) {
+            $planning->planningTasks()->create($data);
         }
     }
 }

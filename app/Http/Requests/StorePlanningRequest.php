@@ -123,6 +123,7 @@ class StorePlanningRequest extends FormRequest
                     }
                 },
             ],
+            'check_inactive_spaces' => 'nullable|boolean',
         ];
     }
 

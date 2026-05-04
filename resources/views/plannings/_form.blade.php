@@ -237,12 +237,23 @@
             </div>
         </div>
 
+    <div class="space-y-4 mb-6">
         <div>
             <label for="notes" class="block text-sm font-medium mb-2 dark:text-gray-300">Notities/instructies</label>
             <textarea name="notes" id="notes" rows="3" class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 @error('notes') border-red-500 @enderror">{{ old('notes', $planning->notes ?? '') }}</textarea>
             @error('notes')
             <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
             @enderror
+        </div>
+
+        <div class="relative flex items-start">
+            <div class="flex items-center h-5">
+                <input id="check_inactive_spaces" name="check_inactive_spaces" type="checkbox" value="1" {{ old('check_inactive_spaces', $planning->check_inactive_spaces ?? false) ? 'checked' : '' }} class="border-gray-300 rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+            </div>
+            <div class="ms-3 text-sm">
+                <label for="check_inactive_spaces" class="font-medium text-gray-700 dark:text-gray-300">Inactieve ruimtes controleren</label>
+                <p class="text-gray-500 dark:text-gray-400">Indien aangevinkt, wordt er voor elke inactieve ruimte op de geselecteerde locaties een taak aangemaakt.</p>
+            </div>
         </div>
 
         <div>

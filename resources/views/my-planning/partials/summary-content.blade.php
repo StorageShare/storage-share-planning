@@ -54,6 +54,21 @@
             </div>
         </div>
 
+        {{-- Inactive spaces check info --}}
+        @if($planning->check_inactive_spaces)
+            <div class="flex items-center text-sm">
+                <div class="flex-shrink-0 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <span class="font-medium text-purple-700 dark:text-purple-400">Inactieve ruimtes controleren:</span>
+                    <span class="text-gray-900 dark:text-gray-100 italic">Ja, uitvoeren</span>
+                </div>
+            </div>
+        @endif
+
         @foreach($planning->locations as $locationIndex => $location)
             @php
                 // Get tasks for this location

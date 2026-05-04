@@ -32,6 +32,7 @@ class Planning extends Model
         'start_time',
         'travel_time_distributed_at',
         'vehicle_id',
+        'check_inactive_spaces',
     ];
 
     /**
@@ -43,6 +44,7 @@ class Planning extends Model
         'planned_date' => 'datetime',
         'travel_time_distributed_at' => 'datetime',
         'travel_time_distributed_total_seconds' => 'integer',
+        'check_inactive_spaces' => 'boolean',
     ];
 
     /**

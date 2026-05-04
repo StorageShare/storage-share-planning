@@ -286,6 +286,7 @@
         locationId = currentLocationIds[currentIndex] || ($event.detail.locationId || null);
         currentRooms = $event.detail.currentRooms || [];
         selectedRoom = currentRooms[currentIndex] || ($event.detail.currentRoom || '');
+        externalId = $event.detail.externalId || null;
 
         if (locationId) {
             fetchRooms();
@@ -369,16 +370,18 @@
             <!-- Right side: General actions -->
             <div class="flex items-center justify-end gap-2 ml-auto">
                 @if(auth()->user()?->canTriggerPhotoWorkflow())
-                    <form x-show="taskId && selectedRoom" :action="`/photo-workflow/tasks/${taskId}/distribute`" method="POST" class="inline-block">
-                        @csrf
-                        <input type="hidden" name="room" :value="selectedRoom">
-                        <button type="submit"
-                                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Proces starten
-                        </button>
-                    </form>
+                    <template x-if="(taskId || externalId) && selectedRoom">
+                        <form :action="taskId ? `/photo-workflow/tasks/${taskId}/distribute` : `/photo-workflow/external/${externalId}/distribute`" method="POST" class="inline-block">
+                            @csrf
+                            <input type="hidden" name="room" :value="selectedRoom">
+                            <button type="submit"
+                                    class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Proces starten
+                            </button>
+                        </form>
+                    </template>
 
-                    <form x-show="!taskId && (photoType === 'planning_comment' || photoType === 'comment_photo') && photoId && selectedRoom" :action="`/photo-workflow/comment-photos/${photoId}/distribute`" method="POST" class="inline-block">
+                    <form x-show="!taskId && !externalId && (photoType === 'planning_comment' || photoType === 'comment_photo') && photoId && selectedRoom" :action="`/photo-workflow/comment-photos/${photoId}/distribute`" method="POST" class="inline-block">
                         @csrf
                         <input type="hidden" name="room" :value="selectedRoom">
                         <button type="submit"

@@ -203,10 +203,13 @@ class MyPlanningController extends Controller
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
-                    'room' => $task->task?->room ?? $task->room,
+                    'room' => $task->task?->room ?? $task->room ?? $task->room_identifier,
+                    'room_identifier' => $task->room_identifier,
+                    'is_inactive_room_task' => !is_null($task->room_identifier),
                     'photo_process_step' => $task->task?->photo_process_step ?? $task->photo_process_step,
                     'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
+                    'external_id' => $location->external_id,
                 ];
             }
 
@@ -276,10 +279,13 @@ class MyPlanningController extends Controller
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
-                    'room' => $task->task?->room ?? $task->room,
+                    'room' => $task->task?->room ?? $task->room ?? $task->room_identifier,
+                    'room_identifier' => $task->room_identifier,
+                    'is_inactive_room_task' => !is_null($task->room_identifier),
                     'photo_process_step' => $task->task?->photo_process_step ?? $task->photo_process_step,
                     'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
+                    'external_id' => $location->external_id,
                 ];
             }
 
