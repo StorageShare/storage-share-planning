@@ -9,6 +9,7 @@
         photoIds: [],
         currentRooms: [],
         currentLocationIds: [],
+        planningTaskId: null,
         taskId: null,
         photoId: null,
         locationId: null,
@@ -29,6 +30,7 @@
                         this.tomSelectInstance.destroy();
                         this.tomSelectInstance = null;
                     }
+                    this.planningTaskId = null;
                     this.taskId = null;
                     this.photoId = null;
                     this.photoIds = [];
@@ -288,6 +290,7 @@
         photoType = $event.detail.photoType || 'task';
         currentIndex = $event.detail.startIndex || 0;
         photoId = photoIds[currentIndex] || null;
+        planningTaskId = $event.detail.planningTaskId || null;
         taskId = $event.detail.taskId || null;
         allLocations = $event.detail.allLocations || [];
         currentLocationIds = $event.detail.currentLocationIds || [];
@@ -378,13 +381,13 @@
             <!-- Right side: General actions -->
             <div class="flex items-center justify-end gap-2 ml-auto">
                 @if(auth()->user()?->canTriggerPhotoWorkflow())
-                    <template x-if="(taskId || externalId) && selectedRoom">
-                        <form :action="photoType === 'planning_completion' ? `/planning-tasks/${taskId}/distribute` : (taskId ? `/tasks/${taskId}/distribute` : `/external/${externalId}/distribute`)" method="POST" class="inline-block">
+                    <template x-if="(taskId || externalId || (photoType === 'planning_completion' && planningTaskId)) && selectedRoom">
+                        <form :action="photoType === 'planning_completion' && planningTaskId ? `/planning-tasks/${planningTaskId}/distribute` : (taskId ? `/tasks/${taskId}/distribute` : `/external/${externalId}/distribute`)" method="POST" class="inline-block">
                             @csrf
                             <input type="hidden" name="room" :value="selectedRoom">
                             <button type="submit"
                                     class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                Proces starten
+                                Foto rondsturen
                             </button>
                         </form>
                     </template>
@@ -394,7 +397,7 @@
                         <input type="hidden" name="room" :value="selectedRoom">
                         <button type="submit"
                                 class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Proces starten
+                            Foto rondsturen
                         </button>
                     </form>
                 @endif

@@ -29,6 +29,40 @@
                             <a href="{{ route('plannings.show', $planning_task->planning) }}" class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 active:bg-gray-700 focus:outline-none focus:border-gray-700 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
                                 Terug naar planning
                             </a>
+                            @if(Auth::user()->isAdmin() && $planning_task->status === App\Enums\TaskStatus::REVIEW)
+                                <form action="{{ route('plannings.tasks.approve', $planning_task) }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-800 focus:outline-none focus:ring ring-green-300 transition ease-in-out duration-150">
+                                        Goedkeuren
+                                    </button>
+                                </form>
+                                <button type="button"
+                                        @click="$dispatch('open-modal', 'reject-task-{{ $planning_task->id }}')"
+                                        class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-800 focus:outline-none focus:ring ring-red-300 transition ease-in-out duration-150">
+                                    Afkeuren
+                                </button>
+
+                                <x-modal name="reject-task-{{ $planning_task->id }}" :show="$errors->isNotEmpty()" focusable>
+                                    <form action="{{ route('plannings.tasks.reject', $planning_task) }}" method="POST" class="p-6 text-left">
+                                        @csrf
+                                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                            Taak Afkeuren: {{ $planning_task->title }}
+                                        </h2>
+                                        <div class="mt-4">
+                                            <x-input-label for="review_notes" value="Reden van afkeuring" />
+                                            <x-form-textarea id="review_notes" name="review_notes" class="mt-1 block w-full" rows="3" required placeholder="Geef aan waarom deze taak is afgekeurd..." />
+                                        </div>
+                                        <div class="mt-6 flex justify-end">
+                                            <x-secondary-button x-on:click="$dispatch('close')">
+                                                Annuleren
+                                            </x-secondary-button>
+                                            <x-danger-button class="ml-3">
+                                                Taak Afkeuren
+                                            </x-danger-button>
+                                        </div>
+                                    </form>
+                                </x-modal>
+                            @endif
                         </div>
                     </div>
 
@@ -86,8 +120,9 @@
                                             @click="$dispatch('open-image-modal', {
                                                 imageUrls: $data.planningPhotos,
                                                 photoIds: $data.photoIds,
-                                                photoType: 'planning',
+                                                photoType: 'planning_completion',
                                                 startIndex: {{ $index }},
+                                                planningTaskId: {{ $planning_task->id }},
                                                 taskId: {{ $planning_task->task_id ?? 'null' }},
                                                 locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
                                                 currentRooms: $data.photoRooms
@@ -186,7 +221,7 @@
                                                 :disabled="loadingRooms || roomsError || rooms.length === 0"
                                                 :class="(!loadingRooms && !roomsError && rooms.length > 0) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
                                                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                            Foto rondsturen & Proces starten
+                                            Foto rondsturen
                                         </button>
                                     </div>
                                 </div>
@@ -255,6 +290,7 @@
                                                             photoType: 'planning_completion',
                                                             startIndex: {{ $index }},
                                                             taskId: {{ $planning_task->task_id ?? 'null' }},
+                                                            planningTaskId: {{ $planning_task->id }},
                                                             locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
                                                             currentRooms: $data.photoRooms
                                                         })">
@@ -308,6 +344,7 @@
                                                                 photoType: 'planning_completion',
                                                                 startIndex: {{ $index }},
                                                                 taskId: {{ $planning_task->task_id ?? 'null' }},
+                                                                planningTaskId: {{ $planning_task->id }},
                                                                 locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
                                                                 currentRooms: $data.photoRooms
                                                             })">

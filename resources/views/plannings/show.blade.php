@@ -1263,23 +1263,175 @@
                                                             </thead>
                                                             <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
                                                                 @foreach ($inactiveRoomTasks as $planningTask)
+                                                                    @php
+                                                                        $statusValue = is_object($planningTask->status) ? $planningTask->status->value : $planningTask->status;
+                                                                    @endphp
                                                                     <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
                                                                         <td class="px-4 py-4 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-normal">
                                                                             <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="font-semibold hover:underline">{{ $planningTask->title }} ({{ $planningTask->room_identifier }})</a>
                                                                         </td>
                                                                         <td class="px-4 py-4 text-sm whitespace-nowrap">
-                                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                                @switch($planningTask->status->value ?? $planningTask->status)
+                                                                            <span id="task-status-{{ $planningTask->id }}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                                                @switch($statusValue)
+                                                                                    @case('review') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 @break
                                                                                     @case('completed') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
-                                                                                    @case('review') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
                                                                                     @case('rejected') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 @break
-                                                                                    @default bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
-                                                                                @endswitch">
-                                                                                {{ $planningTask->status->label() ?? $planningTask->status }}
+                                                                                    @default bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                                                @endswitch
+                                                                            ">
+                                                                                {{ is_object($planningTask->status) ? $planningTask->status->label() : ucfirst($planningTask->status) }}
                                                                             </span>
                                                                         </td>
-                                                                        <td class="px-4 py-4 text-sm text-right">
-                                                                            <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Bekijken</a>
+                                                                        <td class="px-4 py-4 text-sm text-right align-top">
+                                                                            @if ($statusValue === 'review')
+                                                                                @php
+                                                                                    $latestCompletion = $planningTask->completions->first();
+                                                                                    $photoUrls = [];
+                                                                                    $photoIds = [];
+                                                                                    $photoRooms = [];
+                                                                                    $photoType = 'planning_completion';
+
+                                                                                    if ($planningTask->planningTaskPhotos->isNotEmpty()) {
+                                                                                        $photoUrls = $planningTask->planningTaskPhotos->pluck('url')->all();
+                                                                                        $photoIds = $planningTask->planningTaskPhotos->pluck('id')->values()->all();
+                                                                                        $photoRooms = $planningTask->planningTaskPhotos->pluck('room')->values()->all();
+                                                                                        $photoType = 'planning_completion';
+                                                                                    } elseif ($latestCompletion && $latestCompletion->photos->isNotEmpty()) {
+                                                                                        $photoUrls = $latestCompletion->photos->map(fn($p) => Storage::url($p->file_path))->all();
+                                                                                        $photoIds = $latestCompletion->photos->pluck('id')->values()->all();
+                                                                                        $photoRooms = $latestCompletion->photos->pluck('room')->values()->all();
+                                                                                        $photoType = 'planning_completion';
+                                                                                    }
+                                                                                @endphp
+                                                                                @if($latestCompletion && $latestCompletion->comment)
+                                                                                    <div class="mb-2 text-right">
+                                                                                        <div class="text-left text-sm text-gray-500 dark:text-gray-400 block max-w-xs md:max-w-sm lg:max-w-md break-anywhere">Notities: {{ \Illuminate\Support\Str::limit($latestCompletion->comment, 100) }}</div>
+                                                                                        <button type="button"
+                                                                                                        x-on:click.prevent="$dispatch('open-modal', 'view-comment-{{ $planningTask->id }}')"
+                                                                                            class="mt-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium">
+                                                                                            Lees volledig
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <x-modal name="view-comment-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                                        <div class="p-6">
+                                                                                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 text-left">Notities</h3>
+                                                                                            <div class="mt-4 max-h-64 overflow-y-auto overscroll-contain text-left">
+                                                                                                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-anywhere">{{ $latestCompletion->comment }}</p>
+                                                                                            </div>
+                                                                                            <div class="mt-6 text-right">
+                                                                                                <x-secondary-button x-on:click="$dispatch('close')">
+                                                                                                    Sluiten
+                                                                                                </x-secondary-button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </x-modal>
+                                                                                @endif
+                                                                                @if (!empty($photoUrls))
+                                                                                    <div class="mb-2" x-data="{
+                                                                                        photoIds: {{ json_encode($photoIds) }},
+                                                                                        photoRooms: {{ json_encode($photoRooms) }},
+                                                                                        photoType: '{{ $photoType }}'
+                                                                                    }" @room-linked.window="
+                                                                                        if($event.detail.photoType === photoType) {
+                                                                                            const idx = photoIds.indexOf($event.detail.photoId);
+                                                                                            if(idx !== -1) photoRooms[idx] = $event.detail.room;
+                                                                                        }
+                                                                                    ">
+                                                                                        <div class="flex items-center justify-end gap-2">
+                                                                                            @foreach (array_slice($photoUrls, 0, 3) as $idx => $url)
+                                                                                                <button type="button"
+                                                                                                        class="block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                                        @click="$dispatch('open-image-modal', {
+                                                                                                            imageUrls: @js($photoUrls),
+                                                                                                            photoIds: typeof photoIds !== 'undefined' ? photoIds : [],
+                                                                                                            photoType: typeof photoType !== 'undefined' ? photoType : 'planning_completion',
+                                                                                                            startIndex: {{ $idx }},
+                                                                                                            taskId: {{ $planningTask->task_id ?? 'null' }},
+                                                                                                            planningTaskId: {{ $planningTask->id }},
+                                                                                                            allLocations: @js($allLocations),
+                                                                                                            locationId: {{ $location->id ?? 'null' }},
+                                                                                                            currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                                        })">
+                                                                                                    <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
+                                                                                                </button>
+                                                                                            @endforeach
+                                                                                            @if (count($photoUrls) > 3)
+                                                                                                <button type="button"
+                                                                                                        class="relative block w-14 h-14 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:opacity-90"
+                                                                                                        @click="$dispatch('open-image-modal', {
+                                                                                                            imageUrls: @js($photoUrls),
+                                                                                                            photoIds: typeof photoIds !== 'undefined' ? photoIds : [],
+                                                                                                            photoType: typeof photoType !== 'undefined' ? photoType : 'planning_completion',
+                                                                                                            startIndex: 3,
+                                                                                                            taskId: {{ $planningTask->task_id ?? 'null' }},
+                                                                                                            planningTaskId: {{ $planningTask->id }},
+                                                                                                            allLocations: @js($allLocations),
+                                                                                                            locationId: {{ $location->id ?? 'null' }},
+                                                                                                            currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
+                                                                                                        })">
+                                                                                                    <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
+                                                                                                    <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white bg-black/50">+{{ count($photoUrls) - 3 }}</span>
+                                                                                                </button>
+                                                                                            @endif
+                                                                                        </div>
+                                                                                        <div class="mt-2 text-right">
+                                                                                            <a href="{{ route('plannings.tasks.photos.download', $planningTask) }}"
+                                                                                               class="inline-flex items-center text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1"><path d="M12 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L11 12.586V4a1 1 0 011-1z"/><path d="M5 15a1 1 0 011 1v2a1 1 0 001 1h10a1 1 0 001-1v-2a1 1 0 112 0v2a3 3 0 01-3 3H7a3 3 0 01-3-3v-2a1 1 0 011-1z"/></svg>
+                                                                                                Download alle foto’s
+                                                                                            </a>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                @endif
+
+                                                                                @if (Auth::user()->isAdmin())
+                                                                                    <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
+                                                                                        <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
+                                                                                            ? $store.planningActions.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                            : (window.approvePlanningTask
+                                                                                                ? window.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                                : $event.currentTarget.submit())"
+                                                                                              action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
+                                                                                            @csrf
+                                                                                            <x-primary-button class="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-[10px] px-2 py-1">
+                                                                                                Goedkeuren
+                                                                                            </x-primary-button>
+                                                                                        </form>
+                                                                                        <x-danger-button
+                                                                                            x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
+                                                                                            class="text-[10px] px-2 py-1">
+                                                                                            Afkeuren
+                                                                                        </x-danger-button>
+                                                                                    </div>
+                                                                                    <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                                        <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
+                                                                                            ? $store.planningActions.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                            : (window.rejectPlanningTask
+                                                                                                ? window.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                                : $event.currentTarget.submit())"
+                                                                                            action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6">
+                                                                                            @csrf
+                                                                                            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                                                                Taak Afkeuren: {{ $planningTask->title }}
+                                                                                            </h2>
+                                                                                            <div class="mt-4">
+                                                                                                <x-input-label for="review_notes" value="Reden van afkeuring" />
+                                                                                                <x-form-textarea id="review_notes" name="review_notes" class="mt-1 block w-full" rows="3" required placeholder="Geef aan waarom deze taak is afgekeurd..." />
+                                                                                            </div>
+                                                                                            <div class="mt-6 flex justify-end">
+                                                                                                <x-secondary-button x-on:click="$dispatch('close')">
+                                                                                                    Annuleren
+                                                                                                </x-secondary-button>
+                                                                                                <x-danger-button class="ml-3">
+                                                                                                    Taak Afkeuren
+                                                                                                </x-danger-button>
+                                                                                            </div>
+                                                                                        </form>
+                                                                                    </x-modal>
+                                                                                @endif
+                                                                            @else
+                                                                                <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Bekijken</a>
+                                                                            @endif
                                                                         </td>
                                                                     </tr>
                                                                 @endforeach

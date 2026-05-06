@@ -533,7 +533,7 @@
                                                 :disabled="loadingRooms || roomsError || rooms.length === 0"
                                                 :class="(!loadingRooms && !roomsError && rooms.length > 0) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
                                                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                            Foto rondsturen & Proces starten
+                                            Foto rondsturen
                                         </button>
                                     </div>
                                 </div>
