@@ -7,6 +7,7 @@ use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\Task;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class UpdatePlanningRequest extends FormRequest
@@ -23,9 +24,78 @@ class UpdatePlanningRequest extends FormRequest
             $startAddress = $this->input('start_address_custom');
         }
 
+        $selectedLocationIds = collect($this->input('location_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values();
+
         $this->merge([
             'start_address' => $startAddress,
+            'selected_default_tasks' => $this->filterSelectedDefaultTasksForLocations($selectedLocationIds),
+            'selected_backlog_tasks' => $this->filterSelectedBacklogTasksForLocations($selectedLocationIds),
         ]);
+    }
+
+    /**
+     * Stale hidden task inputs can remain in the edit form after removing a location.
+     * On update, treat tasks for removed locations as deselected so validation and
+     * sync can remove the existing planning task rows.
+     *
+     * @param  Collection<int, int>  $selectedLocationIds
+     * @return array<int, mixed>
+     */
+    private function filterSelectedBacklogTasksForLocations(Collection $selectedLocationIds): array
+    {
+        $selectedTaskIds = collect($this->input('selected_backlog_tasks', []))
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->values();
+
+        if ($selectedTaskIds->isEmpty() || $selectedLocationIds->isEmpty()) {
+            return $selectedTaskIds->all();
+        }
+
+        $taskLocations = Task::query()
+            ->whereIn('id', $selectedTaskIds->map(fn ($id) => (int) $id)->all())
+            ->pluck('location_id', 'id');
+
+        return $selectedTaskIds
+            ->reject(function ($id) use ($taskLocations, $selectedLocationIds) {
+                $locationId = $taskLocations[(int) $id] ?? null;
+
+                return $locationId !== null && ! $selectedLocationIds->contains((int) $locationId);
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, int>  $selectedLocationIds
+     * @return array<int, mixed>
+     */
+    private function filterSelectedDefaultTasksForLocations(Collection $selectedLocationIds): array
+    {
+        $selectedTaskIds = collect($this->input('selected_default_tasks', []))
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->values();
+
+        if ($selectedTaskIds->isEmpty() || $selectedLocationIds->isEmpty()) {
+            return $selectedTaskIds->all();
+        }
+
+        $defaultTasks = DefaultTask::with('locations:id')
+            ->whereIn('id', $selectedTaskIds->map(fn ($id) => (int) $id)->all())
+            ->get()
+            ->keyBy('id');
+
+        return $selectedTaskIds
+            ->reject(function ($id) use ($defaultTasks, $selectedLocationIds) {
+                $defaultTask = $defaultTasks->get((int) $id);
+
+                return $defaultTask
+                    && $defaultTask->locations->pluck('id')->intersect($selectedLocationIds)->isEmpty();
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -58,20 +128,20 @@ class UpdatePlanningRequest extends FormRequest
                 Rule::exists(\App\Models\Vehicle::class, 'id'),
                 function ($attribute, $value, $fail) use ($planning_id) {
                     $date = $this->input('planned_date');
-                    if (!$date) {
+                    if (! $date) {
                         return; // other rule will handle
                     }
                     $exists = \App\Models\Planning::query()
                         ->whereDate('planned_date', $date)
                         ->where('vehicle_id', $value)
-                        ->when($planning_id, fn($q) => $q->where('id', '!=', $planning_id))
+                        ->when($planning_id, fn ($q) => $q->where('id', '!=', $planning_id))
                         // Allow if any existing planning(s) on that date for this vehicle are completed
                         ->where('status', '!=', 'completed')
                         ->exists();
                     if ($exists) {
                         $fail('Dit voertuig is al gekoppeld aan een planning op deze datum.');
                     }
-                }
+                },
             ],
             'notes' => 'nullable|string',
             'start_address_option' => 'required|string',
@@ -132,6 +202,7 @@ class UpdatePlanningRequest extends FormRequest
 
     /**
      * Get custom messages for validator errors.
+     *
      * @return array<string, string>
      */
     public function messages(): array

@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Enums\Role;
 use App\Enums\TaskStatus;
 use App\Models\Location;
+use App\Models\Planning;
+use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -70,5 +72,57 @@ class StorePlanningRequestValidationTest extends TestCase
 
         $response->assertSessionHasNoErrors();
         $response->assertRedirect(route('plannings.index'));
+    }
+
+    public function test_update_removes_stale_backlog_task_selection_when_location_is_removed(): void
+    {
+        $admin = User::factory()->create(['role' => Role::ADMIN->value]);
+        $keptLocation = Location::factory()->create();
+        $removedLocation = Location::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $planning = Planning::factory()->create([
+            'planned_date' => now()->toDateString(),
+            'status' => 'in_progress',
+            'vehicle_id' => $vehicle->id,
+        ]);
+        $planning->locations()->attach([
+            $keptLocation->id => ['sort_order' => 0],
+            $removedLocation->id => ['sort_order' => 1],
+        ]);
+
+        $staleTask = Task::factory()->completed()->create(['location_id' => $removedLocation->id]);
+        $stalePlanningTask = PlanningTask::factory()->create([
+            'planning_id' => $planning->id,
+            'task_id' => $staleTask->id,
+            'location_id' => $removedLocation->id,
+            'title' => $staleTask->title,
+            'status' => TaskStatus::COMPLETED,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->withHeader('X-CSRF-TOKEN', $this->token)
+            ->put(route('plannings.update', $planning), [
+                'location_ids' => [$keptLocation->id],
+                'location_order' => (string) $keptLocation->id,
+                'planned_date' => $planning->planned_date->toDateString(),
+                'notes' => $planning->notes,
+                'start_address_option' => 'Anders',
+                'start_address_custom' => 'Teststraat 1, 1234 AB Teststad',
+                'start_time' => '08:00',
+                'vehicle_id' => $vehicle->id,
+                'selected_backlog_tasks' => [$staleTask->id],
+            ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('plannings.show', $planning));
+        $this->assertDatabaseMissing('planning_tasks', ['id' => $stalePlanningTask->id]);
+        $this->assertDatabaseHas('location_planning', [
+            'planning_id' => $planning->id,
+            'location_id' => $keptLocation->id,
+        ]);
+        $this->assertDatabaseMissing('location_planning', [
+            'planning_id' => $planning->id,
+            'location_id' => $removedLocation->id,
+        ]);
     }
 }
