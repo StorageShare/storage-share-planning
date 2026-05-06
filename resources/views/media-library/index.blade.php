@@ -81,8 +81,8 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                             @foreach($photos as $photo)
                                 <div class="relative group aspect-square bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
-                                     @click="openModal('{{ asset('storage/' . $photo->file_path) }}', {{ $photo->id }}, '{{ $photo->planning_task_id }}', '{{ $photo->location_id }}', '{{ $photo->room }}', '{{ $photo->type }}')">
-                                    <img src="{{ asset('storage/' . $photo->file_path) }}"
+                                     @click="openModal('{{ Storage::url($photo->file_path) }}', {{ $photo->id }}, '{{ $photo->planning_task_id ?? '' }}', '{{ $photo->location_id }}', '{{ $photo->room }}', '{{ $photo->type }}')">
+                                    <img src="{{ Storage::url($photo->file_path) }}"
                                          alt="Task photo"
                                          class="w-full h-full object-cover">
 
@@ -152,7 +152,7 @@
                     this.$dispatch('open-image-modal', {
                         imageUrls: [url],
                         photoIds: [photoId],
-                        photoType: type === 'completion' ? 'completion' : 'planning',
+                        photoType: type,
                         startIndex: 0,
                         taskId: taskId,
                         locationId: locationId,
