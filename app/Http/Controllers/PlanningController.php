@@ -278,6 +278,13 @@ class PlanningController extends Controller
         $backlogPriorityCountsByLocation = $this->computeBacklogPriorityCounts($all_backlog_tasks);
         $backlogTotalEstimatedTimeByLocation = $this->computeBacklogTotalEstimated($all_backlog_tasks);
 
+        // Fetch inactive room counts for all locations in one call
+        $allInactiveCounts = $this->externalLocationService->fetchInactiveRoomCounts() ?? [];
+        $inactiveRoomCountsByLocation = [];
+        foreach ($locations as $location) {
+            $inactiveRoomCountsByLocation[$location->id] = (int) ($allInactiveCounts[$location->sync_external_id] ?? ($allInactiveCounts[$location->external_id] ?? 0));
+        }
+
         // Sort locations based on priority task counts and then name
         $locations = $this->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
 
@@ -299,6 +306,7 @@ class PlanningController extends Controller
             'backlogTasksByLocation',
             'backlogPriorityCountsByLocation',
             'backlogTotalEstimatedTimeByLocation',
+            'inactiveRoomCountsByLocation',
             'selected_location_id',
             'users',
             'plannedBacklogTasks',
@@ -322,11 +330,13 @@ class PlanningController extends Controller
                 'start_time' => $validated['start_time'],
                 'created_by' => \Illuminate\Support\Facades\Auth::id(),
                 'vehicle_id' => $validated['vehicle_id'],
-                'check_inactive_spaces' => $request->boolean('check_inactive_spaces'),
             ]);
 
-            // Sync locations with order
-            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'));
+            // Sync locations with order and per-location check_inactive_spaces
+            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'), $request->input('check_inactive_spaces', []));
+
+            // Reload locations to ensure pivot data is up-to-date for createPlanningTasks
+            $planning->load('locations');
 
             // Sync users
             if (!empty($validated['user_ids'])) {
@@ -466,6 +476,13 @@ class PlanningController extends Controller
         $backlogPriorityCountsByLocation = $this->computeBacklogPriorityCounts($availableBacklogTasks);
         $backlogTotalEstimatedTimeByLocation = $this->computeBacklogTotalEstimated($availableBacklogTasks);
 
+        // Fetch inactive room counts for all locations in one call
+        $allInactiveCounts = $this->externalLocationService->fetchInactiveRoomCounts() ?? [];
+        $inactiveRoomCountsByLocation = [];
+        foreach ($locations as $location) {
+            $inactiveRoomCountsByLocation[$location->id] = (int) ($allInactiveCounts[$location->sync_external_id] ?? ($allInactiveCounts[$location->external_id] ?? 0));
+        }
+
         $current_selected_default_tasks = $planning->planningTasks
             ->whereNotNull('default_task_id')
             ->pluck('default_task_id')
@@ -500,6 +517,7 @@ class PlanningController extends Controller
             'backlogTasksByLocation',
             'backlogPriorityCountsByLocation',
             'backlogTotalEstimatedTimeByLocation',
+            'inactiveRoomCountsByLocation',
             'current_selected_location_ids',
             'current_selected_default_tasks',
             'current_selected_backlog_tasks',
@@ -524,11 +542,13 @@ class PlanningController extends Controller
                 'start_address' => $validated['start_address'],
                 'start_time' => $validated['start_time'],
                 'vehicle_id' => $validated['vehicle_id'],
-                'check_inactive_spaces' => $request->boolean('check_inactive_spaces'),
             ]);
 
-            // Sync locations with order
-            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'));
+            // Sync locations with order and per-location check_inactive_spaces
+            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'), $request->input('check_inactive_spaces', []));
+
+            // Reload locations to ensure pivot data is up-to-date for updatePlanningTasks
+            $planning->load('locations');
 
             // Sync users
             $planning->users()->sync($validated['user_ids'] ?? []);
@@ -649,6 +669,12 @@ class PlanningController extends Controller
                 // Remove the link from this completed planning (geplande taak verwijderen)
                 $pt->delete();
             }
+
+            // 3) Inactieve ruimtetaken die niet voltooid zijn: verwijderen (zullen bij volgende planning weer verschijnen)
+            $planning->planningTasks()
+                ->whereNotNull('room_identifier')
+                ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
+                ->delete();
 
             $planning->update([
                 'status' => 'completed',
@@ -989,7 +1015,7 @@ class PlanningController extends Controller
     /**
      * @param array<int,int> $locationIds
      */
-    private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder): void
+    private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder, ?array $checkInactiveSpaces = []): void
     {
         // Parse incoming explicit order from hidden field and preserve it strictly
         $orderedIds = $locationOrder ? array_values(array_filter(
@@ -1013,10 +1039,13 @@ class PlanningController extends Controller
             }
         }
 
-        // Map to pivot payload with 0-based sort_order
+        // Map to pivot payload with 0-based sort_order and check_inactive_spaces
         $locationsToSync = [];
         foreach ($finalOrderedIds as $index => $locationId) {
-            $locationsToSync[(int)$locationId] = ['sort_order' => $index];
+            $locationsToSync[(int)$locationId] = [
+                'sort_order' => $index,
+                'check_inactive_spaces' => (bool) ($checkInactiveSpaces[$locationId] ?? false),
+            ];
         }
 
         // Sync pivot table
@@ -1130,13 +1159,32 @@ class PlanningController extends Controller
         }
 
         // Logic for inactive spaces
-        if ($planning->check_inactive_spaces && !empty($validatedData['location_ids'])) {
-            $locations = Location::findMany($validatedData['location_ids']);
-            foreach ($locations as $location) {
-                if ($location->external_id) {
-                    $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($location->external_id);
-                    if ($inactiveRooms) {
-                        foreach ($inactiveRooms as $room) {
+        foreach ($planning->locations as $location) {
+            \Log::debug('Checking inactive spaces for location', [
+                'location_id' => $location->id,
+                'sync_external_id' => $location->sync_external_id,
+                'check_inactive_spaces' => $location->pivot->check_inactive_spaces
+            ]);
+
+            $effectiveSyncId = $location->sync_external_id ?: $location->external_id;
+
+            if ($location->pivot->check_inactive_spaces && $effectiveSyncId) {
+                $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($effectiveSyncId);
+                \Log::debug('Inactive rooms fetched', [
+                    'location_id' => $location->id,
+                    'sync_id' => $effectiveSyncId,
+                    'count' => is_array($inactiveRooms) ? count($inactiveRooms) : 'null'
+                ]);
+
+                if ($inactiveRooms) {
+                    foreach ($inactiveRooms as $room) {
+                        // Check if task already exists for this room on this planning to avoid duplicates
+                        $exists = $planning->planningTasks()
+                            ->where('location_id', $location->id)
+                            ->where('room_identifier', $room)
+                            ->exists();
+
+                        if (!$exists) {
                             $planning->planningTasks()->create([
                                 'location_id' => $location->id,
                                 'title' => 'Inactieve ruimte controleren: ' . $room,
@@ -1313,23 +1361,34 @@ class PlanningController extends Controller
             ->keyBy(fn($pt) => $pt->location_id . '-' . $pt->room_identifier);
 
         $desired_inactive_task_state = collect();
-        if ($planning->check_inactive_spaces && !empty($validatedData['location_ids'])) {
-            $locations = Location::findMany($validatedData['location_ids']);
-            foreach ($locations as $location) {
-                if ($location->external_id) {
-                    $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($location->external_id);
-                    if ($inactiveRooms) {
-                        foreach ($inactiveRooms as $room) {
-                            $desired_inactive_task_state->put($location->id . '-' . $room, [
-                                'location_id' => $location->id,
-                                'room_identifier' => $room,
-                                'title' => 'Inactieve ruimte controleren: ' . $room,
-                                'description' => 'Controleer de inactieve ruimte op bijzonderheden.',
-                                'status' => \App\Enums\TaskStatus::OPEN,
-                                'priority' => \App\Enums\TaskPriority::NORMAL,
-                                'estimated_time_minutes' => 5,
-                            ]);
-                        }
+        foreach ($planning->locations as $location) {
+            \Log::debug('Updating inactive spaces for location', [
+                'location_id' => $location->id,
+                'sync_external_id' => $location->sync_external_id,
+                'check_inactive_spaces' => $location->pivot->check_inactive_spaces
+            ]);
+
+            $effectiveSyncId = $location->sync_external_id ?: $location->external_id;
+
+            if ($location->pivot->check_inactive_spaces && $effectiveSyncId) {
+                $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($effectiveSyncId);
+                \Log::debug('Inactive rooms fetched for update', [
+                    'location_id' => $location->id,
+                    'sync_id' => $effectiveSyncId,
+                    'count' => is_array($inactiveRooms) ? count($inactiveRooms) : 'null'
+                ]);
+
+                if ($inactiveRooms) {
+                    foreach ($inactiveRooms as $room) {
+                        $desired_inactive_task_state->put($location->id . '-' . $room, [
+                            'location_id' => $location->id,
+                            'room_identifier' => $room,
+                            'title' => 'Inactieve ruimte controleren: ' . $room,
+                            'description' => 'Controleer de inactieve ruimte op bijzonderheden.',
+                            'status' => \App\Enums\TaskStatus::OPEN,
+                            'priority' => \App\Enums\TaskPriority::NORMAL,
+                            'estimated_time_minutes' => 5,
+                        ]);
                     }
                 }
             }

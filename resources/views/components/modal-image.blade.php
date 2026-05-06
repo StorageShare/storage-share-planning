@@ -4,14 +4,15 @@
     x-data="{
         show: false,
         imageUrls: [],
-        photoIds: [],
         currentIndex: 0,
+        photoType: 'task', // 'task' or 'completion'
+        photoIds: [],
         currentRooms: [],
         currentLocationIds: [],
         taskId: null,
         photoId: null,
-        photoType: 'task', // 'task' or 'completion'
         locationId: null,
+        externalId: null,
         selectedRoom: '',
         rooms: [],
         allLocations: [], // Add allLocations to state
@@ -34,10 +35,17 @@
                     this.currentRooms = [];
                     this.currentLocationIds = [];
                     this.locationId = null;
+                    this.externalId = null;
                     this.selectedRoom = '';
                     this.rooms = [];
                     this.allLocations = [];
                 }
+            });
+
+            this.$watch('currentIndex', value => {
+                this.photoId = this.photoIds[value] || null;
+                this.locationId = this.currentLocationIds[value] || null;
+                this.selectedRoom = this.currentRooms[value] || '';
             });
 
             this.$watch('locationId', (value) => {
@@ -295,8 +303,8 @@
         $nextTick(() => $refs.modalPanel.focus());
     "
     x-on:keydown.escape.window="show = false"
-    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
-    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; }"
+    x-on:keydown.left.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; externalId = $event.detail.externalId || null; }"
+    x-on:keydown.right.window="if(show && imageUrls.length > 1) { currentIndex = (currentIndex + 1) % imageUrls.length; photoId = photoIds[currentIndex] || null; locationId = currentLocationIds[currentIndex] || null; selectedRoom = currentRooms[currentIndex] || ''; externalId = $event.detail.externalId || null; }"
     x-show="show"
     style="display: none;"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -371,7 +379,7 @@
             <div class="flex items-center justify-end gap-2 ml-auto">
                 @if(auth()->user()?->canTriggerPhotoWorkflow())
                     <template x-if="(taskId || externalId) && selectedRoom">
-                        <form :action="taskId ? `/photo-workflow/tasks/${taskId}/distribute` : `/photo-workflow/external/${externalId}/distribute`" method="POST" class="inline-block">
+                        <form :action="photoType === 'planning_completion' ? `/planning-tasks/${taskId}/distribute` : (taskId ? `/tasks/${taskId}/distribute` : `/external/${externalId}/distribute`)" method="POST" class="inline-block">
                             @csrf
                             <input type="hidden" name="room" :value="selectedRoom">
                             <button type="submit"
@@ -381,7 +389,7 @@
                         </form>
                     </template>
 
-                    <form x-show="!taskId && !externalId && (photoType === 'planning_comment' || photoType === 'comment_photo') && photoId && selectedRoom" :action="`/photo-workflow/comment-photos/${photoId}/distribute`" method="POST" class="inline-block">
+                    <form x-show="!taskId && !externalId && (photoType === 'planning_comment' || photoType === 'comment_photo') && photoId && selectedRoom" :action="`/comment-photos/${photoId}/distribute`" method="POST" class="inline-block">
                         @csrf
                         <input type="hidden" name="room" :value="selectedRoom">
                         <button type="submit"

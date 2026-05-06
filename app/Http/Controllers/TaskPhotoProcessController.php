@@ -376,6 +376,78 @@ class TaskPhotoProcessController extends Controller
     }
 
     /**
+     * Start the photo distribution process for a planning task (used for inactive rooms).
+     */
+    public function distributePlanningTask(Request $request, PlanningTask $planningTask)
+    {
+        if (!auth()->user()->canTriggerPhotoWorkflow()) {
+            abort(403, 'U heeft geen toestemming om dit proces te starten.');
+        }
+
+        $request->validate([
+            'room' => 'required|string',
+        ]);
+
+        // Update room if it changed
+        if ($planningTask->room_identifier !== $request->room) {
+            $planningTask->update(['room_identifier' => $request->room]);
+        }
+
+        $location = $planningTask->location ?: $planningTask->specificLocation;
+        if (!$location || !$location->external_id) {
+            return back()->with('error', 'Geen locatie gevonden voor deze taak of locatie heeft geen extern ID.');
+        }
+
+        // Look for the photo in completions
+        $photo = $planningTask->completions->flatMap->photos
+            ->sortByDesc('created_at')
+            ->first(fn($p) => $p->room === $request->room);
+
+        if (!$photo) {
+            $photo = $planningTask->completions->flatMap->photos
+                ->sortByDesc('created_at')
+                ->first();
+        }
+
+        if (!$photo) {
+            return back()->with('error', 'Geen foto gevonden voor deze ruimte om rond te sturen.');
+        }
+
+        // API connection with backend to send to all customers
+        $apiUrl = config('services.storage_share_api.url') . '/photo-process/distribute';
+        $apiToken = config('services.storage_share_api.token');
+
+        try {
+            $response = Http::withToken($apiToken)
+                ->post($apiUrl, [
+                    'stalling_location_id' => $location->external_id,
+                    'photo_url' => $photo->url,
+                    'room_identifier' => $request->room,
+                    'planning_task_id' => $planningTask->id,
+                    'follow_up' => [
+                        'first_in_days' => 7,
+                        'second_in_days' => 14,
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                return back()->with('success', 'Foto is succesvol rondgestuurd naar alle huurders via de API.');
+            } else {
+                Log::error('PhotoProcess (PlanningTask): API call failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return back()->with('error', 'Er is iets misgegaan bij het aanroepen van de API: ' . $response->json('message', 'Onbekende fout'));
+            }
+        } catch (\Exception $e) {
+            Log::error('PhotoProcess (PlanningTask): API connection error', [
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Kon geen verbinding maken met de API.');
+        }
+    }
+
+    /**
      * Get rooms for the location via storage-share-api.
      */
     public function getRooms(Task $task): JsonResponse

@@ -135,7 +135,8 @@ class Location extends Model
             $query->where('location_id', $this->id) // Direct location assignment for default tasks
                   ->orWhereHas('task', function ($subQuery) {
                       $subQuery->where('location_id', $this->id); // Backlog tasks
-                  });
+                  })
+                  ->orWhere('room_identifier', '!=', null); // Include inactive room tasks
         })->get();
 
         // If no tasks for this location, consider it completed

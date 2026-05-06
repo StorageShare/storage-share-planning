@@ -813,9 +813,13 @@
                                     return $pt->task->location_id == $location->id;
                                 } elseif ($pt->default_task_id && $pt->defaultTask) { // Default Task
                                     return $pt->location_id == $location->id; // Use direct location_id on PlanningTask
+                                } elseif (!is_null($pt->room_identifier)) { // Inactive room task
+                                    return $pt->location_id == $location->id;
                                 }
                                 return false;
                             });
+
+                            [$inactiveRoomTasks, $regularTasksForLocation] = $tasksForLocation->partition(fn ($pt) => !is_null($pt->room_identifier));
 
                             $commentsForLocation = $planning->comments->where('location_id', $location->id);
 
@@ -825,7 +829,7 @@
                                 'low' => 3,
                             ];
 
-                            $tasksForLocation = $tasksForLocation->sortBy(function ($planningTask) use ($priorityOrder) {
+                            $regularTasksForLocation = $regularTasksForLocation->sortBy(function ($planningTask) use ($priorityOrder) {
                                 // Backlog tasks have priority
                                 if ($planningTask->task && $planningTask->task->priority) {
                                     return $priorityOrder[$planningTask->task->priority->value] ?? 4;
@@ -868,8 +872,8 @@
                                     <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Taken voor Locatie: {{ $location->name }}</h3>
                                 </div>
 
-                                @if ($tasksForLocation->isEmpty())
-                                    @if ($commentsForLocation->isEmpty())
+                                @if ($regularTasksForLocation->isEmpty())
+                                    @if ($commentsForLocation->isEmpty() && $inactiveRoomTasks->isEmpty())
                                         <div class="border border-dashed border-gray-300 dark:border-gray-700 rounded-md p-6 text-center text-gray-500 dark:text-gray-400">
                                             Geen taken gepland voor deze locatie.
                                         </div>
@@ -892,7 +896,7 @@
                                                             </tr>
                                                         </thead>
                                                         <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
-                                                    @foreach ($tasksForLocation as $planningTask)
+                                                    @foreach ($regularTasksForLocation as $planningTask)
                                                         @php
                                                             $estimatedMinutes = 0;
                                                             if ($planningTask->task && isset($planningTask->task->estimated_time_minutes)) {
@@ -1234,6 +1238,54 @@
                                                             </tr>
                                                         </tfoot>
                                                     </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($inactiveRoomTasks->isNotEmpty())
+                                    <div class="mt-8">
+                                        <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Inactieve ruimtes behandelen</h4>
+                                        <div class="flex flex-col">
+                                            <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                                <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                                                    <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
+                                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                                                <tr>
+                                                                    <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Ruimte</th>
+                                                                    <th scope="col" class="py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400">Status</th>
+                                                                    <th scope="col" class="relative py-3.5 px-4">
+                                                                        <span class="sr-only">Acties</span>
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="bg-white divide-y divide-gray-200 dark:divide-gray-700 dark:bg-gray-900">
+                                                                @foreach ($inactiveRoomTasks as $planningTask)
+                                                                    <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
+                                                                        <td class="px-4 py-4 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-normal">
+                                                                            <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="font-semibold hover:underline">{{ $planningTask->title }} ({{ $planningTask->room_identifier }})</a>
+                                                                        </td>
+                                                                        <td class="px-4 py-4 text-sm whitespace-nowrap">
+                                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                                                @switch($planningTask->status->value ?? $planningTask->status)
+                                                                                    @case('completed') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 @break
+                                                                                    @case('review') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
+                                                                                    @case('rejected') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 @break
+                                                                                    @default bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                                                                                @endswitch">
+                                                                                {{ $planningTask->status->label() ?? $planningTask->status }}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="px-4 py-4 text-sm text-right">
+                                                                            <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Bekijken</a>
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

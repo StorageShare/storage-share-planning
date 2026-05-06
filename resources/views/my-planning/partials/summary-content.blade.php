@@ -55,7 +55,10 @@
         </div>
 
         {{-- Inactive spaces check info --}}
-        @if($planning->check_inactive_spaces)
+        @php
+            $locationsWithInactiveCheck = $planning->locations->filter(fn($l) => $l->pivot->check_inactive_spaces);
+        @endphp
+        @if($locationsWithInactiveCheck->isNotEmpty())
             <div class="flex items-center text-sm">
                 <div class="flex-shrink-0 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,8 +66,8 @@
                     </svg>
                 </div>
                 <div class="ml-3 flex-1">
-                    <span class="font-medium text-purple-700 dark:text-purple-400">Inactieve ruimtes controleren:</span>
-                    <span class="text-gray-900 dark:text-gray-100 italic">Ja, uitvoeren</span>
+                    <span class="font-medium text-purple-700 dark:text-purple-400">Inactieve ruimtes controleren bij:</span>
+                    <span class="text-gray-900 dark:text-gray-100 italic">{{ $locationsWithInactiveCheck->pluck('name')->join(', ', ' en ') }}</span>
                 </div>
             </div>
         @endif

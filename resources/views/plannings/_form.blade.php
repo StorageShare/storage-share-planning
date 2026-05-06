@@ -88,9 +88,12 @@
                                     <span class="font-medium text-gray-500">L:</span> {{ $count_low }}
                                 </p>
                                 <p>Totale Tijd: <span class="font-medium">{{ $total_time }} min</span></p>
+                                @if(isset($inactiveRoomCountsByLocation[$location_option->id]) && (int)$inactiveRoomCountsByLocation[$location_option->id] > 0)
+                                    <p class="text-purple-600 dark:text-purple-400">Inactieve ruimtes: <span class="font-medium">{{ $inactiveRoomCountsByLocation[$location_option->id] }}</span></p>
+                                @endif
                             </div>
                         </div>
-                        <div class="ml-3 flex flex-col gap-1">
+                        <div class="ml-3 flex items-center gap-1">
                             <button type="button"
                                 class="add-location-btn p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors duration-150 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
                                 data-location-id="{{ $location_option->id }}"
@@ -246,15 +249,6 @@
             @enderror
         </div>
 
-        <div class="relative flex items-start">
-            <div class="flex items-center h-5">
-                <input id="check_inactive_spaces" name="check_inactive_spaces" type="checkbox" value="1" {{ old('check_inactive_spaces', $planning->check_inactive_spaces ?? false) ? 'checked' : '' }} class="border-gray-300 rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
-            </div>
-            <div class="ms-3 text-sm">
-                <label for="check_inactive_spaces" class="font-medium text-gray-700 dark:text-gray-300">Inactieve ruimtes controleren</label>
-                <p class="text-gray-500 dark:text-gray-400">Indien aangevinkt, wordt er voor elke inactieve ruimte op de geselecteerde locaties een taak aangemaakt.</p>
-            </div>
-        </div>
 
         <div>
             <label for="users" class="block text-sm font-medium mb-2 dark:text-gray-300">Users</label>
@@ -269,6 +263,9 @@
     </div>
 
 <div id="planning_form_script_data"
+    data-inactive-room-counts-by-location="{{ json_encode($inactiveRoomCountsByLocation ?? []) }}"
+    data-current-location-pivot-data="{{ json_encode(isset($planning) ? $planning->locations->mapWithKeys(fn($loc) => [$loc->id => ['check_inactive_spaces' => $loc->pivot->check_inactive_spaces]]) : []) }}"
+    data-old-check-inactive-spaces="{{ json_encode(old('check_inactive_spaces') ?? []) }}"
     data-locations="{{ json_encode($locations->map(fn($loc) => ['id' => $loc->id, 'name' => $loc->name])) }}"
     data-default-tasks-by-location="{{ json_encode($defaultTasksByLocation ?? []) }}"
     data-backlog-tasks-by-location="{{ json_encode($backlogTasksByLocation ?? []) }}"
@@ -312,6 +309,9 @@
         const planningShowRouteTemplate = scriptDataElement.dataset.planningsShowRoute;
 
         const allLocationsData = JSON.parse(scriptDataElement.dataset.locations);
+        const inactiveRoomCountsByLocation = JSON.parse(scriptDataElement.dataset.inactiveRoomCountsByLocation || '{}');
+        const currentLocationPivotData = JSON.parse(scriptDataElement.dataset.currentLocationPivotData || '{}');
+        const oldCheckInactiveSpaces = JSON.parse(scriptDataElement.dataset.oldCheckInactiveSpaces || '{}');
         const defaultTasksByLocation = JSON.parse(scriptDataElement.dataset.defaultTasksByLocation);
         const backlogTasksByLocation = JSON.parse(scriptDataElement.dataset.backlogTasksByLocation);
         const backlogPriorityCountsByLocation = JSON.parse(scriptDataElement.dataset.backlogPriorityCountsByLocation);
@@ -956,19 +956,46 @@
 
         function createSelectedLocationItem(locationId, locationName) {
             const div = document.createElement('div');
-            div.className = 'flex items-center justify-between p-2 bg-white border border-gray-200 rounded-md shadow-sm dark:bg-gray-900 dark:border-gray-700';
+            div.className = 'flex flex-col p-3 bg-white border border-gray-200 rounded-md shadow-sm dark:bg-gray-900 dark:border-gray-700 space-y-2';
             div.dataset.locationId = locationId;
 
+            const inactiveCount = inactiveRoomCountsByLocation[locationId] || 0;
+            let inactiveCheckboxHtml = '';
+
+            if (inactiveCount > 0) {
+                // Determine if it should be checked based on old input or current pivot data
+                let isChecked = false;
+                if (oldCheckInactiveSpaces && oldCheckInactiveSpaces[locationId]) {
+                    isChecked = true;
+                } else if (!oldCheckInactiveSpaces || Object.keys(oldCheckInactiveSpaces).length === 0) {
+                    if (currentLocationPivotData[locationId] && currentLocationPivotData[locationId].check_inactive_spaces) {
+                        isChecked = true;
+                    }
+                }
+
+                inactiveCheckboxHtml = `
+                    <div class="flex items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <input id="check_inactive_loc_${locationId}" name="check_inactive_spaces[${locationId}]" type="checkbox" value="1" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+                        <label for="check_inactive_loc_${locationId}" class="ms-2 text-xs font-medium text-purple-700 dark:text-purple-400">
+                            Inactieve ruimtes controleren (${inactiveCount})
+                        </label>
+                    </div>
+                `;
+            }
+
             div.innerHTML = `
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${escapeHtml(locationName)}</span>
-                <button type="button"
-                    class="remove-location-btn p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-150 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
-                    data-location-id="${locationId}"
-                    title="Verwijderen uit planning">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${escapeHtml(locationName)}</span>
+                    <button type="button"
+                        class="remove-location-btn p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-150 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                        data-location-id="${locationId}"
+                        title="Verwijderen uit planning">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                ${inactiveCheckboxHtml}
             `;
 
             return div;

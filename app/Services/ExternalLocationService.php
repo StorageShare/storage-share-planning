@@ -109,4 +109,98 @@ class ExternalLocationService
             return null;
         }
     }
+
+    /**
+     * Fetch inactive room counts for all locations.
+     *
+     * @return array<string|int, int>|null
+     */
+    public function fetchInactiveRoomCounts(): ?array
+    {
+        $baseUrl = Config::get('services.external_locations_api.url');
+        $apiToken = Config::get('services.external_locations_api.token');
+
+        $apiUrl = dirname($baseUrl) . '/inactive-rooms-counts';
+
+        if (empty($baseUrl) || empty($apiToken)) {
+            Log::error('ExternalLocationService: API URL or Token not configured.');
+            return null;
+        }
+
+        try {
+            $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
+
+            if (! $response->successful()) {
+                Log::error('ExternalLocationService: Inactive room counts API request failed.', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'url' => $apiUrl
+                ]);
+                return null;
+            }
+
+            $data = $response->json();
+
+            if (isset($data['success']) && $data['success'] === true && isset($data['counts'])) {
+                return $data['counts'];
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('ExternalLocationService: Unexpected error fetching inactive room counts.', ['exception' => $e]);
+            return null;
+        }
+    }
+
+    /**
+     * Upload a photo for a specific room to the external API.
+     *
+     * @param string|int $externalId
+     * @param string $roomNumber
+     * @param string $photoPath Full path to the photo file
+     * @return bool
+     */
+    public function uploadRoomPhoto($externalId, string $roomNumber, string $photoPath): bool
+    {
+        $baseUrl = Config::get('services.external_locations_api.url');
+        $apiToken = Config::get('services.external_locations_api.token');
+
+        // URL: .../api/spaces/{id}/rooms/{room_number}/photos
+        $apiUrl = dirname($baseUrl) . '/spaces/' . $externalId . '/rooms/' . urlencode($roomNumber) . '/photos';
+
+        if (empty($baseUrl) || empty($apiToken)) {
+            Log::error('ExternalLocationService: API URL or Token not configured.');
+            return false;
+        }
+
+        if (!file_exists($photoPath)) {
+            Log::error('ExternalLocationService: Photo file does not exist.', ['path' => $photoPath]);
+            return false;
+        }
+
+        try {
+            $response = Http::withToken($apiToken)
+                ->acceptJson()
+                ->attach('photo', file_get_contents($photoPath), basename($photoPath))
+                ->post($apiUrl);
+
+            if (! $response->successful()) {
+                Log::error('ExternalLocationService: Room photo upload failed.', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'url' => $apiUrl,
+                    'room' => $roomNumber
+                ]);
+                return false;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('ExternalLocationService: Unexpected error uploading room photo.', [
+                'exception' => $e->getMessage(),
+                'room' => $roomNumber
+            ]);
+            return false;
+        }
+    }
 }

@@ -85,6 +85,7 @@ Route::middleware(['auth', 'can_manage_plannings'])->group(function () {
     Route::post('tasks/{task}/distribute', [TaskPhotoProcessController::class, 'distribute'])->name('photo-workflow.distribute');
     Route::post('external/{externalId}/distribute', [TaskPhotoProcessController::class, 'distributeExternal'])->name('photo-workflow.external.distribute');
     Route::post('comment-photos/{photo}/distribute', [TaskPhotoProcessController::class, 'distributeCommentPhoto'])->name('photo-workflow.comment-photo.distribute');
+    Route::post('planning-tasks/{planning_task}/distribute', [TaskPhotoProcessController::class, 'distributePlanningTask'])->name('photo-workflow.planning-task.distribute');
     Route::get('tasks/{task}/create-sticker', [TaskPhotoProcessController::class, 'createStickerTask'])->name('photo-workflow.create-sticker-task');
     Route::get('tasks/{task}/create-new-photo', [TaskPhotoProcessController::class, 'createNewPhotoTask'])->name('photo-workflow.create-new-photo-task');
     Route::get('tasks/{task}/create-evacuation', [TaskPhotoProcessController::class, 'createEvacuationTask'])->name('photo-workflow.create-evacuation-task');

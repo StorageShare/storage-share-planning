@@ -901,7 +901,7 @@
                                                         </div>
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
+                                                                <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? (photo.url ?? pIdx)">
                                                                     <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room), task.external_id)">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
                                                                     </button>
@@ -941,7 +941,7 @@
                                                         </div>
                                                         <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? pIdx">
+                                                                <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? (photo.url ?? pIdx)">
                                                                     <button @click="openImageModal(task.photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room), task.external_id)">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
@@ -978,7 +978,7 @@
                                                         <h5 class="font-bold text-gray-800 dark:text-gray-200">Foto's bij overslaan:</h5>
                                                         <div class="mt-2">
                                                             <div class="flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in task.skip_photos" :key="photo.id ?? pIdx">
+                                                                <template x-for="(photo, pIdx) in task.skip_photos" :key="photo.id ?? (photo.url ?? pIdx)">
                                                                     <button @click="openImageModal(task.skip_photos.map(p => p.url), pIdx, task.underlying_task_id, (location ? location.location_id : null), task.room, task.skip_photos.map(p => p.id), 'planning_completion', task.skip_photos.map(p => p.location_id), task.skip_photos.map(p => p.room), task.external_id)">
                                                                         <img :src="photo.url" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75">
                                                                     </button>
@@ -1036,7 +1036,7 @@
                                                         <div class="mt-3" x-show="task.photos && task.photos.length > 0">
                                                             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Eerder toegevoegde foto's:</span>
                                                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
-                                                                <template x-for="photo in task.photos" :key="photo">
+                                                                <template x-for="(photo, photoIndex) in task.photos" :key="photoIndex">
                                                                     <div class="relative">
                                                                         <img :src="photo" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600 opacity-75">
                                                                         <div class="absolute inset-0 flex items-center justify-center">
@@ -1099,7 +1099,7 @@
                                                         <div x-show="editingCommentId !== comment.id">
                                                             <p class="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap" x-text="comment.comment"></p>
                                                             <div x-show="comment.photos_json && comment.photos_json.length > 0" class="mt-3 flex flex-wrap gap-2">
-                                                                <template x-for="(photo, pIdx) in comment.photos_json" :key="photo.id ?? pIdx">
+                                                                <template x-for="(photo, pIdx) in comment.photos_json" :key="photo.id ?? (photo.url ?? pIdx)">
                                                                     <div class="relative group">
                                                                         <button @click="openImageModal(comment.photos_json.map(p => p.url), pIdx, null, null, '', comment.photos_json.map(p => p.id), 'planning_comment', comment.photos_json.map(p => p.location_id), comment.photos_json.map(p => p.room))">
                                                                             <img :src="photo.url" class="w-20 h-20 object-cover rounded shadow-sm hover:opacity-75 transition">
@@ -1176,6 +1176,232 @@
                                             </div>
                                         </template>
                                     </div>
+
+                                    {{-- Inactive Rooms Section --}}
+                                    <div x-init="console.log('Location data:', location)" class="hidden"></div>
+                                    <template x-if="location.check_inactive_spaces">
+                                        <div class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+                                            <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Inactieve ruimtes behandelen</h4>
+
+                                            <template x-if="!location.inactive_room_tasks || location.inactive_room_tasks.length === 0">
+                                                <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
+                                                    <p class="text-gray-500 dark:text-gray-400">Geen inactieve ruimtes gevonden om te controleren.</p>
+                                                </div>
+                                            </template>
+
+                                            <template x-for="(task, roomIndex) in location.inactive_room_tasks" :key="task.task_id">
+                                                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-200 mb-4"
+                                                    :class="task.status === 'completed' || task.status === 'review' ? 'border-green-100 dark:border-green-900/30' : ''">
+                                                    <div class="p-4">
+                                                        <div class="flex items-center justify-between">
+                                                            <div class="flex items-center space-x-3">
+                                                                <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                                                                    :class="{
+                                                                        'bg-green-100 text-green-600': task.status === 'completed' || task.status === 'review',
+                                                                        'bg-blue-100 text-blue-600': task.status !== 'completed' && task.status !== 'review'
+                                                                    }">
+                                                                    <template x-if="task.status === 'completed' || task.status === 'review'">
+                                                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                                        </svg>
+                                                                    </template>
+                                                                    <template x-if="task.status !== 'completed' && task.status !== 'review'">
+                                                                        <span class="text-sm font-bold" x-text="roomIndex + 1"></span>
+                                                                    </template>
+                                                                </div>
+                                                                <div>
+                                                                    <h5 class="font-bold text-gray-900 dark:text-gray-100" x-text="task.title"></h5>
+                                                                    <p class="text-sm text-gray-500" x-text="task.room_identifier"></p>
+                                                                </div>
+                                                            </div>
+                                                            <button @click="toggleInactiveRoom(index, roomIndex)"
+                                                                class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition">
+                                                                <svg class="w-5 h-5 text-gray-400 transform transition-transform"
+                                                                    :class="isInactiveRoomExpanded(index, roomIndex) ? 'rotate-180' : ''"
+                                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+
+                                                        <div x-show="!['completed', 'review', 'rejected', 'skipped'].includes(task.status) && isInactiveRoomExpanded(index, roomIndex)"
+                                                            x-transition:enter="transition ease-out duration-200"
+                                                            x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                                            x-transition:enter-end="opacity-100 transform translate-y-0"
+                                                            class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+
+                                                            <div class="space-y-4">
+                                                                <div>
+                                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Omschrijving</label>
+                                                                    <textarea x-model="getTaskCompletion(task.task_id).notes"
+                                                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                                                        rows="2" placeholder="Wat heb je gedaan?"></textarea>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                                                                        Foto's
+                                                                        <template x-if="task.is_photo_required">
+                                                                            <span class="text-red-500 font-normal ml-1">(verplicht)</span>
+                                                                        </template>
+                                                                    </label>
+
+                                                                    <!-- Drag & Drop Zone for Inactive Room Photos -->
+                                                                    <div
+                                                                        class="border-2 border-dashed rounded-lg p-4 sm:p-5 transition"
+                                                                        :class="{
+                                                                            'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-900/10': draggingTaskId === task.task_id,
+                                                                            'border-red-300 bg-red-50/30 dark:border-red-900/20': getTaskErrors(task.task_id).photos,
+                                                                            'border-gray-300 dark:border-gray-600': draggingTaskId !== task.task_id && !getTaskErrors(task.task_id).photos
+                                                                        }"
+                                                                        @dragover.prevent="draggingTaskId = task.task_id"
+                                                                        @dragleave.prevent="draggingTaskId = null"
+                                                                        @drop.prevent="onTaskDrop($event, task.task_id)"
+                                                                        @paste="onTaskPaste($event, task.task_id)"
+                                                                    >
+                                                                        <div class="text-center">
+                                                                            <svg class="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                                            </svg>
+                                                                            <div class="mt-2">
+                                                                                <label :for="`inactive_room_photos_${task.task_id}`" class="cursor-pointer text-sm font-medium text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                                    Bestanden kiezen
+                                                                                </label>
+                                                                                <span class="mx-1 text-sm text-gray-500 dark:text-gray-400">of sleep ze hierheen</span>
+                                                                            </div>
+                                                                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Meerdere afbeeldingen toegestaan (JPG, PNG, GIF, WEBP ≤ 10MB per bestand)</div>
+                                                                            <input :id="`inactive_room_photos_${task.task_id}`" class="sr-only" type="file" accept="image/*" multiple @change="queueTaskPhotoFiles($event, task.task_id)">
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Previous photos for this inactive room task -->
+                                                                    <div class="mt-3" x-show="task.photos && task.photos.length > 0">
+                                                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Eerder toegevoegde foto's:</span>
+                                                                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
+                                                                            <template x-for="(photo, photoIndex) in task.photos" :key="photoIndex">
+                                                                                <div class="relative">
+                                                                                    <img :src="photo.url || photo" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600 opacity-75 cursor-pointer" @click="openImageModal(task.photos.map(p => p.url || p), photoIndex, task.task_id, (location ? location.location_id : null), task.room_identifier, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
+                                                                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                                        <span class="bg-gray-900/50 text-white text-[10px] px-1.5 py-0.5 rounded">Bewaard</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </template>
+                                                                        </div>
+                                                                        <p class="text-[10px] text-gray-500 mt-1">* Eerdere foto's blijven behouden tenzij je nieuwe toevoegt.</p>
+                                                                    </div>
+
+                                                                    <!-- Queued previews for this inactive room task -->
+                                                                    <div class="mt-3" x-show="getTaskCompletion(task.task_id).photos.length > 0">
+                                                                        <div class="flex items-center justify-between mb-2">
+                                                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="`${getTaskCompletion(task.task_id).photos.length} bestand(en) geselecteerd`"></span>
+                                                                            <div class="flex items-center gap-2">
+                                                                                <button type="button" @click="clearTaskQueuedFiles(task.task_id)" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                                                                                    Leegmaken
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                                            <template x-for="(file, idx) in getTaskCompletion(task.task_id).photos" :key="idx">
+                                                                                <div class="relative group">
+                                                                                    <img :src="URL.createObjectURL(file)" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600" :alt="`Geselecteerde foto ${idx+1}`">
+                                                                                    <button type="button" @click="removeTaskQueuedFile(task.task_id, idx)" class="absolute -top-2 -right-2 z-10 bg-white dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-800 text-red-600 rounded-full p-1 shadow">
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 12.062A3 3 0 0115.92 22H8.08a3 3 0 01-2.988-2.278L4.087 6.66l-.209.035a.75.75 0 11-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.972a52.662 52.662 0 013.368 0C15.287 1.805 16.5 3.141 16.5 4.705zM10.5 4.75a.25.25 0 00-.25.25v.136a49.488 49.488 0 013.5 0V5a.25.25 0 00-.25-.25h-3zM8.58 8.72a.75.75 0 10-1.5.06l.626 10.02a1.5 1.5 0 001.494 1.4h7.84a1.5 1.5 0 001.494-1.4l.626-10.02a.75.75 0 10-1.5-.06l-.62 9.93a.25.25 0 01-.249.23H8.7a.25.25 0 01-.25-.23l-.62-9.93z" clip-rule="evenodd"/></svg>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </template>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="mt-2 text-sm text-red-600" x-show="getTaskErrors(task.task_id).photos" x-text="getTaskErrors(task.task_id).photos"></div>
+                                                                </div>
+
+                                                                <div class="flex justify-end mt-4">
+                                                                    <button @click="submitTaskCompletion(task)"
+                                                                        :disabled="isSubmitting || (!getTaskCompletion(task.task_id).notes && getTaskCompletion(task.task_id).photos.length === 0)"
+                                                                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition disabled:opacity-50">
+                                                                        <template x-if="!isSubmitting">
+                                                                            <span>Ruimte afronden</span>
+                                                                        </template>
+                                                                        <template x-if="isSubmitting">
+                                                                            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                            </svg>
+                                                                        </template>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {{-- Completed/Review Status for Inactive Rooms --}}
+                                                        <div x-show="['completed', 'review', 'rejected', 'skipped'].includes(task.status) && isInactiveRoomExpanded(index, roomIndex)"
+                                                            class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                                            <div class="p-3 rounded-lg"
+                                                                :class="{
+                                                                    'bg-green-50 dark:bg-green-900/20': task.status === 'completed',
+                                                                    'bg-orange-50 dark:bg-orange-900/20': task.status === 'review',
+                                                                    'bg-red-50 dark:bg-red-900/20': task.status === 'rejected',
+                                                                    'bg-gray-50 dark:bg-gray-900/20': task.status === 'skipped'
+                                                                }">
+                                                                <div class="flex justify-between items-center">
+                                                                    <div>
+                                                                        <span class="px-3 py-1 text-sm font-semibold rounded-full"
+                                                                            :class="{
+                                                                                'bg-green-200 text-green-800': task.status === 'completed',
+                                                                                'bg-orange-200 text-orange-800': task.status === 'review',
+                                                                                'bg-red-200 text-red-800': task.status === 'rejected',
+                                                                                'bg-gray-200 text-gray-800': task.status === 'skipped'
+                                                                            }"
+                                                                            x-text="`Status: ${task.status}`">
+                                                                        </span>
+                                                                        <p class="text-sm mt-2"
+                                                                            :class="{
+                                                                                'text-green-700 dark:text-green-300': task.status === 'completed',
+                                                                                'text-orange-700 dark:text-orange-300': task.status === 'review',
+                                                                                'text-red-700 dark:text-red-300': task.status === 'rejected',
+                                                                                'text-gray-700 dark:text-gray-300': task.status === 'skipped'
+                                                                            }"
+                                                                            x-text="task.status === 'completed' ? 'Deze ruimte is gecontroleerd en goedgekeurd.' :
+                                                                                    (task.status === 'review' ? 'Deze ruimte is gecontroleerd en wacht op goedkeuring.' :
+                                                                                    (task.status === 'rejected' ? 'Deze controle is afgewezen.' : 'Deze ruimte is overgeslagen.'))">
+                                                                        </p>
+                                                                    </div>
+                                                                    <div x-show="['review', 'rejected', 'skipped'].includes(task.status)">
+                                                                        <button @click="reopenTask(task)"
+                                                                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition"
+                                                                            :class="{
+                                                                                'bg-yellow-500 hover:bg-yellow-600': task.status === 'review',
+                                                                                'bg-red-500 hover:bg-red-600': task.status === 'rejected',
+                                                                                'bg-gray-500 hover:bg-gray-600': task.status === 'skipped'
+                                                                            }">
+                                                                            Heropen
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {{-- Display submitted data --}}
+                                                                <div class="mt-4" x-show="task.completed_notes || (task.photos && task.photos.length > 0)">
+                                                                    <h5 class="font-bold text-gray-800 dark:text-gray-200">Ingestuurde gegevens:</h5>
+                                                                    <div x-show="task.completed_notes" class="mt-2">
+                                                                        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="task.completed_notes"></p>
+                                                                    </div>
+                                                                    <div x-show="task.photos && task.photos.length > 0" class="mt-2">
+                                                                        <div class="flex flex-wrap gap-2">
+                                                                            <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? (photo.url ?? pIdx)">
+                                                                                <button @click="openImageModal(task.photos.map(p => p.url || p), pIdx, task.task_id, (location ? location.location_id : null), task.room_identifier, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
+                                                                                    <img :src="photo.url || photo" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                                                                                </button>
+                                                                            </template>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
 
                                     {{-- Extra Section --}}
                                     <div class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
@@ -1388,6 +1614,7 @@
                 skipErrors: {},
                 skipTaskId: null,
                 expandedTasks: {},
+                expandedInactiveRooms: {},
                 taskCompletions: {},
                 taskErrors: {},
                 locationStartTime: null,
@@ -1453,14 +1680,25 @@
 
                     // Initialize task completions
                     this.locationSteps.forEach((location, locationIndex) => {
-                        if (location.type === 'location' && location.tasks) {
-                            location.tasks.forEach(task => {
-                                this.taskCompletions[task.task_id] = {
-                                    notes: task.completed_notes || '',
-                                    photos: []
-                                };
-                                this.taskErrors[task.task_id] = {};
-                            });
+                        if (location.type === 'location') {
+                            if (location.tasks) {
+                                location.tasks.forEach(task => {
+                                    this.taskCompletions[task.task_id] = {
+                                        notes: task.completed_notes || '',
+                                        photos: []
+                                    };
+                                    this.taskErrors[task.task_id] = {};
+                                });
+                            }
+                            if (location.inactive_room_tasks) {
+                                location.inactive_room_tasks.forEach(task => {
+                                    this.taskCompletions[task.task_id] = {
+                                        notes: task.completed_notes || '',
+                                        photos: []
+                                    };
+                                    this.taskErrors[task.task_id] = {};
+                                });
+                            }
                         }
                     });
 
@@ -1519,11 +1757,24 @@
                     return !!this.expandedTasks[key];
                 },
 
+                toggleInactiveRoom(locationIndex, roomIndex) {
+                    const key = `${locationIndex}-${roomIndex}`;
+                    this.expandedInactiveRooms[key] = !this.expandedInactiveRooms[key];
+                },
+
+                isInactiveRoomExpanded(locationIndex, roomIndex) {
+                    const key = `${locationIndex}-${roomIndex}`;
+                    return !!this.expandedInactiveRooms[key];
+                },
+
                 getTaskCompletion(taskId) {
-                    return this.taskCompletions[taskId] || {
-                        notes: '',
-                        photos: []
-                    };
+                    if (!this.taskCompletions[taskId]) {
+                        this.taskCompletions[taskId] = {
+                            notes: '',
+                            photos: []
+                        };
+                    }
+                    return this.taskCompletions[taskId];
                 },
 
                 getTaskErrors(taskId) {
@@ -1535,7 +1786,7 @@
                     const files = Array.from(event.target?.files || event.files || []);
                     if (!files.length) return;
                     const completion = this.getTaskCompletion(taskId);
-                    if (!completion.photos) completion.photos = [];
+                    if (!Array.isArray(completion.photos)) completion.photos = [];
 
                     for (const file of files) {
                         // Validate size ≤ 10MB
@@ -1550,6 +1801,9 @@
                         }
                         completion.photos.push(file);
                     }
+
+                    // Force Alpine to recognize the change in the array
+                    completion.photos = [...completion.photos];
 
                     // Reset input so selecting same files again works
                     if (event.target) {
@@ -1621,6 +1875,7 @@
                     const completion = this.getTaskCompletion(taskId);
                     if (!Array.isArray(completion.photos)) return;
                     completion.photos.splice(index, 1);
+                    completion.photos = [...completion.photos];
                 },
 
                 onRoomLinked(detail) {
@@ -1925,7 +2180,7 @@
                                 notes: '',
                                 photos: []
                             };
-                            this.updateTaskPhotoPreviews(task.task_id);
+                            // this.updateTaskPhotoPreviews(task.task_id);
                         })
                         .catch(error => {
                             if (error.response && error.response.status === 422) {
@@ -2541,12 +2796,21 @@
                     }
 
                     if (current.type === 'location') {
-                        return current.tasks ? current.tasks.every(task =>
+                        const tasksOk = current.tasks ? current.tasks.every(task =>
                             task.status === 'completed' ||
                             task.status === 'review' ||
                             task.status === 'rejected' ||
                             task.status === 'skipped'
                         ) : true;
+
+                        const inactiveRoomsOk = current.inactive_room_tasks ? current.inactive_room_tasks.every(task =>
+                            task.status === 'completed' ||
+                            task.status === 'review' ||
+                            task.status === 'rejected' ||
+                            task.status === 'skipped'
+                        ) : true;
+
+                        return tasksOk && inactiveRoomsOk;
                     }
 
                     // Travel steps and call steps can always proceed
@@ -2664,11 +2928,19 @@
                 },
 
                 areAllTasksCompleted(location) {
-                    if (!location.tasks) return true;
-                    return location.tasks.every(task =>
+                    if (!location.tasks && !location.inactive_room_tasks) return true;
+
+                    const tasksCompleted = !location.tasks || location.tasks.every(task =>
                         task.status === 'completed' ||
                         task.status === 'review'
                     );
+
+                    const inactiveRoomsCompleted = !location.inactive_room_tasks || location.inactive_room_tasks.every(task =>
+                        task.status === 'completed' ||
+                        task.status === 'review'
+                    );
+
+                    return tasksCompleted && inactiveRoomsCompleted;
                 },
 
                 async startLocationTimer() {

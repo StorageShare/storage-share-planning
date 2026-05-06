@@ -30,9 +30,7 @@ class Planning extends Model
         'created_by',
         'start_address',
         'start_time',
-        'travel_time_distributed_at',
         'vehicle_id',
-        'check_inactive_spaces',
     ];
 
     /**
@@ -44,7 +42,6 @@ class Planning extends Model
         'planned_date' => 'datetime',
         'travel_time_distributed_at' => 'datetime',
         'travel_time_distributed_total_seconds' => 'integer',
-        'check_inactive_spaces' => 'boolean',
     ];
 
     /**
@@ -55,7 +52,7 @@ class Planning extends Model
     public function locations(): BelongsToMany
     {
         return $this->belongsToMany(Location::class, 'location_planning')
-            ->withPivot('sort_order')
+            ->withPivot('sort_order', 'check_inactive_spaces')
             // Ensure we always order by the pivot column, not a base table column
             ->orderByPivot('sort_order');
     }

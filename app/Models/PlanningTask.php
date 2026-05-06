@@ -42,6 +42,7 @@ class PlanningTask extends Model
         'completed_notes',
         'estimated_time_minutes',
         'is_vehicle_task',
+        'room_identifier',
     ];
 
     /**
@@ -138,6 +139,16 @@ class PlanningTask extends Model
     public function defaultTask(): BelongsTo
     {
         return $this->belongsTo(DefaultTask::class);
+    }
+
+    /**
+     * Get the location for this planning task.
+     *
+     * @return BelongsTo<Location, $this>
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     /**

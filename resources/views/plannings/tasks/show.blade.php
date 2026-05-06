@@ -33,7 +33,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6"
-                         x-data="{ selectedRoom: '{{ $planning_task->task->room ?? '' }}' }"
+                         x-data="{ selectedRoom: '{{ $planning_task->room_identifier ?? ($planning_task->task->room ?? '') }}' }"
                          @room-linked.window="if($event.detail.taskId == {{ $planning_task->task_id ?? 'null' }}) selectedRoom = $event.detail.room">
                         <div class="bg-white dark:bg-gray-900/50 p-6 rounded-lg shadow">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Details</h3>

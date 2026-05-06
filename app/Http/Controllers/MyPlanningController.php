@@ -250,8 +250,11 @@ class MyPlanningController extends Controller
         foreach ($planning->locations as $index => $location) {
             $locationTasks = $tasksByLocation[$location->id] ?? collect();
 
+            // Split into regular tasks and inactive room tasks
+            [$inactiveRoomTasks, $otherLocationTasks] = $locationTasks->partition(fn ($pt) => !is_null($pt->room_identifier));
+
             // Partition into backlog vs standard for this location
-            [$backlogLocationTasks, $standardLocationTasks] = $locationTasks->partition(fn ($pt) => ! is_null($pt->task_id));
+            [$backlogLocationTasks, $standardLocationTasks] = $otherLocationTasks->partition(fn ($pt) => ! is_null($pt->task_id));
 
             // Sort backlog tasks by priority
             $priorityOrder = [TaskPriority::HIGH->value => 1, TaskPriority::NORMAL->value => 2, TaskPriority::LOW->value => 3];
@@ -286,6 +289,23 @@ class MyPlanningController extends Controller
                     'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
                     'external_id' => $location->external_id,
+                    'sync_external_id' => $location->sync_external_id,
+                ];
+            }
+
+            $inactiveRoomsForLocation = [];
+            foreach ($inactiveRoomTasks as $task) {
+                $latestCompletion = $task->completions->sortByDesc('created_at')->first();
+                $inactiveRoomsForLocation[] = [
+                    'title' => $task->title,
+                    'details' => $task->description,
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
+                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'room' => $task->room_identifier,
+                    'room_identifier' => $task->room_identifier,
+                    'is_inactive_room_task' => true,
                 ];
             }
 
@@ -327,8 +347,8 @@ class MyPlanningController extends Controller
                 ];
             }
 
-            // Only add location if it has tasks or comments
-            if (!empty($tasksForLocation) || !empty($commentsForLocation)) {
+            // Only add location if it has tasks or comments or inactive room tasks or the check_inactive_spaces flag is set
+            if (!empty($tasksForLocation) || !empty($commentsForLocation) || !empty($inactiveRoomsForLocation) || (bool) $location->pivot->check_inactive_spaces) {
                 // Add travel step if we have travel info and travel time > 0
                 if ($travelInfo != null && $travelInfo['duration_minutes'] > 0) {
                     $locationSteps[] = [
@@ -353,6 +373,8 @@ class MyPlanningController extends Controller
                     'location_name' => $location->name,
                     'address' => $location->full_address,
                     'tasks' => $tasksForLocation,
+                    'inactive_room_tasks' => $inactiveRoomsForLocation,
+                    'check_inactive_spaces' => (bool) $location->pivot->check_inactive_spaces,
                     'comments' => $commentsForLocation,
                     'travel_info' => $travelInfo,
                 ];
