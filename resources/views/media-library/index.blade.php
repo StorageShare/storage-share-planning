@@ -34,12 +34,16 @@
                             <div class="relative">
                                 <select name="room" id="room"
                                         x-model="selectedRoom"
+                                        x-ref="roomSelect"
                                         :disabled="!locationId || loadingRooms"
                                         class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm disabled:opacity-50">
                                     <option value="">{{ __('Alle ruimtes') }}</option>
                                     <template x-for="room in rooms" :key="room">
                                         <option :value="room" x-text="room" :selected="room === '{{ $room }}'"></option>
                                     </template>
+                                    @if($room)
+                                        <option value="{{ $room }}" selected>{{ $room }}</option>
+                                    @endif
                                 </select>
                                 <div x-show="loadingRooms" class="absolute right-8 top-1/2 -translate-y-1/2">
                                     <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -60,7 +64,7 @@
                         </div>
 
                         <div class="flex gap-2">
-                            <x-primary-button type="submit">
+                            <x-primary-button type="submit" @click="if(tomSelectInstance) selectedRoom = tomSelectInstance.getValue()">
                                 {{ __('Filteren') }}
                             </x-primary-button>
 
@@ -117,21 +121,35 @@
                 selectedRoom: config.initialRoom || '',
                 rooms: [],
                 loadingRooms: false,
+                tomSelectInstance: null,
 
                 init() {
                     if (this.locationId) {
                         this.fetchRooms();
+                    } else {
+                        // Initialize TomSelect even without location to show the placeholder
+                        this.$nextTick(() => {
+                            this.initTomSelect();
+                        });
                     }
+
+                    this.$watch('locationId', (value) => {
+                        this.selectedRoom = '';
+                        if (this.tomSelectInstance) {
+                            this.tomSelectInstance.clear();
+                            this.tomSelectInstance.clearOptions();
+                        }
+                        this.rooms = [];
+                        if (value) {
+                            this.fetchRooms();
+                        }
+                    });
                 },
 
                 allLocations: config.allLocations || [],
 
                 onLocationChange() {
-                    this.selectedRoom = '';
-                    this.rooms = [];
-                    if (this.locationId) {
-                        this.fetchRooms();
-                    }
+                    // Handled by watcher now
                 },
 
                 async fetchRooms() {
@@ -140,12 +158,38 @@
                         const response = await axios.get(`/locations/${this.locationId}/rooms`);
                         if (response.data && response.data.success) {
                             this.rooms = response.data.rooms;
+                            this.$nextTick(() => {
+                                this.initTomSelect();
+                            });
                         }
                     } catch (e) {
                         console.error('Error fetching rooms:', e);
                     } finally {
                         this.loadingRooms = false;
                     }
+                },
+
+                initTomSelect() {
+                    const selectEl = this.$refs.roomSelect;
+                    if (!selectEl) return;
+
+                    if (this.tomSelectInstance) {
+                        this.tomSelectInstance.destroy();
+                    }
+
+                    const options = this.rooms.map(room => ({ value: room, text: room }));
+
+                    this.tomSelectInstance = new TomSelect(selectEl, {
+                        create: true,
+                        maxItems: 1,
+                        placeholder: '{{ __("Selecteer of typ ruimte...") }}',
+                        options: options,
+                        items: this.selectedRoom ? [this.selectedRoom] : [],
+                        allowEmptyOption: true,
+                        onChange: (value) => {
+                            this.selectedRoom = value;
+                        }
+                    });
                 },
 
                 openModal(url, photoId, taskId, locationId, room, type) {
