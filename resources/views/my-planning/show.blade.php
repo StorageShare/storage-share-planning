@@ -1280,7 +1280,7 @@
                                                                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
                                                                             <template x-for="(photo, photoIndex) in task.photos" :key="photoIndex">
                                                                                 <div class="relative">
-                                                                                    <img :src="photo.url || photo" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600 opacity-75 cursor-pointer" @click="openImageModal(task.photos.map(p => p.url || p), photoIndex, task.task_id, (location ? location.location_id : null), task.room_identifier, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
+                                                                                    <img :src="photo.url || photo" class="w-full h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600 opacity-75 cursor-pointer" @click="openImageModal(task.photos.map(p => p.url || p), photoIndex, null, (location ? location.location_id : null), task.room_identifier, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room), task.task_id)">
                                                                                     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                                                                         <span class="bg-gray-900/50 text-white text-[10px] px-1.5 py-0.5 rounded">Bewaard</span>
                                                                                     </div>
@@ -1388,7 +1388,7 @@
                                                                     <div x-show="task.photos && task.photos.length > 0" class="mt-2">
                                                                         <div class="flex flex-wrap gap-2">
                                                                             <template x-for="(photo, pIdx) in task.photos" :key="photo.id ?? (photo.url ?? pIdx)">
-                                                                                <button @click="openImageModal(task.photos.map(p => p.url || p), pIdx, task.task_id, (location ? location.location_id : null), task.room_identifier, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room))">
+                                                                                <button @click="openImageModal(task.photos.map(p => p.url || p), pIdx, null, (location ? location.location_id : null), task.room_identifier, task.photos.map(p => p.id), 'planning_completion', task.photos.map(p => p.location_id), task.photos.map(p => p.room), task.task_id)">
                                                                                     <img :src="photo.url || photo" class="w-24 h-24 object-cover rounded shadow-md hover:shadow-lg transition-shadow cursor-pointer">
                                                                                 </button>
                                                                             </template>
@@ -1931,7 +1931,7 @@
                     }
                 },
 
-                openImageModal(imageUrls, startIndex, taskId = null, locationId = null, currentRoom = '', photoIds = [], photoType = 'task', currentLocationIds = [], currentRooms = []) {
+                openImageModal(imageUrls, startIndex, taskId = null, locationId = null, currentRoom = '', photoIds = [], photoType = 'task', currentLocationIds = [], currentRooms = [], planningTaskId = null) {
                     this.$dispatch('open-image-modal', {
                         imageUrls,
                         startIndex,
@@ -1940,6 +1940,7 @@
                         currentRoom,
                         photoIds,
                         photoType,
+                        planningTaskId,
                         allLocations: this.allLocations,
                         currentLocationIds: currentLocationIds,
                         currentRooms: currentRooms

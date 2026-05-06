@@ -1350,6 +1350,7 @@
                                                                                                             planningTaskId: {{ $planningTask->id }},
                                                                                                             allLocations: @js($allLocations),
                                                                                                             locationId: {{ $location->id ?? 'null' }},
+                                                                                                            currentRoom: @js($planningTask->room_identifier),
                                                                                                             currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
                                                                                                         })">
                                                                                                     <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
@@ -1367,6 +1368,7 @@
                                                                                                             planningTaskId: {{ $planningTask->id }},
                                                                                                             allLocations: @js($allLocations),
                                                                                                             locationId: {{ $location->id ?? 'null' }},
+                                                                                                            currentRoom: @js($planningTask->room_identifier),
                                                                                                             currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : []
                                                                                                         })">
                                                                                                     <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">
@@ -1393,13 +1395,11 @@
                                                                                                 : $event.currentTarget.submit())"
                                                                                               action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                             @csrf
-                                                                                            <x-primary-button class="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-[10px] px-2 py-1">
-                                                                                                Goedkeuren
-                                                                                            </x-primary-button>
+                                                                                            <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                                         </form>
                                                                                         <x-danger-button
                                                                                             x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
-                                                                                            class="text-[10px] px-2 py-1">
+                                                                                            class="!py-1 !px-2 !text-xs">
                                                                                             Afkeuren
                                                                                         </x-danger-button>
                                                                                     </div>

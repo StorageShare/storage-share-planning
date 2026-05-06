@@ -337,7 +337,7 @@
         <!-- Action bar -->
         <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex flex-wrap items-center justify-between gap-3 z-20">
             <!-- Left side: Location and Room selection -->
-            <div class="flex items-center gap-2 flex-grow max-w-2xl" x-show="(taskId && locationId) || photoType === 'planning_comment' || photoType === 'comment_photo'">
+            <div class="flex items-center gap-2 flex-grow max-w-2xl" x-show="((taskId || planningTaskId) && locationId) || photoType === 'planning_comment' || photoType === 'comment_photo'">
                 @if(auth()->user()?->canExecutePlannings() || auth()->user()?->canTriggerPhotoWorkflow())
                     <div class="flex flex-wrap items-center gap-2 w-full">
                         <!-- Location selection -->

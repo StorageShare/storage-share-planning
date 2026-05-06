@@ -125,6 +125,7 @@
                                                 planningTaskId: {{ $planning_task->id }},
                                                 taskId: {{ $planning_task->task_id ?? 'null' }},
                                                 locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
+                                                currentRoom: @js($planning_task->room_identifier ?? ($planning_task->task->room ?? '')),
                                                 currentRooms: $data.photoRooms
                                             })">
                                         <img src="{{ $photo->url }}" alt="Taakfoto {{ $photo->id }}" class="rounded-md object-cover h-32 w-32 cursor-pointer hover:opacity-75 transition">
@@ -292,6 +293,7 @@
                                                             taskId: {{ $planning_task->task_id ?? 'null' }},
                                                             planningTaskId: {{ $planning_task->id }},
                                                             locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
+                                                            currentRoom: @js($planning_task->room_identifier ?? ($planning_task->task->room ?? '')),
                                                             currentRooms: $data.photoRooms
                                                         })">
                                                     <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
@@ -346,6 +348,7 @@
                                                                 taskId: {{ $planning_task->task_id ?? 'null' }},
                                                                 planningTaskId: {{ $planning_task->id }},
                                                                 locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
+                                                                currentRoom: @js($planning_task->room_identifier ?? ($planning_task->task->room ?? '')),
                                                                 currentRooms: $data.photoRooms
                                                             })">
                                                         <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
