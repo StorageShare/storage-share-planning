@@ -98,17 +98,20 @@
                                                     $completionPhotos = $completion->photos->map(fn($photo) => \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path))->values()->all();
                                                     $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                                     $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
+                                                    $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $task->location_id);
                                                 @endphp
                                                 <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"
                                                      x-data='{
                                                         completionPhotos: {{ json_encode($completionPhotos) }},
                                                         photoIds: {{ json_encode($completionPhotoIds) }},
                                                         photoRooms: {{ json_encode($completionPhotoRooms) }},
+                                                        photoLocationIds: {{ json_encode($completionPhotoLocationIds) }},
                                                         onRoomLinked(detail) {
-                                                            if (detail.photoType === "completion") {
+                                                            if (detail.photoType === "completion" || detail.photoType === "planning_completion") {
                                                                 const idx = $data.photoIds.indexOf(detail.photoId);
                                                                 if (idx !== -1) {
                                                                     $data.photoRooms[idx] = detail.room;
+                                                                    $data.photoLocationIds[idx] = detail.locationId;
                                                                 }
                                                             }
                                                         }
@@ -123,7 +126,8 @@
                                                                     startIndex: {{ $index }},
                                                                     taskId: {{ $task->id }},
                                                                     locationId: {{ $task->location_id ?? 'null' }},
-                                                                    currentRooms: $data.photoRooms
+                                                                    currentRooms: $data.photoRooms,
+                                                                    currentLocationIds: $data.photoLocationIds
                                                                 })">
                                                             <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path) }}" alt="Completion Photo" class="rounded-lg shadow-md hover:opacity-75 transition-opacity object-cover h-32 w-32">
                                                         </button>

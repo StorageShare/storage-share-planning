@@ -4,6 +4,7 @@
     x-data="{
         show: false,
         imageUrls: [],
+        imageStatuses: [],
         currentIndex: 0,
         photoType: 'task', // 'task' or 'completion'
         photoIds: [],
@@ -34,6 +35,7 @@
                     this.taskId = null;
                     this.photoId = null;
                     this.photoIds = [];
+                    this.imageStatuses = [];
                     this.currentRooms = [];
                     this.currentLocationIds = [];
                     this.locationId = null;
@@ -56,6 +58,14 @@
                     this.fetchRooms();
                 }
             });
+        },
+
+        setImageStatus(index, status) {
+            this.imageStatuses[index] = status;
+        },
+
+        imageStatus(index) {
+            return this.imageStatuses[index] || 'loading';
         },
 
         async fetchRooms() {
@@ -286,6 +296,7 @@
     x-on:open-image-modal.window="
         show = true;
         imageUrls = $event.detail.imageUrls;
+        imageStatuses = imageUrls.map(() => 'loading');
         photoIds = $event.detail.photoIds || [];
         photoType = $event.detail.photoType || 'task';
         currentIndex = $event.detail.startIndex || 0;
@@ -323,19 +334,34 @@
          tabindex="-1"
          x-show="show"
          x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-         class="relative w-full max-w-4xl max-h-[85vh] bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all flex flex-col focus:outline-none"
+         class="relative w-full max-w-4xl h-[85vh] max-h-[85vh] bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all flex flex-col focus:outline-none overflow-hidden"
          @click.away="show = false">
 
-        <div class="relative flex-grow flex items-center justify-center">
+        <div class="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden">
             <template x-for="(url, index) in imageUrls" :key="index">
-                <div x-show="index === currentIndex" class="w-full h-full flex items-center justify-center p-2">
-                    <img :src="url" alt="Volledige weergave" class="w-auto h-auto object-contain max-w-full max-h-[80vh]">
+                <div x-show="index === currentIndex" class="relative w-full h-full flex items-center justify-center p-2">
+                    <div x-show="imageStatus(index) !== 'loaded'" class="absolute inset-2 flex flex-col items-center justify-center gap-3 rounded-md bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                        <svg x-show="imageStatus(index) === 'loading'" class="h-8 w-8 animate-spin text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <svg x-show="imageStatus(index) === 'error'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-12 w-12 text-gray-400 dark:text-gray-500">
+                            <path fill-rule="evenodd" d="M1.5 6A2.25 2.25 0 013.75 3.75h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zm1.5 10.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-sm font-medium" x-text="imageStatus(index) === 'error' ? 'Afbeelding kon niet worden geladen' : 'Afbeelding laden...'"></span>
+                    </div>
+                    <img :src="url"
+                         alt="Volledige weergave"
+                         x-on:load="setImageStatus(index, 'loaded')"
+                         x-on:error="setImageStatus(index, 'error')"
+                         :class="imageStatus(index) === 'loaded' ? 'opacity-100' : 'opacity-0'"
+                         class="w-auto h-auto object-contain max-w-full max-h-full transition-opacity duration-150">
                 </div>
             </template>
         </div>
 
         <!-- Action bar -->
-        <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex flex-wrap items-center justify-between gap-3 z-20">
+        <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 flex flex-wrap items-center justify-between gap-3 z-20">
             <!-- Left side: Location and Room selection -->
             <div class="flex items-center gap-2 flex-grow max-w-2xl" x-show="((taskId || planningTaskId) && locationId) || photoType === 'planning_comment' || photoType === 'comment_photo'">
                 @if(auth()->user()?->canExecutePlannings() || auth()->user()?->canTriggerPhotoWorkflow())

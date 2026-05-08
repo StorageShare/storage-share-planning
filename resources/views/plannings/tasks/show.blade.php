@@ -106,14 +106,19 @@
                                     $planningPhotos = $planning_task->planningTaskPhotos->map(fn($photo) => $photo->url)->values()->all();
                                     $planningPhotoIds = $planning_task->planningTaskPhotos->pluck('id')->values()->all();
                                     $planningPhotoRooms = $planning_task->planningTaskPhotos->pluck('room')->values()->all();
+                                    $planningPhotoLocationIds = array_fill(0, count($planningPhotos), $planning_task->location_id);
                                 @endphp
                                     <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" x-data="{
                                     planningPhotos: {{ json_encode($planningPhotos) }},
                                     photoIds: {{ json_encode($planningPhotoIds) }},
-                                    photoRooms: {{ json_encode($planningPhotoRooms) }}
+                                    photoRooms: {{ json_encode($planningPhotoRooms) }},
+                                    photoLocationIds: {{ json_encode($planningPhotoLocationIds) }}
                                 }" @room-linked.window="
                                     const idx = $data.photoIds.indexOf($event.detail.photoId);
-                                    if(idx !== -1) $data.photoRooms[idx] = $event.detail.room;
+                                    if(idx !== -1) {
+                                        $data.photoRooms[idx] = $event.detail.room;
+                                        $data.photoLocationIds[idx] = $event.detail.locationId;
+                                    }
                                 ">
                                     @foreach($planning_task->planningTaskPhotos as $index => $photo)
                                     <button type="button" class="focus:outline-none"
@@ -125,8 +130,8 @@
                                                 planningTaskId: {{ $planning_task->id }},
                                                 taskId: {{ $planning_task->task_id ?? 'null' }},
                                                 locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
-                                                currentRoom: @js($planning_task->room_identifier ?? ($planning_task->task->room ?? '')),
-                                                currentRooms: $data.photoRooms
+                                                currentRooms: $data.photoRooms,
+                                                currentLocationIds: $data.photoLocationIds
                                             })">
                                         <img src="{{ $photo->url }}" alt="Taakfoto {{ $photo->id }}" class="rounded-md object-cover h-32 w-32 cursor-pointer hover:opacity-75 transition">
                                     </button>
@@ -270,17 +275,22 @@
                                             $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
                                             $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                             $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
+                                            $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $planning_task->location_id);
                                             @endphp
                                             <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2"
                                                  x-data='{
                                                     completionPhotos: {{ json_encode($completionPhotos) }},
                                                     photoIds: {{ json_encode($completionPhotoIds) }},
-                                                    photoRooms: {{ json_encode($completionPhotoRooms) }}
+                                                    photoRooms: {{ json_encode($completionPhotoRooms) }},
+                                                    photoLocationIds: {{ json_encode($completionPhotoLocationIds) }}
                                                  }'
                                                  @room-linked.window="
-                                                    if($event.detail.photoType === 'completion') {
-                                                        const idx = photoIds.indexOf($event.detail.photoId);
-                                                        if(idx !== -1) photoRooms[idx] = $event.detail.room;
+                                                    if($event.detail.photoType === 'planning_completion') {
+                                                        const idx = $data.photoIds.indexOf($event.detail.photoId);
+                                                        if(idx !== -1) {
+                                                            $data.photoRooms[idx] = $event.detail.room;
+                                                            $data.photoLocationIds[idx] = $event.detail.locationId;
+                                                        }
                                                     }
                                                  ">
                                                 @foreach($completion->photos as $index => $photo)
@@ -293,8 +303,8 @@
                                                             taskId: {{ $planning_task->task_id ?? 'null' }},
                                                             planningTaskId: {{ $planning_task->id }},
                                                             locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
-                                                            currentRoom: @js($planning_task->room_identifier ?? ($planning_task->task->room ?? '')),
-                                                            currentRooms: $data.photoRooms
+                                                            currentRooms: $data.photoRooms,
+                                                            currentLocationIds: $data.photoLocationIds
                                                         })">
                                                     <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
                                                 </button>
@@ -325,17 +335,22 @@
                                                 $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
                                                 $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                                 $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
+                                                $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $planning_task->location_id);
                                                 @endphp
                                                 <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2"
                                                      x-data='{
                                                         completionPhotos: {{ json_encode($completionPhotos) }},
                                                         photoIds: {{ json_encode($completionPhotoIds) }},
-                                                        photoRooms: {{ json_encode($completionPhotoRooms) }}
+                                                        photoRooms: {{ json_encode($completionPhotoRooms) }},
+                                                        photoLocationIds: {{ json_encode($completionPhotoLocationIds) }}
                                                      }'
                                                      @room-linked.window="
-                                                        if($event.detail.photoType === 'completion') {
+                                                        if($event.detail.photoType === 'planning_completion') {
                                                             const idx = $data.photoIds.indexOf($event.detail.photoId);
-                                                            if(idx !== -1) $data.photoRooms[idx] = $event.detail.room;
+                                                            if(idx !== -1) {
+                                                                $data.photoRooms[idx] = $event.detail.room;
+                                                                $data.photoLocationIds[idx] = $event.detail.locationId;
+                                                            }
                                                         }
                                                      ">
                                                     @foreach($completion->photos as $index => $photo)
@@ -348,8 +363,8 @@
                                                                 taskId: {{ $planning_task->task_id ?? 'null' }},
                                                                 planningTaskId: {{ $planning_task->id }},
                                                                 locationId: {{ $planning_task->specificLocation->id ?? 'null' }},
-                                                                currentRoom: @js($planning_task->room_identifier ?? ($planning_task->task->room ?? '')),
-                                                                currentRooms: $data.photoRooms
+                                                                currentRooms: $data.photoRooms,
+                                                                currentLocationIds: $data.photoLocationIds
                                                             })">
                                                         <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
                                                     </button>

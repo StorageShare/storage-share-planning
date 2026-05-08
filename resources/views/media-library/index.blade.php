@@ -84,13 +84,28 @@
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                             @foreach($photos as $photo)
-                                <div class="relative group aspect-square bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                                <div class="relative group bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                                     style="aspect-ratio: 1 / 1;"
+                                     x-data="{ imageStatus: 'loading' }"
                                      @click="openModal('{{ Storage::url($photo->file_path) }}', {{ $photo->id }}, '{{ $photo->planning_task_id ?? '' }}', '{{ $photo->location_id }}', '{{ $photo->room }}', '{{ $photo->type }}')">
+                                    <div x-show="imageStatus !== 'loaded'" class="absolute inset-0 z-0 flex flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                                        <svg x-show="imageStatus === 'loading'" class="h-7 w-7 animate-spin text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        <svg x-show="imageStatus === 'error'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-10 w-10 text-gray-400 dark:text-gray-500">
+                                            <path fill-rule="evenodd" d="M1.5 6A2.25 2.25 0 013.75 3.75h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zm1.5 10.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span class="px-2 text-center text-xs font-medium leading-tight" x-text="imageStatus === 'error' ? '{{ __('Niet beschikbaar') }}' : '{{ __('Laden...') }}'"></span>
+                                    </div>
                                     <img src="{{ Storage::url($photo->file_path) }}"
                                          alt="Task photo"
-                                         class="w-full h-full object-cover">
+                                         x-on:load="imageStatus = 'loaded'"
+                                         x-on:error="imageStatus = 'error'"
+                                         :class="imageStatus === 'loaded' ? 'opacity-100' : 'opacity-0'"
+                                         class="relative z-10 w-full h-full object-cover transition-opacity duration-150">
 
-                                    <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2" style="background-color: rgba(0, 0, 0, 0.5);">
+                                    <div class="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2" style="background-color: rgba(0, 0, 0, 0.5);">
                                         <div class="text-white text-[10px] leading-tight transition-opacity">
                                             <p class="font-bold truncate">
                                                 {{ $photo->location_name }}

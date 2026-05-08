@@ -311,26 +311,33 @@
                                                         @php
                                                             $planningPhotoIds = [];
                                                             $planningPhotoRooms = [];
+                                                            $planningPhotoLocationIds = [];
                                                             $photoType = 'task';
 
                                                             if ($vpt->planningTaskPhotos->isNotEmpty()) {
                                                                 $planningPhotoIds = $vpt->planningTaskPhotos->pluck('id')->values()->all();
                                                                 $planningPhotoRooms = $vpt->planningTaskPhotos->pluck('room')->values()->all();
+                                                                $planningPhotoLocationIds = array_fill(0, count($photoUrls), $location->id ?? null);
                                                                 $photoType = 'task';
                                                             } elseif ($latestCompletion && $latestCompletion->photos->isNotEmpty()) {
                                                                 $planningPhotoIds = $latestCompletion->photos->pluck('id')->values()->all();
                                                                 $planningPhotoRooms = $latestCompletion->photos->pluck('room')->values()->all();
+                                                                $planningPhotoLocationIds = array_fill(0, count($photoUrls), $location->id ?? null);
                                                                 $photoType = 'planning_completion';
                                                             }
                                                         @endphp
                                                         <div class="mt-2" x-data="{
                                                             photoIds: {{ json_encode($planningPhotoIds) }},
                                                             photoRooms: {{ json_encode($planningPhotoRooms) }},
+                                                            photoLocationIds: {{ json_encode($planningPhotoLocationIds) }},
                                                             photoType: '{{ $photoType }}'
                                                         }" @room-linked.window="
                                                             if($event.detail.photoType === photoType) {
                                                                 const idx = photoIds.indexOf($event.detail.photoId);
-                                                                if(idx !== -1) photoRooms[idx] = $event.detail.room;
+                                                                if(idx !== -1) {
+                                                                    photoRooms[idx] = $event.detail.room;
+                                                                    photoLocationIds[idx] = $event.detail.locationId;
+                                                                }
                                                             }
                                                         ">
                                                             <div class="flex items-center gap-2">
@@ -346,6 +353,7 @@
                                                                                 allLocations: @js($allLocations),
                                                                                 locationId: {{ $location->id ?? 'null' }},
                                                                                 currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
+                                                                                currentLocationIds: typeof photoLocationIds !== 'undefined' ? photoLocationIds : [],
                                                                                 debug: true
                                                                             })">
                                                                         <img src="{{ $url }}" alt="Bewijsfoto" class="w-full h-full object-cover">
@@ -363,6 +371,7 @@
                                                                                 allLocations: @js($allLocations),
                                                                                 locationId: {{ $location->id ?? 'null' }},
                                                                                 currentRooms: typeof photoRooms !== 'undefined' ? photoRooms : [],
+                                                                                currentLocationIds: typeof photoLocationIds !== 'undefined' ? photoLocationIds : [],
                                                                                 debug: true
                                                                             })">
                                                                         <img src="{{ $photoUrls[3] }}" alt="Meer bewijdfoto's" class="w-full h-full object-cover opacity-70">

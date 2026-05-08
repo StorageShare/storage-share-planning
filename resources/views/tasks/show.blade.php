@@ -173,11 +173,21 @@
                                 @php
                                     $taskPhotos = $task->taskPhotos->map(fn($photo) => $photo->url)->values()->all();
                                     $taskPhotoIds = $task->taskPhotos->pluck('id')->values()->all();
+                                    $taskPhotoRooms = $task->taskPhotos->pluck('room')->values()->all();
+                                    $taskPhotoLocationIds = array_fill(0, count($taskPhotos), $task->location_id);
                                 @endphp
                                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" x-data='{
                                     taskPhotos: {{ json_encode($taskPhotos) }},
-                                    photoIds: {{ json_encode($taskPhotoIds) }}
-                                }'>
+                                    photoIds: {{ json_encode($taskPhotoIds) }},
+                                    photoRooms: {{ json_encode($taskPhotoRooms) }},
+                                    photoLocationIds: {{ json_encode($taskPhotoLocationIds) }}
+                                }' @room-linked.window="
+                                    const idx = $data.photoIds.indexOf($event.detail.photoId);
+                                    if(idx !== -1) {
+                                        $data.photoRooms[idx] = $event.detail.room;
+                                        $data.photoLocationIds[idx] = $event.detail.locationId;
+                                    }
+                                ">
                                     @foreach($task->taskPhotos as $index => $photo)
                                         <button type="button" class="focus:outline-none group"
                                                 @click="$dispatch('open-image-modal', {
@@ -187,7 +197,8 @@
                                                     startIndex: {{ $index }},
                                                     taskId: {{ $task->id }},
                                                     locationId: {{ $task->location_id ?? 'null' }},
-                                                    currentRoom: currentRoom
+                                                    currentRooms: $data.photoRooms,
+                                                    currentLocationIds: $data.photoLocationIds
                                                 })">
                                             <img src="{{ $photo->url }}" alt="Taakfoto {{ $photo->id }}" class="rounded-md object-cover h-32 w-full cursor-pointer hover:opacity-75 transition">
                                         </button>
@@ -232,11 +243,23 @@
                                             @php
                                             $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
                                             $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
+                                            $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
+                                            $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $task->location_id);
                                             @endphp
                                                 <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mt-2" x-data='{
                                                     completionPhotos: {{ json_encode($completionPhotos) }},
-                                                    photoIds: {{ json_encode($completionPhotoIds) }}
-                                                }'>
+                                                    photoIds: {{ json_encode($completionPhotoIds) }},
+                                                    photoRooms: {{ json_encode($completionPhotoRooms) }},
+                                                    photoLocationIds: {{ json_encode($completionPhotoLocationIds) }}
+                                                }' @room-linked.window="
+                                                    if($event.detail.photoType === 'completion') {
+                                                        const idx = $data.photoIds.indexOf($event.detail.photoId);
+                                                        if(idx !== -1) {
+                                                            $data.photoRooms[idx] = $event.detail.room;
+                                                            $data.photoLocationIds[idx] = $event.detail.locationId;
+                                                        }
+                                                    }
+                                                ">
                                                     @foreach($completion->photos as $index => $photo)
                                                     <button type="button" class="focus:outline-none"
                                                             @click="$dispatch('open-image-modal', {
@@ -246,7 +269,8 @@
                                                                 startIndex: {{ $index }},
                                                                 taskId: {{ $task->id }},
                                                                 locationId: {{ $task->location_id ?? 'null' }},
-                                                                currentRoom: currentRoom
+                                                                currentRooms: $data.photoRooms,
+                                                                currentLocationIds: $data.photoLocationIds
                                                             })">
                                                         <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-24 w-24 cursor-pointer hover:opacity-75 transition">
                                                     </button>
@@ -289,12 +313,24 @@
                                             @php
                                                 $completionPhotos = $completion->photos->map(fn($photo) => Storage::url($photo->file_path))->values()->all();
                                                 $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
+                                                $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
+                                                $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $task->location_id);
                                             @endphp
                                             <h4 class="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">Bijgevoegde foto's</h4>
                                             <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2" x-data='{
                                                 completionPhotos: {{ json_encode($completionPhotos) }},
-                                                photoIds: {{ json_encode($completionPhotoIds) }}
-                                            }'>
+                                                photoIds: {{ json_encode($completionPhotoIds) }},
+                                                photoRooms: {{ json_encode($completionPhotoRooms) }},
+                                                photoLocationIds: {{ json_encode($completionPhotoLocationIds) }}
+                                            }' @room-linked.window="
+                                                if($event.detail.photoType === 'completion') {
+                                                    const idx = $data.photoIds.indexOf($event.detail.photoId);
+                                                    if(idx !== -1) {
+                                                        $data.photoRooms[idx] = $event.detail.room;
+                                                        $data.photoLocationIds[idx] = $event.detail.locationId;
+                                                    }
+                                                }
+                                            ">
                                                 @foreach($completion->photos as $index => $photo)
                                                     <button type="button" class="focus:outline-none"
                                                             @click="$dispatch('open-image-modal', {
@@ -304,7 +340,8 @@
                                                                 startIndex: {{ $index }},
                                                                 taskId: {{ $task->id }},
                                                                 locationId: {{ $task->location_id ?? 'null' }},
-                                                                currentRoom: currentRoom
+                                                                currentRooms: $data.photoRooms,
+                                                                currentLocationIds: $data.photoLocationIds
                                                             })">
                                                         <img src="{{ Storage::url($photo->file_path) }}" alt="Voltooiingsfoto" class="rounded-md object-cover h-32 w-32 cursor-pointer hover:opacity-75 transition">
                                                     </button>
