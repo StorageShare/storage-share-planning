@@ -67,7 +67,7 @@ class TaskPhotoProcessController extends Controller
         try {
             $response = Http::withToken($apiToken)
                 ->post($apiUrl, [
-                    'stalling_location_id' => $task->location->external_id,
+                    'space_id' => $task->location->external_id,
                     'photo_url' => $photo->url ?? Storage::disk('public')->url($photo->file_path),
                     'room_identifier' => $request->room,
                     'planning_task_id' => $task->id,
@@ -289,7 +289,7 @@ class TaskPhotoProcessController extends Controller
         try {
             $response = Http::withToken($apiToken)
                 ->post($apiUrl, [
-                    'stalling_location_id' => $externalId,
+                    'space_id' => $externalId,
                     'photo_url' => $photo->url,
                     'room_identifier' => $request->room,
                     'follow_up' => [
@@ -348,7 +348,7 @@ class TaskPhotoProcessController extends Controller
         try {
             $response = Http::withToken($apiToken)
                 ->post($apiUrl, [
-                    'stalling_location_id' => $photo->location->external_id,
+                    'space_id' => $photo->location->external_id,
                     'photo_url' => $photo->url,
                     'room_identifier' => $request->room,
                     // We don't have a specific task_id here, but we can pass the photo ID
@@ -421,7 +421,7 @@ class TaskPhotoProcessController extends Controller
         try {
             $response = Http::withToken($apiToken)
                 ->post($apiUrl, [
-                    'stalling_location_id' => $location->external_id,
+                    'space_id' => $location->external_id,
                     'photo_url' => $photo->url,
                     'room_identifier' => $request->room,
                     'planning_task_id' => $planningTask->id,
