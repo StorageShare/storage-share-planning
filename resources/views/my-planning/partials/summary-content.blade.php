@@ -140,8 +140,8 @@
                                         default => 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700',
                                     };
 
-                                    // Description from backlog or default task
-                                    $description = $planningTask->task?->description ?? $planningTask->defaultTask?->description;
+                                    // Description from backlog or default task, or directly from planning task (e.g. inactive spaces)
+                                    $description = $planningTask->description ?? $planningTask->task?->description ?? $planningTask->defaultTask?->description;
 
                                     // Photos only for backlog tasks
                                     $photos = $planningTask->task?->taskPhotos ?? collect();

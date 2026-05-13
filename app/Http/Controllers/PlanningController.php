@@ -1177,7 +1177,10 @@ class PlanningController extends Controller
                 ]);
 
                 if ($inactiveRooms) {
-                    foreach ($inactiveRooms as $room) {
+                    foreach ($inactiveRooms as $roomData) {
+                        $room = $roomData['name'];
+                        $description = $roomData['description'] ?? 'Controleer de inactieve ruimte op bijzonderheden.';
+
                         // Check if task already exists for this room on this planning to avoid duplicates
                         $exists = $planning->planningTasks()
                             ->where('location_id', $location->id)
@@ -1188,7 +1191,7 @@ class PlanningController extends Controller
                             $planning->planningTasks()->create([
                                 'location_id' => $location->id,
                                 'title' => 'Inactieve ruimte controleren: ' . $room,
-                                'description' => 'Controleer de inactieve ruimte op bijzonderheden.',
+                                'description' => $description,
                                 'status' => \App\Enums\TaskStatus::OPEN,
                                 'priority' => \App\Enums\TaskPriority::NORMAL,
                                 'estimated_time_minutes' => 5, // Default 5 minutes per space
@@ -1379,12 +1382,15 @@ class PlanningController extends Controller
                 ]);
 
                 if ($inactiveRooms) {
-                    foreach ($inactiveRooms as $room) {
+                    foreach ($inactiveRooms as $roomData) {
+                        $room = $roomData['name'];
+                        $description = $roomData['description'] ?? 'Controleer de inactieve ruimte op bijzonderheden.';
+
                         $desired_inactive_task_state->put($location->id . '-' . $room, [
                             'location_id' => $location->id,
                             'room_identifier' => $room,
                             'title' => 'Inactieve ruimte controleren: ' . $room,
-                            'description' => 'Controleer de inactieve ruimte op bijzonderheden.',
+                            'description' => $description,
                             'status' => \App\Enums\TaskStatus::OPEN,
                             'priority' => \App\Enums\TaskPriority::NORMAL,
                             'estimated_time_minutes' => 5,
