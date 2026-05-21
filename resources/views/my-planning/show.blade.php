@@ -1211,7 +1211,7 @@
                                                                 </div>
                                                                 <div>
                                                                     <h5 class="font-bold text-gray-900 dark:text-gray-100" x-text="task.title"></h5>
-                                                                    <p class="text-sm text-gray-500" x-text="task.description || task.details"></p>
+                                                                    <p class="text-sm text-gray-500" x-text="task.description"></p>
                                                                 </div>
                                                             </div>
                                                             <button @click="toggleInactiveRoom(index, roomIndex)"
