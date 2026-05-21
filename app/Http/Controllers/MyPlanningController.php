@@ -299,6 +299,7 @@ class MyPlanningController extends Controller
                 $inactiveRoomsForLocation[] = [
                     'title' => $task->title,
                     'details' => $task->description,
+                    'description' => $task->description,
                     'task_id' => $task->id,
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
