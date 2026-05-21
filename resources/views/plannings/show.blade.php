@@ -1072,87 +1072,79 @@
                                                                             </div>
                                                                         </div>
                                                                     @endif
-                                                                    @if (Auth::user()->isAdmin())
-                                                                        <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
-                                                                            <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
-                                                                                ? $store.planningActions.approvePlanningTask($event, {{ $planningTask->id }})
-                                                                                : (window.approvePlanningTask
-                                                                                    ? window.approvePlanningTask($event, {{ $planningTask->id }})
-                                                                                    : $event.currentTarget.submit())"
-                                                                                  action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
-                                                                                @csrf
-                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
-                                                                                <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
-                                                                            </form>
-                                                                            <x-danger-button
-                                                                                x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
-                                                                                class="!py-1 !px-2 !text-xs"
-                                                                            >Afkeuren</x-danger-button>
+                                                                                    @if (Auth::user()->isAdmin())
+                                                                                        <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
+                                                                                            <form x-on:submit.prevent="window.approvePlanningTask($event, {{ $planningTask->id }})"
+                                                                                                  action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
+                                                                                                @csrf
+                                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+                                                                                                <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
+                                                                                            </form>
+                                                                                            <x-danger-button
+                                                                                                x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
+                                                                                                class="!py-1 !px-2 !text-xs"
+                                                                                            >Afkeuren</x-danger-button>
 
-                                                                            <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                                                <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
-                                                                                    ? $store.planningActions.rejectPlanningTask($event, {{ $planningTask->id }})
-                                                                                    : (window.rejectPlanningTask
-                                                                                        ? window.rejectPlanningTask($event, {{ $planningTask->id }})
-                                                                                        : $event.currentTarget.submit())"
-                                                                                      action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
-                                                                                    @csrf
-                                                                                    <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+                                                                                            <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                                                <form x-on:submit.prevent="window.rejectPlanningTask($event, {{ $planningTask->id }})"
+                                                                                                      action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
+                                                                                                    @csrf
+                                                                                                    <input type="hidden" name="planning_id" value="{{ $planning->id }}">
 
-                                                                                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                                                                        Afkeuren: {{ $planningTask->title }}
-                                                                                    </h2>
+                                                                                                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                                                                                        Afkeuren: {{ $planningTask->title }}
+                                                                                                    </h2>
 
-                                                                                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                                                                                        @if($planningTask->description)
-                                                                                            <p class="whitespace-pre-wrap">{{ $planningTask->description }}</p>
-                                                                                        @endif
-                                                                                        @php
-                                                                                            // Try to show a single preview image similar to end-checklist modal
-                                                                                            $firstPreview = null;
-                                                                                            if (!empty($photoUrls)) {
-                                                                                                $firstPreview = $photoUrls[0];
-                                                                                            }
-                                                                                        @endphp
-                                                                                        @if($firstPreview)
-                                                                                            <div class="mt-3">
-                                                                                                <img src="{{ $firstPreview }}" alt="Bewijsfoto" class="max-w-full h-40 object-contain rounded border border-gray-200 dark:border-gray-700">
-                                                                                            </div>
-                                                                                        @endif
-                                                                                    </div>
+                                                                                                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                                                                                        @if($planningTask->description)
+                                                                                                            <p class="whitespace-pre-wrap">{{ $planningTask->description }}</p>
+                                                                                                        @endif
+                                                                                                        @php
+                                                                                                            // Try to show a single preview image similar to end-checklist modal
+                                                                                                            $firstPreview = null;
+                                                                                                            if (!empty($photoUrls)) {
+                                                                                                                $firstPreview = $photoUrls[0];
+                                                                                                            }
+                                                                                                        @endphp
+                                                                                                        @if($firstPreview)
+                                                                                                            <div class="mt-3">
+                                                                                                                <img src="{{ $firstPreview }}" alt="Bewijsfoto" class="max-w-full h-40 object-contain rounded border border-gray-200 dark:border-gray-700">
+                                                                                                            </div>
+                                                                                                        @endif
+                                                                                                    </div>
 
-                                                                                    <div class="mt-6">
-                                                                                        <x-input-label for="review_notes_{{ $planningTask->id }}" value="{{ __('Reden voor afwijzing (verplicht)') }}" />
-                                                                                        <textarea
-                                                                                            id="review_notes_{{ $planningTask->id }}"
-                                                                                            name="review_notes"
-                                                                                            rows="4"
-                                                                                            required
-                                                                                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
-                                                                                        >{{ old('review_notes') }}</textarea>
-                                                                                        <x-input-error class="mt-2" :messages="$errors->get('review_notes')" />
-                                                                                    </div>
+                                                                                                    <div class="mt-6">
+                                                                                                        <x-input-label for="review_notes_modal_{{ $planningTask->id }}" value="{{ __('Reden voor afwijzing (verplicht)') }}" />
+                                                                                                        <textarea
+                                                                                                            id="review_notes_modal_{{ $planningTask->id }}"
+                                                                                                            name="review_notes"
+                                                                                                            rows="4"
+                                                                                                            required
+                                                                                                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                                                                                        >{{ old('review_notes') }}</textarea>
+                                                                                                        <x-input-error class="mt-2" :messages="$errors->get('review_notes')" />
+                                                                                                    </div>
 
-                                                                                    <div class="mt-4 flex items-start space-x-3">
-                                                                                        <input type="hidden" name="create_replacement" value="0">
-                                                                                        <input id="create_replacement_modal_{{ $planningTask->id }}" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
-                                                                                        <label for="create_replacement_modal_{{ $planningTask->id }}" class="text-sm text-gray-700 dark:text-gray-300">
-                                                                                            Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
-                                                                                        </label>
-                                                                                    </div>
+                                                                                                    <div class="mt-4 flex items-start space-x-3">
+                                                                                                        <input type="hidden" name="create_replacement" value="0">
+                                                                                                        <input id="create_replacement_modal_{{ $planningTask->id }}" name="create_replacement" type="checkbox" value="1" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" {{ old('create_replacement', '1') ? 'checked' : '' }}>
+                                                                                                        <label for="create_replacement_modal_{{ $planningTask->id }}" class="text-sm text-gray-700 dark:text-gray-300">
+                                                                                                            Bij afwijzen: maak een nieuwe taak aan en neem reden en foto's over
+                                                                                                        </label>
+                                                                                                    </div>
 
-                                                                                    <div class="mt-6 flex justify-end">
-                                                                                        <x-secondary-button x-on:click="$dispatch('close')">
-                                                                                            {{ __('Annuleren') }}
-                                                                                        </x-secondary-button>
-                                                                                        <x-danger-button type="submit" class="ml-3">
-                                                                                            {{ __('Definitief afkeuren') }}
-                                                                                        </x-danger-button>
-                                                                                    </div>
-                                                                                </form>
-                                                                            </x-modal>
-                                                                        </div>
-                                                                    @endif
+                                                                                                    <div class="mt-6 flex justify-end">
+                                                                                                        <x-secondary-button x-on:click="$dispatch('close')">
+                                                                                                            {{ __('Annuleren') }}
+                                                                                                        </x-secondary-button>
+                                                                                                        <x-danger-button type="submit" class="ml-3">
+                                                                                                            {{ __('Definitief afkeuren') }}
+                                                                                                        </x-danger-button>
+                                                                                                    </div>
+                                                                                                </form>
+                                                                                            </x-modal>
+                                                                                        </div>
+                                                                                    @endif
                                                                 @elseif (!$planningTask->completed_at)
                                                                     <x-primary-button
                                                                         x-on:click.prevent="$dispatch('open-modal', 'complete-task-{{ $planningTask->id }}')">
@@ -1399,11 +1391,7 @@
 
                                                                                 @if (Auth::user()->isAdmin())
                                                                                     <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
-                                                                                        <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
-                                                                                            ? $store.planningActions.approvePlanningTask($event, {{ $planningTask->id }})
-                                                                                            : (window.approvePlanningTask
-                                                                                                ? window.approvePlanningTask($event, {{ $planningTask->id }})
-                                                                                                : $event.currentTarget.submit())"
+                                                                                        <form x-on:submit.prevent="window.approvePlanningTask($event, {{ $planningTask->id }})"
                                                                                               action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                             @csrf
                                                                                             <input type="hidden" name="planning_id" value="{{ $planning->id }}">
@@ -1416,20 +1404,16 @@
                                                                                         </x-danger-button>
                                                                                     </div>
                                                                                     <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                                                        <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
-                                                                                            ? $store.planningActions.rejectPlanningTask($event, {{ $planningTask->id }})
-                                                                                            : (window.rejectPlanningTask
-                                                                                                ? window.rejectPlanningTask($event, {{ $planningTask->id }})
-                                                                                                : $event.currentTarget.submit())"
-                                                                                            action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6">
+                                                                                        <form x-on:submit.prevent="window.rejectPlanningTask($event, {{ $planningTask->id }})"
+                                                                                            action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
                                                                                             @csrf
                                                                                             <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                                                                                                 Taak Afkeuren: {{ $planningTask->title }}
                                                                                             </h2>
                                                                                             <div class="mt-4">
-                                                                                                <x-input-label for="review_notes" value="Reden van afkeuring" />
-                                                                                                <x-form-textarea id="review_notes" name="review_notes" class="mt-1 block w-full" rows="3" required placeholder="Geef aan waarom deze taak is afgekeurd..." />
+                                                                                                <x-input-label for="review_notes_{{ $planningTask->id }}" value="Reden van afkeuring" />
+                                                                                                <x-form-textarea id="review_notes_{{ $planningTask->id }}" name="review_notes" class="mt-1 block w-full" rows="3" required placeholder="Geef aan waarom deze taak is afgekeurd..." />
                                                                                             </div>
                                                                                             <div class="mt-6 flex justify-end">
                                                                                                 <x-secondary-button x-on:click="$dispatch('close')">
@@ -1889,9 +1873,8 @@
                 return await resp.json();
             }
 
-            // Non-JSON success (e.g., 204 or HTML). Prefer a reload to reflect latest state.
-            window.location.reload();
-            return new Promise(() => {});
+            // Non-JSON success (e.g., 204 or HTML).
+            return { status: 'ok' };
         }
 
         window.approvePlanningTask = async function(e, taskId) {
