@@ -599,8 +599,16 @@ class TaskController extends Controller
 
         // Check if all tasks for this location in this planning are completed
         if ($location->areAllTasksCompletedInPlanning($planning)) {
-            // Trigger the LocationCompleted event
-            LocationCompleted::dispatch($location, $planning);
+            $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
+
+            // Only trigger if not already notified for this planning/location combination
+            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                // Trigger the LocationCompleted event
+                LocationCompleted::dispatch($location, $planning);
+
+                // Mark as notified for 24 hours
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addDay());
+            }
         }
     }
 }

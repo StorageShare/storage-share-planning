@@ -259,12 +259,12 @@
                                         $latestCompletion = $vpt->completions->first();
                                         $photoUrls = $latestCompletion ? $latestCompletion->photos->pluck('url')->all() : [];
                                     @endphp
-                                    <li class="p-4 bg-white dark:bg-gray-800">
+                                    <li id="task-{{ $vpt->id }}" class="p-4 bg-white dark:bg-gray-800">
                                         <div class="flex items-start justify-between">
                                             <div class="min-w-0">
                                                 <div class="flex items-center gap-2">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $title }}</p>
-                                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                    <span id="task-status-{{ $vpt->id }}" class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full
                                                         @switch($status)
                                                             @case('open') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @break
                                                             @case('in_progress') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 @break
@@ -400,10 +400,11 @@
                                         </div>
 
                                         {{-- Actions --}}
-                                        <div class="mt-3 flex flex-wrap items-center gap-2 justify-end">
+                                        <div id="task-actions-{{ $vpt->id }}" class="mt-3 flex flex-wrap items-center gap-2 justify-end">
                                             @php $statusValue = $status; @endphp
                                             @if ($statusValue === 'review' && Auth::user() && Auth::user()->isAdmin())
-                                                <form action="{{ route('plannings.tasks.approve', $vpt) }}" method="POST">
+                                                <form x-on:submit.prevent="window.approvePlanningTask($event, {{ $vpt->id }})"
+                                                      action="{{ route('plannings.tasks.approve', $vpt) }}" method="POST">
                                                     @csrf
                                                     <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                     <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
@@ -416,7 +417,8 @@
                                                 >Afkeuren</x-danger-button>
 
                                                 <x-modal name="reject-vpt-{{ $vpt->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                    <form action="{{ route('plannings.tasks.reject', $vpt) }}" method="POST" class="p-6 text-left">
+                                                    <form x-on:submit.prevent="window.rejectPlanningTask($event, {{ $vpt->id }})"
+                                                          action="{{ route('plannings.tasks.reject', $vpt) }}" method="POST" class="p-6 text-left">
                                                         @csrf
                                                         <input type="hidden" name="planning_id" value="{{ $planning->id }}">
 
@@ -1275,7 +1277,7 @@
                                                                     @php
                                                                         $statusValue = is_object($planningTask->status) ? $planningTask->status->value : $planningTask->status;
                                                                     @endphp
-                                                                    <tr class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
+                                                                    <tr id="task-{{ $planningTask->id }}" class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
                                                                         <td class="px-4 py-4 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-normal">
                                                                             <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="font-semibold hover:underline">{{ $planningTask->title }} ({{ $planningTask->room_identifier }})</a>
                                                                         </td>
@@ -1404,6 +1406,7 @@
                                                                                                 : $event.currentTarget.submit())"
                                                                                               action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                             @csrf
+                                                                                            <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                             <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
                                                                                         </form>
                                                                                         <x-danger-button
@@ -1420,6 +1423,7 @@
                                                                                                 : $event.currentTarget.submit())"
                                                                                             action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6">
                                                                                             @csrf
+                                                                                            <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                                                                                                 Taak Afkeuren: {{ $planningTask->title }}
                                                                                             </h2>
