@@ -403,7 +403,11 @@
                                         <div id="task-actions-{{ $vpt->id }}" class="mt-3 flex flex-wrap items-center gap-2 justify-end">
                                             @php $statusValue = $status; @endphp
                                             @if ($statusValue === 'review' && Auth::user() && Auth::user()->isAdmin())
-                                                <form x-on:submit.prevent="window.approvePlanningTask($event, {{ $vpt->id }})"
+                                                <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
+                                                      ? $store.planningActions.approvePlanningTask($event, {{ $vpt->id }})
+                                                      : (window.approvePlanningTask
+                                                          ? window.approvePlanningTask($event, {{ $vpt->id }})
+                                                          : $event.currentTarget.submit())"
                                                       action="{{ route('plannings.tasks.approve', $vpt) }}" method="POST">
                                                     @csrf
                                                     <input type="hidden" name="planning_id" value="{{ $planning->id }}">
@@ -417,7 +421,11 @@
                                                 >Afkeuren</x-danger-button>
 
                                                 <x-modal name="reject-vpt-{{ $vpt->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                    <form x-on:submit.prevent="window.rejectPlanningTask($event, {{ $vpt->id }})"
+                                                    <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
+                                                          ? $store.planningActions.rejectPlanningTask($event, {{ $vpt->id }})
+                                                          : (window.rejectPlanningTask
+                                                              ? window.rejectPlanningTask($event, {{ $vpt->id }})
+                                                              : $event.currentTarget.submit())"
                                                           action="{{ route('plannings.tasks.reject', $vpt) }}" method="POST" class="p-6 text-left">
                                                         @csrf
                                                         <input type="hidden" name="planning_id" value="{{ $planning->id }}">
@@ -1074,20 +1082,28 @@
                                                                     @endif
                                                                                     @if (Auth::user()->isAdmin())
                                                                                         <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
-                                                                                            <form x-on:submit.prevent="window.approvePlanningTask($event, {{ $planningTask->id }})"
-                                                                                                  action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
-                                                                                                @csrf
-                                                                                                <input type="hidden" name="planning_id" value="{{ $planning->id }}">
-                                                                                                <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
-                                                                                            </form>
-                                                                                            <x-danger-button
-                                                                                                x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
-                                                                                                class="!py-1 !px-2 !text-xs"
-                                                                                            >Afkeuren</x-danger-button>
+                                                                                            <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
+                                                                                                ? $store.planningActions.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                                : (window.approvePlanningTask
+                                                                                                    ? window.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                                    : $event.currentTarget.submit())"
+                                                                                              action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
+                                                                                            @csrf
+                                                                                            <input type="hidden" name="planning_id" value="{{ $planning->id }}">
+                                                                                            <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
+                                                                                        </form>
+                                                                                        <x-danger-button
+                                                                                            x-on:click.prevent="$dispatch('open-modal', 'reject-task-{{ $planningTask->id }}')"
+                                                                                            class="!py-1 !px-2 !text-xs"
+                                                                                        >Afkeuren</x-danger-button>
 
-                                                                                            <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                                                                <form x-on:submit.prevent="window.rejectPlanningTask($event, {{ $planningTask->id }})"
-                                                                                                      action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
+                                                                                        <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
+                                                                                            <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
+                                                                                                ? $store.planningActions.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                                : (window.rejectPlanningTask
+                                                                                                    ? window.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                                    : $event.currentTarget.submit())"
+                                                                                                  action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
                                                                                                     @csrf
                                                                                                     <input type="hidden" name="planning_id" value="{{ $planning->id }}">
 
@@ -1391,8 +1407,12 @@
 
                                                                                 @if (Auth::user()->isAdmin())
                                                                                     <div id="task-actions-{{ $planningTask->id }}" class="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
-                                                                                        <form x-on:submit.prevent="window.approvePlanningTask($event, {{ $planningTask->id }})"
-                                                                                              action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
+                                                                                        <form x-on:submit.prevent="$store.planningActions && $store.planningActions.approvePlanningTask
+                                                                                                ? $store.planningActions.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                                : (window.approvePlanningTask
+                                                                                                    ? window.approvePlanningTask($event, {{ $planningTask->id }})
+                                                                                                    : $event.currentTarget.submit())"
+                                                                                               action="{{ route('plannings.tasks.approve', $planningTask) }}" method="POST">
                                                                                             @csrf
                                                                                             <input type="hidden" name="planning_id" value="{{ $planning->id }}">
                                                                                             <x-primary-button type="submit" class="!py-1 !px-2 !text-xs">Goedkeuren</x-primary-button>
@@ -1404,7 +1424,11 @@
                                                                                         </x-danger-button>
                                                                                     </div>
                                                                                     <x-modal name="reject-task-{{ $planningTask->id }}" :show="$errors->isNotEmpty()" focusable>
-                                                                                        <form x-on:submit.prevent="window.rejectPlanningTask($event, {{ $planningTask->id }})"
+                                                                                        <form x-on:submit.prevent="$store.planningActions && $store.planningActions.rejectPlanningTask
+                                                                                            ? $store.planningActions.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                            : (window.rejectPlanningTask
+                                                                                                ? window.rejectPlanningTask($event, {{ $planningTask->id }})
+                                                                                                : $event.currentTarget.submit())"
                                                                                             action="{{ route('plannings.tasks.reject', $planningTask) }}" method="POST" class="p-6 text-left">
                                                                                             @csrf
                                                                                             <input type="hidden" name="planning_id" value="{{ $planning->id }}">
@@ -1734,60 +1758,10 @@
 @push('scripts')
 <script>
     (function(){
-        // Robustly expose handlers to Alpine via a store to avoid scope/timing issues
-        function registerPlanningActionsStore() {
-            try {
-                if (!window.Alpine) return false;
-                // Idempotent: don't overwrite if already present
-                if (typeof window.Alpine.store === 'function') {
-                    const existing = (() => { try { return window.Alpine.store('planningActions'); } catch(_) { return undefined; } })();
-                    if (existing) return true;
-                    window.Alpine.store('planningActions', {
-                        approvePlanningTask: function(){ return window.approvePlanningTask && window.approvePlanningTask.apply(this, arguments); },
-                        rejectPlanningTask: function(){ return window.rejectPlanningTask && window.rejectPlanningTask.apply(this, arguments); },
-                    });
-                    return true;
-                }
-            } catch(_) {}
-            return false;
-        }
+        // Backward compatibility and global exposure
+        window.csrf = function() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'; };
 
-        // Also expose End Checklist actions via Alpine store
-        function registerEndChecklistActionsStore() {
-            try {
-                if (!window.Alpine) return false;
-                if (typeof window.Alpine.store === 'function') {
-                    const existing = (() => { try { return window.Alpine.store('endChecklistActions'); } catch(_) { return undefined; } })();
-                    if (existing) return true;
-                    window.Alpine.store('endChecklistActions', {
-                        approve: function(){ return window.approveEndChecklistItem && window.approveEndChecklistItem.apply(this, arguments); },
-                        reject: function(){ return window.rejectEndChecklistItem && window.rejectEndChecklistItem.apply(this, arguments); },
-                    });
-                    return true;
-                }
-            } catch(_) {}
-            return false;
-        }
-
-        // 1) If Alpine is already on the page, register immediately
-        registerPlanningActionsStore();
-        registerEndChecklistActionsStore();
-        // 2) Also register on Alpine init (covers deferred Alpine loading)
-        document.addEventListener('alpine:init', function(){
-            registerPlanningActionsStore();
-            registerEndChecklistActionsStore();
-        });
-        // 3) As a final fallback, try again after window load and on next tick
-        window.addEventListener('load', () => {
-            registerPlanningActionsStore();
-            registerEndChecklistActionsStore();
-            setTimeout(registerPlanningActionsStore, 0);
-            setTimeout(registerEndChecklistActionsStore, 0);
-        });
-
-        function csrf() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'; }
-
-        function showToast(message, type = 'success') {
+        window.showToast = function(message, type = 'success') {
             const container = document.createElement('div');
             container.className = 'fixed z-50 top-4 right-4 max-w-sm w-full';
             const bg = type === 'error' ? 'bg-red-600' : 'bg-green-600';
@@ -1806,15 +1780,15 @@
             const close = () => { container.remove(); };
             closeBtn.addEventListener('click', close);
             setTimeout(close, type === 'error' ? 5000 : 4000);
-        }
+        };
 
-        async function postJson(url, formData) {
+        window.postJson = async function(url, formData) {
             let resp;
             try {
                 resp = await fetch(url, {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': csrf(),
+                        'X-CSRF-TOKEN': window.csrf(),
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
@@ -1875,13 +1849,13 @@
 
             // Non-JSON success (e.g., 204 or HTML).
             return { status: 'ok' };
-        }
+        };
 
         window.approvePlanningTask = async function(e, taskId) {
             const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
             const formData = new FormData(form);
             try {
-                const data = await postJson(form.action, formData);
+                const data = await window.postJson(form.action, formData);
                 // Update badge
                 const badge = document.getElementById(`task-status-${taskId}`);
                 if (badge) {
@@ -1893,17 +1867,17 @@
                 // Remove actions
                 const actions = document.getElementById(`task-actions-${taskId}`);
                 if (actions) actions.remove();
-                showToast(data.message || 'Geplande taak goedgekeurd.');
+                window.showToast(data.message || 'Geplande taak goedgekeurd.');
             } catch (err) {
-                showToast(err.message, 'error');
+                window.showToast(err.message, 'error');
             }
-        }
+        };
 
         window.rejectPlanningTask = async function(e, taskId) {
             const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
             const formData = new FormData(form);
             try {
-                const data = await postJson(form.action, formData);
+                const data = await window.postJson(form.action, formData);
                 // Close modal
                 window.dispatchEvent(new CustomEvent('close'));
                 // Update badge
@@ -1917,17 +1891,17 @@
                 // Remove actions
                 const actions = document.getElementById(`task-actions-${taskId}`);
                 if (actions) actions.remove();
-                showToast(data.message || 'Taak afgekeurd.');
+                window.showToast(data.message || 'Taak afgekeurd.');
             } catch (err) {
-                showToast(err.message, 'error');
+                window.showToast(err.message, 'error');
             }
-        }
+        };
 
         window.approveEndChecklistItem = async function(e, itemId) {
             const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
             const formData = new FormData(form);
             try {
-                const data = await postJson(form.action, formData);
+                const data = await window.postJson(form.action, formData);
                 const badge = document.getElementById(`end-item-status-${itemId}`);
                 if (badge) {
                     badge.textContent = 'Goedgekeurd';
@@ -1937,17 +1911,17 @@
                 }
                 const actions = document.getElementById(`end-item-actions-${itemId}`);
                 if (actions) actions.remove();
-                showToast(data.message || 'Checklist item goedgekeurd.');
+                window.showToast(data.message || 'Checklist item goedgekeurd.');
             } catch (err) {
-                showToast(err.message, 'error');
+                window.showToast(err.message, 'error');
             }
-        }
+        };
 
         window.rejectEndChecklistItem = async function(e, itemId) {
             const form = e.currentTarget || (e.target && e.target.closest && e.target.closest('form'));
             const formData = new FormData(form);
             try {
-                const data = await postJson(form.action, formData);
+                const data = await window.postJson(form.action, formData);
                 // Close modal
                 window.dispatchEvent(new CustomEvent('close'));
                 const badge = document.getElementById(`end-item-status-${itemId}`);
@@ -1966,19 +1940,70 @@
                     a.href = data.new_task.create_url;
                     a.textContent = 'Nieuwe taak aanmaken';
                     a.className = 'underline font-semibold';
-                    showToast(msg);
+                    window.showToast(msg);
                     // Also store prefill in session via POST? Not possible from here. Just include link.
                 } else {
-                    showToast(msg);
+                    window.showToast(msg);
                 }
             } catch (err) {
-                showToast(err.message, 'error');
+                window.showToast(err.message, 'error');
             }
-        }
+        };
 
         // Backward compatibility for legacy inline calls
         window.approveEndItem = window.approveEndChecklistItem;
         window.rejectEndItem = window.rejectEndChecklistItem;
+
+        // Robustly expose handlers to Alpine via a store to avoid scope/timing issues
+        function registerPlanningActionsStore() {
+            try {
+                if (!window.Alpine) return false;
+                // Idempotent: don't overwrite if already present
+                if (typeof window.Alpine.store === 'function') {
+                    const existing = (() => { try { return window.Alpine.store('planningActions'); } catch(_) { return undefined; } })();
+                    if (existing) return true;
+                    window.Alpine.store('planningActions', {
+                        approvePlanningTask: function(){ return window.approvePlanningTask && window.approvePlanningTask.apply(this, arguments); },
+                        rejectPlanningTask: function(){ return window.rejectPlanningTask && window.rejectPlanningTask.apply(this, arguments); },
+                    });
+                    return true;
+                }
+            } catch(_) {}
+            return false;
+        }
+
+        // Also expose End Checklist actions via Alpine store
+        function registerEndChecklistActionsStore() {
+            try {
+                if (!window.Alpine) return false;
+                if (typeof window.Alpine.store === 'function') {
+                    const existing = (() => { try { return window.Alpine.store('endChecklistActions'); } catch(_) { return undefined; } })();
+                    if (existing) return true;
+                    window.Alpine.store('endChecklistActions', {
+                        approve: function(){ return window.approveEndChecklistItem && window.approveEndChecklistItem.apply(this, arguments); },
+                        reject: function(){ return window.rejectEndChecklistItem && window.rejectEndChecklistItem.apply(this, arguments); },
+                    });
+                    return true;
+                }
+            } catch(_) {}
+            return false;
+        }
+
+        // 1) If Alpine is already on the page, register immediately
+        registerPlanningActionsStore();
+        registerEndChecklistActionsStore();
+        // 2) Also register on Alpine init (covers deferred Alpine loading)
+        document.addEventListener('alpine:init', function(){
+            registerPlanningActionsStore();
+            registerEndChecklistActionsStore();
+        });
+        // 3) As a final fallback, try again after window load and on next tick
+        window.addEventListener('load', () => {
+            registerPlanningActionsStore();
+            registerEndChecklistActionsStore();
+            setTimeout(registerPlanningActionsStore, 0);
+            setTimeout(registerEndChecklistActionsStore, 0);
+        });
     })();
 </script>
 @endpush
