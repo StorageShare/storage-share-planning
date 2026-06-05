@@ -306,6 +306,7 @@ class MyPlanningController extends Controller
                     'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'room' => $task->room_identifier,
                     'room_identifier' => $task->room_identifier,
+                    'room_group' => $task->room_group,
                     'is_inactive_room_task' => true,
                 ];
             }

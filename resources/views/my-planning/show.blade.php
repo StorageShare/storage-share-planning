@@ -1210,8 +1210,13 @@
                                                                     </template>
                                                                 </div>
                                                                 <div>
-                                                                    <h5 class="font-bold text-gray-900 dark:text-gray-100" x-text="task.title"></h5>
-                                                                    <p class="text-sm text-gray-500" x-text="task.description"></p>
+                                                                    <h5 class="font-bold text-gray-900 dark:text-gray-100">
+                                                                        <span x-text="task.title"></span>
+                                                                        <template x-if="task.room_group">
+                                                                            <span class="ml-2 inline-flex items-center gap-x-1.5 py-0.5 px-2 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" x-text="`Groep: ${task.room_group}`"></span>
+                                                                        </template>
+                                                                    </h5>
+                                                                    <p class="text-sm text-gray-500 whitespace-pre-wrap break-anywhere" x-text="task.description"></p>
                                                                 </div>
                                                             </div>
                                                             <button @click="toggleInactiveRoom(index, roomIndex)"

@@ -76,6 +76,12 @@
                                     <dt class="text-gray-500 dark:text-gray-400 mb-1">Omschrijving</dt>
                                     <dd class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{{ $planning_task->description }}</dd>
                                 </div>
+                                @if($planning_task->room_group)
+                                <div class="py-3 flex justify-between text-sm font-medium">
+                                    <dt class="text-gray-500 dark:text-gray-400">Groep</dt>
+                                    <dd class="text-gray-900 dark:text-gray-100">{{ $planning_task->room_group }}</dd>
+                                </div>
+                                @endif
                                 @if($planning_task->feedback_information)
                                 <div class="py-3 flex justify-between text-sm font-medium">
                                     <dt class="text-gray-500 dark:text-gray-400">Terugkoppeling informatie</dt>

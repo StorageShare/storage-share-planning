@@ -1288,6 +1288,12 @@
                                                                     <tr id="task-{{ $planningTask->id }}" class="{{ $loop->odd ? 'bg-white' : 'bg-gray-50' }} dark:{{ $loop->odd ? 'bg-gray-900' : 'bg-gray-800' }}">
                                                                         <td class="px-4 py-4 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-normal">
                                                                             <a href="{{ route('plannings.tasks.show', $planningTask) }}" class="font-semibold hover:underline">{{ $planningTask->title }} ({{ $planningTask->room_identifier }})</a>
+                                                                            @if ($planningTask->room_group)
+                                                                                <span class="ml-2 inline-flex items-center gap-x-1.5 py-0.5 px-2 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">Groep: {{ $planningTask->room_group }}</span>
+                                                                            @endif
+                                                                            @if ($planningTask->description)
+                                                                                <p class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-anywhere">{{ $planningTask->description }}</p>
+                                                                            @endif
                                                                         </td>
                                                                         <td class="px-4 py-4 text-sm whitespace-nowrap">
                                                                             <span id="task-status-{{ $planningTask->id }}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full

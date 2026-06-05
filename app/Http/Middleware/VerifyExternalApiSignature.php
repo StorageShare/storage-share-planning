@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class VerifyExternalApiSignature
@@ -27,9 +28,17 @@ class VerifyExternalApiSignature
             ], 401);
         }
 
-        $expected = hash_hmac('sha256', $request->getContent(), $secret);
+        $body = $request->getContent();
+        $expected = hash_hmac('sha256', $body, $secret);
 
         if (!hash_equals($expected, $signature)) {
+            Log::warning('External API signature mismatch', [
+                'received_signature' => $signature,
+                'expected_signature' => $expected,
+                'body_length' => strlen($body),
+                'body_hex_sample' => bin2hex(substr($body, 0, 100)),
+            ]);
+
             return response()->json([
                 'message' => 'Invalid external API signature.',
             ], 401);

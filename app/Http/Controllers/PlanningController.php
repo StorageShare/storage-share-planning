@@ -1180,6 +1180,7 @@ class PlanningController extends Controller
                     foreach ($inactiveRooms as $roomData) {
                         $room = $roomData['name'];
                         $description = $roomData['description'] ?? 'Controleer de inactieve ruimte op bijzonderheden.';
+                        $group = $roomData['group_name'] ?? null;
 
                         // Check if task already exists for this room on this planning to avoid duplicates
                         $exists = $planning->planningTasks()
@@ -1196,6 +1197,7 @@ class PlanningController extends Controller
                                 'priority' => \App\Enums\TaskPriority::NORMAL,
                                 'estimated_time_minutes' => 5, // Default 5 minutes per space
                                 'room_identifier' => $room,
+                                'room_group' => $group,
                             ]);
                         }
                     }
@@ -1385,10 +1387,12 @@ class PlanningController extends Controller
                     foreach ($inactiveRooms as $roomData) {
                         $room = $roomData['name'];
                         $description = $roomData['description'] ?? 'Controleer de inactieve ruimte op bijzonderheden.';
+                        $group = $roomData['group_name'] ?? null;
 
                         $desired_inactive_task_state->put($location->id . '-' . $room, [
                             'location_id' => $location->id,
                             'room_identifier' => $room,
+                            'room_group' => $group,
                             'title' => 'Inactieve ruimte controleren: ' . $room,
                             'description' => $description,
                             'status' => \App\Enums\TaskStatus::OPEN,

@@ -43,6 +43,7 @@ class PlanningTask extends Model
         'estimated_time_minutes',
         'is_vehicle_task',
         'room_identifier',
+        'room_group',
     ];
 
     /**

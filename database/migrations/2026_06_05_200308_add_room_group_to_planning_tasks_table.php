@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('plannings', function (Blueprint $table) {
-            $table->boolean('check_inactive_spaces')->default(false);
+        Schema::table('planning_tasks', function (Blueprint $table) {
+            $table->string('room_group')->nullable()->after('room_identifier');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('plannings', function (Blueprint $table) {
-            $table->dropColumn('check_inactive_spaces');
+        Schema::table('planning_tasks', function (Blueprint $table) {
+            $table->dropColumn('room_group');
         });
     }
 };
