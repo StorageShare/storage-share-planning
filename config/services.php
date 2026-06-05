@@ -41,8 +41,10 @@ return [
     ],
 
     'storage_share_api' => [
-        'url' => env('STORAGE_SHARE_API_URL', 'http://storage-share-api.test/api'),
-        'token' => env('STORAGE_SHARE_API_TOKEN'),
+        // Falls back to the external locations API host/token, which point to the
+        // same Storage Share backend, so a single set of credentials suffices.
+        'url' => env('STORAGE_SHARE_API_URL', preg_replace('#/spaces/?$#', '', (string) env('EXTERNAL_LOCATIONS_API_URL', 'http://storage-share-live.test/api/spaces'))),
+        'token' => env('STORAGE_SHARE_API_TOKEN', env('EXTERNAL_LOCATIONS_API_TOKEN')),
     ],
 
     'google' => [

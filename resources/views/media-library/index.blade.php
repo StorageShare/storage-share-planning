@@ -201,6 +201,7 @@
                         options: options,
                         items: this.selectedRoom ? [this.selectedRoom] : [],
                         allowEmptyOption: true,
+                        dropdownParent: 'body',
                         onChange: (value) => {
                             this.selectedRoom = value;
                         }

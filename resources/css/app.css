@@ -4,11 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@import 'tom-select/dist/css/tom-select.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Keep the TomSelect dropdown above modals/popovers when rendered on <body>. */
+.ts-dropdown {
+  z-index: 9999;
+}
 
 @layer utilities {
   .line-clamp-2 {

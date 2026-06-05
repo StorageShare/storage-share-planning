@@ -112,6 +112,7 @@
                 placeholder: 'Selecteer of typ ruimte...',
                 options: options,
                 items: this.selectedRoom ? [this.selectedRoom] : [],
+                dropdownParent: 'body',
                 onChange: (value) => {
                     this.selectedRoom = value;
                 }
