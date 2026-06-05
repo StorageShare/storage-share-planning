@@ -11,6 +11,8 @@ use App\Models\DefaultTask;
 use App\Observers\DefaultTaskObserver;
 use App\Models\Location;
 use App\Observers\LocationObserver;
+use App\Models\Task;
+use App\Observers\TaskObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -37,6 +39,7 @@ class EventServiceProvider extends ServiceProvider
     {
         Location::observe(LocationObserver::class);
         DefaultTask::observe(DefaultTaskObserver::class);
+        Task::observe(TaskObserver::class);
     }
 
     /**
