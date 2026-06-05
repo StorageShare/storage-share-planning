@@ -112,7 +112,6 @@
                 placeholder: 'Selecteer of typ ruimte...',
                 options: options,
                 items: this.selectedRoom ? [this.selectedRoom] : [],
-                dropdownParent: 'body',
                 onChange: (value) => {
                     this.selectedRoom = value;
                 }
@@ -380,7 +379,7 @@
 
                         <!-- Room selection -->
                         <div x-show="locationId" class="flex items-center gap-2 flex-grow max-w-sm">
-                            <div class="w-full text-gray-900" :class="justLinked ? 'ring-2 ring-green-500 rounded-md transition-all duration-300' : ''">
+                            <div class="room-dropdown-up w-full text-gray-900" :class="justLinked ? 'ring-2 ring-green-500 rounded-md transition-all duration-300' : ''">
                                 <select x-ref="roomSelect"
                                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                 </select>

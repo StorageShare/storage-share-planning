@@ -4,8 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Keep the TomSelect dropdown above modals/popovers when rendered on <body>. */
-.ts-dropdown {
+/* Open the room dropdown upward so it isn't clipped by the image modal. */
+.room-dropdown-up .ts-dropdown {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 0.25rem;
+  border-top: 1px solid #d0d0d0;
+  border-bottom: 0 none;
+  border-radius: 3px 3px 0 0;
   z-index: 9999;
 }
 
