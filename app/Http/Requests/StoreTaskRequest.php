@@ -32,10 +32,11 @@ class StoreTaskRequest extends FormRequest
             'feedback_owner_name' => 'nullable|string|max:255',
             'feedback_emails' => 'nullable|string|max:255',
             'location_id' => [
-                'required',
+                'required_without:location_external_id',
                 'integer',
                 Rule::exists(Location::class, 'id'), // Check if location_id exists in locations table
             ],
+            'location_external_id' => 'required_without:location_id|integer',
             'deadline' => 'nullable|date',
             'estimated_time_minutes' => 'nullable|integer|min:0|max:99999',
             'priority' => ['nullable', Rule::in(TaskPriority::values())],

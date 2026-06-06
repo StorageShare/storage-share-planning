@@ -8,10 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
 use App\Models\Location;
 use App\Models\Task;
-use App\Mail\NewApiTaskReceivedMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
@@ -22,8 +21,10 @@ class TaskController extends Controller
     {
         $validatedData = $request->validated();
 
-        // Ensure location exists (already handled by StoreTaskRequest validation)
-        $location = Location::findOrFail($validatedData['location_id']);
+        // Resolve the location by internal id, or by external id when only that is provided.
+        $location = $this->resolveLocation($validatedData);
+        $validatedData['location_id'] = $location->id;
+        unset($validatedData['location_external_id']);
 
         // Set creator if authenticated
         $validatedData['created_by'] = Auth::id();
@@ -49,11 +50,9 @@ class TaskController extends Controller
             $task->requirements()->sync($validatedData['requirements']);
         }
 
-        // Send email notification to planning
-        Mail::to('planning@storage-share.nl')->send(new NewApiTaskReceivedMail($task));
-
         return response()->json([
             'success' => true,
+            'task_id' => $task->id,
             'message' => "Taak \"{$task->title}\" succesvol aangemaakt.",
             'task' => [
                 'id' => $task->id,
@@ -69,5 +68,39 @@ class TaskController extends Controller
                 'location_id' => $task->location_id,
             ]
         ], 201);
+    }
+
+    /**
+     * Resolve the target location by internal id or by external id.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @throws ValidationException
+     */
+    private function resolveLocation(array $data): Location
+    {
+        if (! empty($data['location_id'])) {
+            return Location::findOrFail($data['location_id']);
+        }
+
+        $externalId = $data['location_external_id'] ?? null;
+        if ($externalId === null) {
+            throw ValidationException::withMessages([
+                'location_id' => 'Location is required.',
+            ]);
+        }
+
+        $location = Location::query()
+            ->where('external_id', $externalId)
+            ->orWhere('sync_external_id', $externalId)
+            ->first();
+
+        if (! $location) {
+            throw ValidationException::withMessages([
+                'location_external_id' => 'No location found for the provided external id.',
+            ]);
+        }
+
+        return $location;
     }
 }
