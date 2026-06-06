@@ -325,9 +325,9 @@ class PlanningController extends Controller
         DB::transaction(function () use ($validated, $request) {
             $planning = Planning::create([
                 'planned_date' => $validated['planned_date'],
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
                 'start_address' => $validated['start_address'],
-                'start_time' => $validated['start_time'],
+                'start_time' => $validated['start_time'] ?? null,
                 'created_by' => \Illuminate\Support\Facades\Auth::id(),
                 'vehicle_id' => $validated['vehicle_id'],
             ]);
@@ -538,9 +538,9 @@ class PlanningController extends Controller
         DB::transaction(function () use ($planning, $validated, $request) {
             $planning->update([
                 'planned_date' => $validated['planned_date'],
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
                 'start_address' => $validated['start_address'],
-                'start_time' => $validated['start_time'],
+                'start_time' => $validated['start_time'] ?? null,
                 'vehicle_id' => $validated['vehicle_id'],
             ]);
 
@@ -899,35 +899,42 @@ class PlanningController extends Controller
 
     /**
      * @param \Illuminate\Database\Eloquent\Collection<int, Task> $tasks
-     * @return \Illuminate\Support\Collection<int|string, \Illuminate\Support\Collection<int, array{id:int,title:string,description:string,priority: array{value:string,label:string},status: TaskStatus,deadline: ?\Carbon\Carbon,estimated_time_minutes:int}>>
+     * @return \Illuminate\Support\Collection<int|string, \Illuminate\Support\Collection<int, array<string, mixed>>>
      */
-    private function mapBacklogTasksByLocation($tasks)
+    private function mapBacklogTasksByLocation($tasks): \Illuminate\Support\Collection
     {
         return $tasks->groupBy('location_id')
-            ->map(static function (\Illuminate\Database\Eloquent\Collection $grouped, int|string|null $key): \Illuminate\Support\Collection {
-                return $grouped->map(static function (Task $task): array {
-                    return [
-                        'id' => $task->id,
-                        'title' => $task->title,
-                        // Normalize to string to match model typing and UI expectations
-                        'description' => (string) $task->description,
-                        'priority' => [
-                            'value' => $task->priority->value,
-                            'label' => $task->priority->label(),
-                        ],
-                        'status' => $task->status,
-                        'deadline' => $task->deadline,
-                        'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
-                    ];
-                })->toBase();
-            });
+            ->map(
+                /**
+                 * @param \Illuminate\Database\Eloquent\Collection<int, Task> $grouped
+                 * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+                 */
+                static function (\Illuminate\Database\Eloquent\Collection $grouped, int|string|null $key): \Illuminate\Support\Collection {
+                    return $grouped->map(static function (Task $task): array {
+                        /** @var array<string, mixed> $row */
+                        $row = [
+                            'id' => $task->id,
+                            'title' => $task->title,
+                            // Normalize to string to match model typing and UI expectations
+                            'description' => (string) $task->description,
+                            'priority' => [
+                                'value' => $task->priority->value,
+                                'label' => $task->priority->label(),
+                            ],
+                            'status' => $task->status,
+                            'deadline' => $task->deadline,
+                            'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
+                        ];
+
+                        return $row;
+                    })->toBase();
+                }
+            );
     }
 
     /**
      * @param \Illuminate\Database\Eloquent\Collection<int, Task> $tasks
-     * @return \Illuminate\Support\Collection<int|string, array{
-     *   high:int, normal:int, low:int
-     * }>|\Illuminate\Support\Collection<int|string, array<string,int>>
+     * @return \Illuminate\Support\Collection<int|string, array{high: int, normal: int, low: int}>
      */
     private function computeBacklogPriorityCounts($tasks): \Illuminate\Support\Collection
     {
@@ -955,7 +962,7 @@ class PlanningController extends Controller
 
     /**
      * @param \Illuminate\Database\Eloquent\Collection<int, Location>|\Illuminate\Support\Collection<int, Location> $locations
-     * @param \Illuminate\Support\Collection<int|string, array<string,int>> $backlogPriorityCountsByLocation
+     * @param \Illuminate\Support\Collection<int|string, array{high: int, normal: int, low: int}> $backlogPriorityCountsByLocation
      * @return \Illuminate\Support\Collection<int, Location>
      */
     private function sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation): \Illuminate\Support\Collection
@@ -1014,6 +1021,7 @@ class PlanningController extends Controller
 
     /**
      * @param array<int,int> $locationIds
+     * @param array<int|string, mixed>|null $checkInactiveSpaces
      */
     private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder, ?array $checkInactiveSpaces = []): void
     {
@@ -1283,6 +1291,11 @@ class PlanningController extends Controller
             $planning->planningTasks()->whereIn('id', $task_ids_to_delete)->delete();
         }
 
+        // Track the task_ids of planning tasks freshly duplicated from default tasks in this
+        // update run. These are stored with a task_id but no default_task_id, so the backlog
+        // cleanup below must not mistake them for unselected backlog tasks and delete them.
+        $default_duplicated_task_ids = collect();
+
         $tasks_to_add_data = $desired_default_task_state->diffKeys($current_default_planning_tasks);
         foreach ($tasks_to_add_data as $data) {
             $template = DefaultTask::find($data['default_task_id']);
@@ -1318,6 +1331,8 @@ class PlanningController extends Controller
                     'feedback_emails' => $data['feedback_emails'] ?? null,
                     'estimated_time_minutes' => $data['estimated_time_minutes'],
                 ]);
+
+                $default_duplicated_task_ids->push($newTask->id);
             }
         }
 
@@ -1332,7 +1347,8 @@ class PlanningController extends Controller
             ->get();
 
         $backlog_task_ids_to_delete_from_planning = $current_planning_tasks_from_backlog
-            ->filter(fn($pt) => !$selected_backlog_task_ids->contains($pt->task_id))
+            ->filter(fn($pt) => !$selected_backlog_task_ids->contains($pt->task_id)
+                && !$default_duplicated_task_ids->contains($pt->task_id))
             ->pluck('id');
         if ($backlog_task_ids_to_delete_from_planning->isNotEmpty()) {
             $planning->planningTasks()->whereIn('id', $backlog_task_ids_to_delete_from_planning)->delete();

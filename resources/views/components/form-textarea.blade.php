@@ -10,7 +10,8 @@
 ])
 
 @php
-$hasError = $errors->has($name);
+$errorBag = $errors ?? new \Illuminate\Support\MessageBag();
+$hasError = $errorBag->has($name);
 $baseClasses = 'py-3 px-4 block w-full text-sm border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none';
 $errorClasses = $hasError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : '';
 $textareaClasses = $baseClasses . ' ' . $errorClasses . ' ' . $class;
@@ -38,6 +39,6 @@ $textareaClasses = $baseClasses . ' ' . $errorClasses . ' ' . $class;
     >{{ old($name, $value) }}</textarea>
 
     @if($hasError)
-        <p class="text-xs text-red-600 mt-1">{{ $errors->first($name) }}</p>
+        <p class="text-xs text-red-600 mt-1">{{ $errorBag->first($name) }}</p>
     @endif
 </div>

@@ -79,9 +79,9 @@ class TaskController extends Controller
                 );
             } elseif ($sortBy === 'deadline') {
                 if ($sortDirection === 'asc') {
-                    $query->orderByRaw('ISNULL(deadline) ASC, deadline ASC'); // NULLs last
+                    $query->orderByRaw('(deadline IS NULL) ASC, deadline ASC'); // NULLs last
                 } else { // desc
-                    $query->orderByRaw('ISNULL(deadline) ASC, deadline DESC'); // NULLs last, then by deadline DESC
+                    $query->orderByRaw('(deadline IS NULL) ASC, deadline DESC'); // NULLs last, then by deadline DESC
                 }
             } else {
                 $query->orderBy($sortBy, $sortDirection);
@@ -89,7 +89,7 @@ class TaskController extends Controller
 
             // Consistent tie-breakers for user-defined sorts
             if ($sortBy !== 'created_at' && $sortBy !== 'deadline') { // Avoid re-adding if primary or part of deadline's complex sort
-                $query->orderByRaw('ISNULL(deadline) ASC, deadline ASC');
+                $query->orderByRaw('(deadline IS NULL) ASC, deadline ASC');
             }
             if ($sortBy !== 'priority') {
                 $query->orderByRaw('CASE priority WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END ASC', [
@@ -246,7 +246,7 @@ class TaskController extends Controller
             $locationIds = Location::where('lift', "Ja")->pluck('id')->toArray();
         } elseif ($request->boolean('applies_to_door_types') && !empty($validatedData['door_types'])) {
             $doorTypes = array_map('trim', array_map('strtolower', $validatedData['door_types']));
-            $locationIds = Location::whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(type_deur)'), $doorTypes)->pluck('id')->toArray();
+            $locationIds = Location::whereIn(\Illuminate\Support\Facades\DB::raw('TRIM(LOWER(type_deur))'), $doorTypes)->pluck('id')->toArray();
         } elseif (!empty($validatedData['locations'])) {
             $locationIds = $validatedData['locations'];
         }

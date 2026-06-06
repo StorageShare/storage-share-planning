@@ -70,7 +70,7 @@ class ExternalLocationService
      * Fetch inactive rooms for a specific external space from the API.
      *
      * @param string|int $externalId
-     * @return array<int, array{name: string, description: ?string}>|null
+     * @return array<int, array{name: string, description?: ?string, group_name?: ?string}>|null
      */
     public function fetchInactiveRooms($externalId): ?array
     {

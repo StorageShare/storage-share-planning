@@ -3,8 +3,6 @@
 namespace App\Providers;
 
 use App\Enums\Role;
-use App\Models\Location;
-use App\Observers\LocationObserver;
 use App\Services\ImageService;
 use App\Services\TravelTimeService;
 use Illuminate\Support\Facades\Blade;
@@ -26,8 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Location::observe(LocationObserver::class);
-
         Blade::if('role', function ($role) {
             if (!auth()->check()) return false;
             // Accept either enum instance or string (e.g. 'admin')

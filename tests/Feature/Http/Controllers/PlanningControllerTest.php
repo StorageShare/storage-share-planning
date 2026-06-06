@@ -181,21 +181,18 @@ class PlanningControllerTest extends TestCase
         // Users synced
         $this->assertEqualsCanonicalizing([$u1->id, $u2->id], $planning->users()->pluck('users.id')->all());
 
-        // Planning tasks created: one for default task at l1 and one backlog t1
-        $this->assertDatabaseHas('planning_tasks', [
-            'planning_id' => $planning->id,
-            'default_task_id' => $dt1->id,
+        // Planning tasks created: the default task is duplicated to a normal Task at l1, and backlog t1 at l2
+        $newTask = Task::where('title', $dt1->title)->where('location_id', $l1->id)->first();
+        $this->assertNotNull($newTask, 'Default task should be duplicated to a normal task');
+        $this->assertDatabaseHas('tasks', [
+            'id' => $newTask->id,
+            'title' => $dt1->title,
             'location_id' => $l1->id,
         ]);
 
-        $ptDefault = PlanningTask::where('planning_id', $planning->id)
-            ->where('default_task_id', $dt1->id)
-            ->first();
-
-        $this->assertNotNull($ptDefault->task_id, 'PlanningTask for default task should have a linked task_id');
-        $this->assertDatabaseHas('tasks', [
-            'id' => $ptDefault->task_id,
-            'title' => $dt1->title,
+        $this->assertDatabaseHas('planning_tasks', [
+            'planning_id' => $planning->id,
+            'task_id' => $newTask->id,
             'location_id' => $l1->id,
         ]);
 
@@ -233,8 +230,8 @@ class PlanningControllerTest extends TestCase
 
         // Bind a mock TravelTimeService
         $this->app->bind(TravelTimeService::class, function () {
-            return new class {
-                public function calculateTravelTimesForSequence($locations, $startAddress = null)
+            return new class extends TravelTimeService {
+                public function calculateTravelTimesForSequence(array $locations, ?string $startAddress = null, string $mode = 'driving'): array
                 {
                     return [
                         'total_duration_minutes' => 25,
@@ -360,9 +357,11 @@ class PlanningControllerTest extends TestCase
 
         $this->assertEqualsCanonicalizing([$u1->id, $u2->id], $planning->users()->pluck('users.id')->all());
 
+        $newTask = Task::where('title', $dt->title)->where('location_id', $l2->id)->first();
+        $this->assertNotNull($newTask, 'Default task should be duplicated to a normal task');
         $this->assertDatabaseHas('planning_tasks', [
             'planning_id' => $planning->id,
-            'default_task_id' => $dt->id,
+            'task_id' => $newTask->id,
             'location_id' => $l2->id,
         ]);
         $this->assertDatabaseHas('planning_tasks', [

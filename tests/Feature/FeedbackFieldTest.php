@@ -25,7 +25,6 @@ class FeedbackFieldTest extends TestCase
 
     public function test_can_store_and_update_task_with_feedback_information(): void
     {
-        $this->withoutMiddleware();
         $location = Location::factory()->create();
 
         $response = $this->actingAs($this->admin)->post(route('locations.tasks.store', $location), [
@@ -36,10 +35,6 @@ class FeedbackFieldTest extends TestCase
             'priority' => \App\Enums\TaskPriority::NORMAL->value,
             'created_by' => $this->admin->id,
         ]);
-
-        if ($response->status() !== 302) {
-            dump($response->getContent());
-        }
 
         $response->assertRedirect();
         $this->assertDatabaseHas('tasks', [
@@ -64,7 +59,6 @@ class FeedbackFieldTest extends TestCase
 
     public function test_can_store_and_update_default_task_with_feedback_information(): void
     {
-        $this->withoutMiddleware();
         $response = $this->actingAs($this->admin)->post(route('default-tasks.store'), [
             'title' => 'Default Taak',
             'description' => 'Test Omschrijving',
@@ -86,10 +80,6 @@ class FeedbackFieldTest extends TestCase
             'time_calculation_type' => 'simplified',
         ]);
 
-        if ($response->status() !== 302) {
-            dump($response->getContent());
-        }
-
         $response->assertRedirect();
         $this->assertDatabaseHas('default_tasks', [
             'id' => $defaultTask->id,
@@ -99,7 +89,6 @@ class FeedbackFieldTest extends TestCase
 
     public function test_planning_copies_feedback_information_from_tasks(): void
     {
-        $this->withoutMiddleware();
         $location = Location::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $user = User::factory()->create();
@@ -148,6 +137,7 @@ class FeedbackFieldTest extends TestCase
         \App\Models\PlanningTask::create([
             'planning_id' => $planning->id,
             'location_id' => $location->id,
+            'task_id' => $t->id,
             'title' => 'Feedback Task',
             'description' => 'Desc',
             'feedback_information' => 'Jaap',

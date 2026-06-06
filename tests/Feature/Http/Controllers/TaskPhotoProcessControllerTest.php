@@ -58,7 +58,7 @@ class TaskPhotoProcessControllerTest extends TestCase
         $response->assertSessionHas('success');
 
         Http::assertSent(fn ($request) => $request->url() === 'https://storage-share-api.test/api/photo-process/distribute'
-            && $request['stalling_location_id'] === 'space-123'
+            && $request['space_id'] === 'space-123'
             && $request['room_identifier'] === '1.22'
             && $request['planning_task_id'] === $planningTask->id
         );

@@ -35,14 +35,14 @@ class ExternalTaskInReviewTest extends TestCase
         $body = json_encode($payload);
         $signature = hash_hmac('sha256', $body, 'test-secret');
 
-        $response = $this->postJson('/api/v1/external/tasks', $payload, [
+        $response = $this->postJson('/api/v1/external/external-tasks', $payload, [
             'X-Api-Signature' => $signature,
         ]);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('external_tasks', [
             'title' => 'External Task',
-            'status' => TaskStatus::IN_REVIEW->value,
+            'status' => TaskStatus::REVIEW->value,
         ]);
     }
 
@@ -55,6 +55,10 @@ class ExternalTaskInReviewTest extends TestCase
             'location_id' => $location->id,
             'status' => TaskStatus::IN_REVIEW,
         ]);
+
+        // The LocationObserver auto-creates backlog tasks for a new location; remove them so the
+        // external task id cannot coincidentally collide with an existing tasks.id.
+        Task::where('location_id', $location->id)->delete();
 
         $response = $this->actingAs($admin)->post('/plannings', [
             'location_ids' => [$location->id],

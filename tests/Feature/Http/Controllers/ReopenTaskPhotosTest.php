@@ -49,6 +49,6 @@ class ReopenTaskPhotosTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('task.status', 'open');
-        $response->assertJsonPath('task.photos.0', $photo->url);
+        $response->assertJsonPath('task.photos.0.url', $photo->url);
     }
 }

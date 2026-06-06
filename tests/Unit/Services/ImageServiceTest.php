@@ -54,8 +54,8 @@ class ImageServiceTest extends TestCase
 
     public function test_get_human_file_size_formats_correctly(): void
     {
-        $this->assertEquals('1.00KB', $this->imageService->getHumanFileSize(1024));
-        $this->assertEquals('1.00MB', $this->imageService->getHumanFileSize(1048576));
-        $this->assertEquals('2.00MB', $this->imageService->getHumanFileSize(2097152));
+        $this->assertEquals('1.00 KB', $this->imageService->getHumanFileSize(1024));
+        $this->assertEquals('1.00 MB', $this->imageService->getHumanFileSize(1048576));
+        $this->assertEquals('2.00 MB', $this->imageService->getHumanFileSize(2097152));
     }
 } 

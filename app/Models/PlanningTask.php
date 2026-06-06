@@ -67,6 +67,8 @@ class PlanningTask extends Model
 
     /**
      * Get the photos associated with the task completion.
+     *
+     * @return list<array{id: int, url: string, room: string|null, location_id: int|null}>
      */
     public function getPhotosAttribute(): array
     {
@@ -79,12 +81,7 @@ class PlanningTask extends Model
             ->first();
 
         if ($latestCompletion) {
-            return $latestCompletion->photos->map(fn($p) => [
-                'id' => $p->id,
-                'url' => $p->url,
-                'room' => $p->room,
-                'location_id' => $p->location_id,
-            ])->toArray();
+            return $this->mapPhotos($latestCompletion->photos);
         }
 
         return [];
@@ -92,6 +89,8 @@ class PlanningTask extends Model
 
     /**
      * Get the skip photos associated with the task.
+     *
+     * @return list<array{id: int, url: string, room: string|null, location_id: int|null}>
      */
     public function getSkipPhotosAttribute(): array
     {
@@ -101,15 +100,26 @@ class PlanningTask extends Model
             ->first();
 
         if ($latestSkip) {
-            return $latestSkip->photos->map(fn($p) => [
-                'id' => $p->id,
-                'url' => $p->url,
-                'room' => $p->room,
-                'location_id' => $p->location_id,
-            ])->toArray();
+            return $this->mapPhotos($latestSkip->photos);
         }
 
         return [];
+    }
+
+    /**
+     * Map completion photos into a serializable array.
+     *
+     * @param  Collection<int, PlanningTaskCompletionPhoto>  $photos
+     * @return list<array{id: int, url: string, room: string|null, location_id: int|null}>
+     */
+    protected function mapPhotos(Collection $photos): array
+    {
+        return $photos->map(fn (PlanningTaskCompletionPhoto $p): array => [
+            'id' => $p->id,
+            'url' => $p->url,
+            'room' => $p->room,
+            'location_id' => null,
+        ])->values()->all();
     }
 
     /**

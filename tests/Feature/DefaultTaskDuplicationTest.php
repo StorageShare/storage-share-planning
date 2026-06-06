@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Role;
 use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,8 +17,9 @@ class DefaultTaskDuplicationTest extends TestCase
 
     public function test_standard_task_is_not_duplicated_when_linked_to_planning()
     {
-        $admin = User::factory()->create(['is_admin' => true]);
+        $admin = User::factory()->create(['role' => Role::ADMIN]);
         $location = Location::factory()->create();
+        $vehicle = Vehicle::factory()->create();
         $defaultTask = DefaultTask::factory()->create([
             'title' => 'Mijn Standaard Taak',
             'applies_to_all_locations' => true,
@@ -25,6 +28,9 @@ class DefaultTaskDuplicationTest extends TestCase
 
         $response = $this->actingAs($admin)->post(route('plannings.store'), [
             'planned_date' => now()->addDay()->format('Y-m-d'),
+            'start_address_option' => 'Kantoor',
+            'start_address' => 'Kantoor',
+            'vehicle_id' => $vehicle->id,
             'user_ids' => [$admin->id],
             'location_ids' => [$location->id],
             'selected_default_tasks' => [$defaultTask->id],

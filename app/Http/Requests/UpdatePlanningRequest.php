@@ -24,7 +24,8 @@ class UpdatePlanningRequest extends FormRequest
             $startAddress = $this->input('start_address_custom');
         }
 
-        $selectedLocationIds = collect($this->input('location_ids', []))
+        /** @var Collection<int, int> $selectedLocationIds */
+        $selectedLocationIds = collect((array) $this->input('location_ids', []))
             ->map(fn ($id) => (int) $id)
             ->filter()
             ->values();
@@ -46,7 +47,7 @@ class UpdatePlanningRequest extends FormRequest
      */
     private function filterSelectedBacklogTasksForLocations(Collection $selectedLocationIds): array
     {
-        $selectedTaskIds = collect($this->input('selected_backlog_tasks', []))
+        $selectedTaskIds = collect((array) $this->input('selected_backlog_tasks', []))
             ->filter(fn ($id) => $id !== null && $id !== '')
             ->values();
 
@@ -74,7 +75,7 @@ class UpdatePlanningRequest extends FormRequest
      */
     private function filterSelectedDefaultTasksForLocations(Collection $selectedLocationIds): array
     {
-        $selectedTaskIds = collect($this->input('selected_default_tasks', []))
+        $selectedTaskIds = collect((array) $this->input('selected_default_tasks', []))
             ->filter(fn ($id) => $id !== null && $id !== '')
             ->values();
 

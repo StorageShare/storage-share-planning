@@ -37,7 +37,7 @@ class TaskTest extends TestCase
         $body = json_encode($payload);
         $signature = hash_hmac('sha256', $body, 'test-secret');
 
-        $response = $this->postJson('/api/v1/tasks', $payload, [
+        $response = $this->postJson('/api/v1/external/tasks', $payload, [
             'X-Api-Signature' => $signature,
         ]);
 
@@ -66,7 +66,7 @@ class TaskTest extends TestCase
             'location_id' => $location->id,
         ];
 
-        $response = $this->postJson('/api/v1/tasks', $payload);
+        $response = $this->postJson('/api/v1/external/tasks', $payload);
 
         $response->assertStatus(401);
         $this->assertDatabaseMissing('tasks', ['title' => 'Unauthorized Task']);

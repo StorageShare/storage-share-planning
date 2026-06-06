@@ -161,8 +161,8 @@ class MyPlanningController extends Controller
         }
 
         // Group tasks by their effective location_id (from planning_task or fallback to parent task)
-        $tasksByLocation = $planning->planningTasks->groupBy(function ($planningTask) {
-            return $planningTask->location_id ?? $planningTask->task?->location_id;
+        $tasksByLocation = $planning->planningTasks->groupBy(function ($planningTask): string {
+            return (string) ($planningTask->location_id ?? $planningTask->task?->location_id);
         });
 
         // Add tasks with no location (true backlog and vehicle tasks) first as a "location"
@@ -198,18 +198,18 @@ class MyPlanningController extends Controller
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
                     'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
-                    'backlog_photos' => $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'backlog_photos' => $task->task ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
-                    'room' => $task->task?->room ?? $task->room ?? $task->room_identifier,
+                    'room' => $task->task?->room ?? $task->room_identifier,
                     'room_identifier' => $task->room_identifier,
                     'is_inactive_room_task' => !is_null($task->room_identifier),
-                    'photo_process_step' => $task->task?->photo_process_step ?? $task->photo_process_step,
-                    'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
+                    'photo_process_step' => $task->task?->photo_process_step,
+                    'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
-                    'external_id' => $location->external_id,
+                    'external_id' => null,
                 ];
             }
 
@@ -277,16 +277,16 @@ class MyPlanningController extends Controller
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
                     'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
-                    'backlog_photos' => $task->task && $task->task->taskPhotos ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'backlog_photos' => $task->task ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
                     'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
-                    'room' => $task->task?->room ?? $task->room ?? $task->room_identifier,
+                    'room' => $task->task?->room ?? $task->room_identifier,
                     'room_identifier' => $task->room_identifier,
                     'is_inactive_room_task' => !is_null($task->room_identifier),
-                    'photo_process_step' => $task->task?->photo_process_step ?? $task->photo_process_step,
-                    'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i') ?? $task->photo_process_at?->format('d-m-Y H:i'),
+                    'photo_process_step' => $task->task?->photo_process_step,
+                    'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
                     'external_id' => $location->external_id,
                     'sync_external_id' => $location->sync_external_id,

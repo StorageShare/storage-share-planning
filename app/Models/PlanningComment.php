@@ -21,15 +21,22 @@ class PlanningComment extends Model
 
     /**
      * Get the photos for JSON.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
      */
-    public function getPhotosJsonAttribute()
+    public function getPhotosJsonAttribute(): \Illuminate\Support\Collection
     {
-        return $this->photos->map(fn($p) => [
-            'id' => $p->id,
-            'url' => $p->url,
-            'room' => $p->room,
-            'location_id' => $p->location_id
-        ]);
+        return $this->photos->map(function (PlanningCommentPhoto $p): array {
+            /** @var array<string, mixed> $row */
+            $row = [
+                'id' => $p->id,
+                'url' => $p->url,
+                'room' => $p->room,
+                'location_id' => $p->location_id,
+            ];
+
+            return $row;
+        });
     }
 
     /**

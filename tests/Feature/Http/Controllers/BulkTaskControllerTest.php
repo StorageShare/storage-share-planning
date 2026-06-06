@@ -21,7 +21,6 @@ class BulkTaskControllerTest extends TestCase
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => Role::ADMIN]);
-        $this->withoutMiddleware();
     }
 
     public function test_bulk_create_renders(): void

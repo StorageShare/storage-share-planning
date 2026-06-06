@@ -700,6 +700,7 @@ class PlanningTaskController extends Controller
 
         return response()->json([
             'task' => $planning_task->fresh(['completions.photos']),
+            'skip_photos' => $skipPhotos,
         ]);
     }
 

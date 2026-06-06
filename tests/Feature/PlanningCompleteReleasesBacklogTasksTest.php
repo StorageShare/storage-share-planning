@@ -54,6 +54,6 @@ class PlanningCompleteReleasesBacklogTasksTest extends TestCase
 
         // The original backlog task should be reset to OPEN so it appears again in backlog
         $task->refresh();
-        $this->assertEquals(TaskStatus::OPEN->value, $task->status);
+        $this->assertEquals(TaskStatus::OPEN, $task->status);
     }
 }

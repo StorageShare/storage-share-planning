@@ -31,7 +31,8 @@ class TaskFeedbackMailTest extends TestCase
         Mail::fake();
 
         $location = Location::factory()->create();
-        $planning = Planning::factory()->create(['location_id' => $location->id]);
+        $planning = Planning::factory()->create();
+        $planning->locations()->attach($location->id, ['sort_order' => 0]);
         $planningTask = PlanningTask::factory()->create([
             'planning_id' => $planning->id,
             'feedback_emails' => 'test@example.com, second@example.com',
@@ -46,7 +47,7 @@ class TaskFeedbackMailTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)
-            ->post(route('planning-tasks.approve', $planningTask), [
+            ->post(route('plannings.tasks.approve', $planningTask), [
                 'review_notes' => 'Goed gedaan'
             ]);
 
@@ -64,7 +65,8 @@ class TaskFeedbackMailTest extends TestCase
         Mail::fake();
 
         $location = Location::factory()->create();
-        $planning = Planning::factory()->create(['location_id' => $location->id]);
+        $planning = Planning::factory()->create();
+        $planning->locations()->attach($location->id, ['sort_order' => 0]);
         $planningTask = PlanningTask::factory()->create([
             'planning_id' => $planning->id,
             'feedback_emails' => null,
@@ -76,7 +78,7 @@ class TaskFeedbackMailTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->post(route('planning-tasks.approve', $planningTask), [
+            ->post(route('plannings.tasks.approve', $planningTask), [
                 'review_notes' => 'Goed gedaan'
             ]);
 

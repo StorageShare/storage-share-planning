@@ -53,9 +53,12 @@ class LocationController extends Controller
             $locationsQuery->whereRaw('LOWER(name) LIKE ?', [strtolower("%{$searchTerm}%")]);
         }
 
-        // Apply filter for locations with open tasks
+        // Apply filter for locations with open tasks.
+        // Group by the primary key so the HAVING clause runs as an aggregate query,
+        // which keeps the filter portable across MySQL and SQLite.
         if ($activeFilter === 'with_open_tasks') {
-            $locationsQuery->havingRaw('(open_tasks_high_count + open_tasks_normal_count + open_tasks_low_count) > 0');
+            $locationsQuery->groupBy('locations.id')
+                ->havingRaw('(open_tasks_high_count + open_tasks_normal_count + open_tasks_low_count) > 0');
         }
 
         $locationsQuery->orderBy($sortBy, $sortDirection);
@@ -75,7 +78,7 @@ class LocationController extends Controller
         // Fetch open tasks for the location
         $openTasksQuery = $location->tasks()
             ->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
-            ->orderByRaw('ISNULL(deadline) ASC, deadline ASC') // Tasks with deadlines first, then by date
+            ->orderByRaw('(deadline IS NULL) ASC, deadline ASC') // Tasks with deadlines first, then by date
             ->orderByRaw("CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ASC")
             ->orderBy('created_at', 'desc');
         $openTasksPerPage = $this->resolvePerPage($request, $openTasksQuery, 10);

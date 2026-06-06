@@ -1,5 +1,9 @@
 includes:
   - vendor/nunomaduro/larastan/extension.neon
+  # Baseline contains only Larastan framework false positives that cannot be
+  # resolved without sacrificing runtime-correct code (belongsTo nullability
+  # and belongsToMany pivot typing).
+  - phpstan-baseline.neon
 
 parameters:
   paths:

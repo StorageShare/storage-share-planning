@@ -88,8 +88,10 @@ class EscalateTaskPriorities extends Command
 
     /**
      * Get all tasks that are in the backlog.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Task>
      */
-    private function getBacklogTasks()
+    private function getBacklogTasks(): \Illuminate\Database\Eloquent\Collection
     {
         return Task::query()
             ->whereIn('status', [TaskStatus::OPEN, TaskStatus::IN_PROGRESS, TaskStatus::REJECTED])
@@ -100,8 +102,11 @@ class EscalateTaskPriorities extends Command
 
     /**
      * Categorize tasks that need escalation.
+     *
+     * @param  iterable<\App\Models\Task>  $tasks
+     * @return array<string, \Illuminate\Support\Collection<int, array<string, mixed>>>
      */
-    private function categorizeTasks($tasks): array
+    private function categorizeTasks(iterable $tasks): array
     {
         $lowToNormal = collect();
         $normalToHigh = collect();
@@ -135,12 +140,14 @@ class EscalateTaskPriorities extends Command
     {
         // If priority_updated_at exists, use that, otherwise fall back to created_at
         $referenceDate = $task->priority_updated_at ?: $task->created_at;
-        
-        return Carbon::parse($referenceDate)->diffInDays(now());
+
+        return (int) Carbon::parse($referenceDate)->diffInDays(now());
     }
 
     /**
      * Show the escalation plan.
+     *
+     * @param  array<string, \Illuminate\Support\Collection<int, array<string, mixed>>>  $tasksToEscalate
      */
     private function showEscalationPlan(array $tasksToEscalate): void
     {
@@ -181,6 +188,9 @@ class EscalateTaskPriorities extends Command
 
     /**
      * Perform the actual escalation.
+     *
+     * @param  array<string, \Illuminate\Support\Collection<int, array<string, mixed>>>  $tasksToEscalate
+     * @return array<string, mixed>
      */
     private function performEscalation(array $tasksToEscalate): array
     {
@@ -229,6 +239,8 @@ class EscalateTaskPriorities extends Command
 
     /**
      * Show the results of the escalation.
+     *
+     * @param  array<string, mixed>  $results
      */
     private function showResults(array $results): void
     {

@@ -33,6 +33,12 @@
                 {{-- Progress Bar --}}
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-4">
                     <div class="px-4 py-3">
+                        @if($planning->users->isNotEmpty())
+                            <div class="mb-3 text-xs text-gray-600 dark:text-gray-300">
+                                <span class="font-medium text-gray-900 dark:text-gray-100">Team:</span>
+                                {{ $planning->users->pluck('name')->join(', ', ' en ') }}
+                            </div>
+                        @endif
                         <div class="flex items-center justify-between mb-3">
                             <div>
                                 <template x-if="currentLocation && currentLocation.type === 'requirements'">

@@ -92,7 +92,9 @@ class PlanningCompletionTaskCleanupTest extends TestCase
             'status' => TaskStatus::OPEN,
         ]);
 
-        $this->assertCount(3, Task::all());
+        // Exclude the auto-generated tasks the LocationObserver creates for every new location.
+        $autoTitles = ['Schoonmaken', 'Controleronde'];
+        $this->assertCount(3, Task::whereNotIn('title', $autoTitles)->get());
         $this->assertCount(3, PlanningTask::all());
 
         // 5. Complete the planning
@@ -115,7 +117,7 @@ class PlanningCompletionTaskCleanupTest extends TestCase
         $this->assertDatabaseMissing('planning_tasks', ['id' => $backlogPlanningTask->id]);
         $this->assertEquals(TaskStatus::OPEN, $backlogTask->fresh()->status);
 
-        $this->assertCount(2, Task::all());
+        $this->assertCount(2, Task::whereNotIn('title', $autoTitles)->get());
         $this->assertCount(1, PlanningTask::all());
     }
 
@@ -171,7 +173,9 @@ class PlanningCompletionTaskCleanupTest extends TestCase
             'created_by' => $this->admin->id,
         ]);
 
-        $this->assertCount(3, Task::all());
+        // Exclude the auto-generated tasks the LocationObserver creates for every new location.
+        $autoTitles = ['Schoonmaken', 'Controleronde'];
+        $this->assertCount(3, Task::whereNotIn('title', $autoTitles)->get());
 
         // Complete planning
         $this->actingAs($this->admin)->post(route('plannings.complete', $planning));

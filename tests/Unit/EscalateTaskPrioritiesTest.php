@@ -25,8 +25,6 @@ class EscalateTaskPrioritiesTest extends TestCase
         
         $this->location = Location::factory()->create([
             'name' => 'Test Locatie',
-            'address' => 'Test Adres 1',
-            'description' => 'Test locatie beschrijving'
         ]);
         
         $this->user = User::factory()->create();
@@ -179,7 +177,6 @@ class EscalateTaskPrioritiesTest extends TestCase
 
         // Create a planning task to simulate the task being assigned to a planning
         $planning = \App\Models\Planning::factory()->create([
-            'name' => 'Test Planning',
             'created_by' => $this->user->id,
         ]);
         
