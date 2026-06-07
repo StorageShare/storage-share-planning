@@ -7,7 +7,6 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\StorePlanningRequest;
 use App\Http\Requests\UpdatePlanningRequest;
 use App\Mail\PlanningReadyNotificationMail;
-use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningLocationTimer;
@@ -17,6 +16,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleTask;
 use App\Services\ExternalLocationService;
+use App\Services\PlanningCompletionService;
 use App\Services\PlanningFormDataService;
 use App\Services\PlanningLocationSyncService;
 use App\Services\PlanningLocationTimerService;
@@ -53,6 +53,8 @@ class PlanningController extends Controller
 
     private PlanningShowDataService $planningShowDataService;
 
+    private PlanningCompletionService $planningCompletionService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
         ?ExternalLocationService $externalLocationService = null,
@@ -61,7 +63,8 @@ class PlanningController extends Controller
         ?PlanningLocationSyncService $planningLocationSyncService = null,
         ?PlanningTaskCreationService $planningTaskCreationService = null,
         ?PlanningTaskUpdateService $planningTaskUpdateService = null,
-        ?PlanningShowDataService $planningShowDataService = null
+        ?PlanningShowDataService $planningShowDataService = null,
+        ?PlanningCompletionService $planningCompletionService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
@@ -72,6 +75,7 @@ class PlanningController extends Controller
         $this->planningTaskCreationService = $planningTaskCreationService ?: app(PlanningTaskCreationService::class);
         $this->planningTaskUpdateService = $planningTaskUpdateService ?: app(PlanningTaskUpdateService::class);
         $this->planningShowDataService = $planningShowDataService ?: app(PlanningShowDataService::class);
+        $this->planningCompletionService = $planningCompletionService ?: app(PlanningCompletionService::class);
     }
 
     /**
@@ -576,79 +580,7 @@ class PlanningController extends Controller
      */
     public function complete(Planning $planning): RedirectResponse
     {
-        DB::transaction(function () use ($planning) {
-            // 0) Eerst: automatisch goedkeuren van ingediende taken (in review)
-            $submittedTasks = $planning->planningTasks()
-                ->whereIn('status', [
-                    TaskStatus::REVIEW->value,
-                    TaskStatus::IN_REVIEW->value,
-                ])->get();
-
-            if ($submittedTasks->isNotEmpty()) {
-                // Hergebruik de bestaande approve-flow (mailing, linked vehicle sync, etc.)
-                $ptController = new PlanningTaskController;
-                foreach ($submittedTasks as $pt) {
-                    try {
-                        // Lege request; we willen alleen de statuswijziging en side-effects
-                        $req = new Request;
-                        // Geef planning_id mee zodat eventuele redirects binnen approve() consistent zijn
-                        $req->merge(['planning_id' => $planning->id]);
-                        $ptController->approve($req, $pt);
-                    } catch (\Throwable $e) {
-                        // Faal niet de gehele afronding op één taak; log en ga door
-                        Log::warning('Automatische goedkeuring bij afronden planning faalde', [
-                            'planning_id' => $planning->id,
-                            'planning_task_id' => $pt->id ?? null,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
-            // Delete all uncompleted tasks that were created from default tasks
-            $planning->cleanupUncompletedDefaultTasks();
-
-            // 2) Voor backlog-gelinkte plannings-taken die nog niet voltooid zijn: maak ze opnieuw planbaar
-            // - Set the original backlog task status back to OPEN
-            // - Detach the uncompleted planning task from this (now completed) planning
-            $uncompletedBacklogPlanningTasks = $planning->planningTasks()
-                ->whereNotNull('task_id')
-                ->where('status', '!=', TaskStatus::COMPLETED->value)
-                ->get();
-
-            foreach ($uncompletedBacklogPlanningTasks as $pt) {
-                if ($pt->task) {
-                    // Check if this task is a default task (by title match for the location)
-                    // If it is, we might want to delete it instead of freeing it,
-                    // but cleanupUncompletedDefaultTasks already handles "floating" ones.
-                    // However, this task IS currently linked, so it's not "floating" yet.
-
-                    $isDefaultTask = DefaultTask::where(function ($query) use ($pt) {
-                        $query->where('applies_to_all_locations', true)
-                            ->orWhereHas('locations', function ($q) use ($pt) {
-                                $q->where('locations.id', $pt->location_id);
-                            });
-                    })->where('title', $pt->title)->exists();
-
-                    if ($isDefaultTask) {
-                        $pt->task->delete();
-                    } else {
-                        $pt->task->update(['status' => TaskStatus::OPEN]);
-                    }
-                }
-                // Remove the link from this completed planning (geplande taak verwijderen)
-                $pt->delete();
-            }
-
-            // 3) Inactieve ruimtetaken die niet voltooid zijn: verwijderen (zullen bij volgende planning weer verschijnen)
-            $planning->planningTasks()
-                ->whereNotNull('room_identifier')
-                ->where('status', '!=', TaskStatus::COMPLETED->value)
-                ->delete();
-
-            $planning->update([
-                'status' => 'completed',
-            ]);
-        });
+        $this->planningCompletionService->complete($planning);
 
         return redirect()->back()->with('success', 'Planning is afgerond. Niet-afgeronde standaardtaken zijn vrijgegeven voor herplanning.');
     }
