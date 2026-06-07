@@ -620,31 +620,6 @@ class PlanningController extends Controller
      */
     public function restartLocationTimer(Request $request, Planning $planning, int|string $locationId): JsonResponse
     {
-        $request->validate([
-            'previous_duration' => 'required|integer|min:0',
-        ]);
-
-        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
-        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
-
-        if (! $timer) {
-            return response()->json(['error' => 'Timer not found'], 404);
-        }
-
-        // Restart the timer - set new start time, clear end time, preserve previous duration
-        $timer->update([
-            'started_at' => now(),
-            'ended_at' => null,
-            'total_duration_seconds' => $request->input('previous_duration'), // Keep the accumulated time
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'timer' => [
-                'started_at' => $timer->started_at->toISOString(),
-                'ended_at' => null,
-                'total_duration' => $timer->total_duration_seconds,
-            ],
-        ]);
+        return $this->planningLocationTimerService->restartLocationTimer($request, $planning, $locationId);
     }
 }

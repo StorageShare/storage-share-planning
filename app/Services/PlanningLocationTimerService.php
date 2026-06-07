@@ -146,4 +146,33 @@ class PlanningLocationTimerService
 
         return back()->with('success', $successMessage);
     }
+
+    public function restartLocationTimer(Request $request, Planning $planning, int|string $locationId): JsonResponse
+    {
+        $request->validate([
+            'previous_duration' => 'required|integer|min:0',
+        ]);
+
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+
+        if (! $timer) {
+            return response()->json(['error' => 'Timer not found'], 404);
+        }
+
+        $timer->update([
+            'started_at' => now(),
+            'ended_at' => null,
+            'total_duration_seconds' => $request->input('previous_duration'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'timer' => [
+                'started_at' => $timer->started_at->toISOString(),
+                'ended_at' => null,
+                'total_duration' => $timer->total_duration_seconds,
+            ],
+        ]);
+    }
 }
