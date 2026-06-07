@@ -4,13 +4,13 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-4 lg:px-6">
+        <div class="sm:px-4 lg:px-6">
 
             <div class="mb-4">
                 <a href="{{ route('locations.index') }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">&larr; Terug naar locaties</a>
             </div>
 
-            <section class="container px-4 mx-auto">
+            <section class="px-4">
                 <div class="sm:flex sm:items-center sm:justify-between">
                     <div>
                         <div class="flex items-center gap-x-3">
@@ -38,8 +38,8 @@
                     @endphp
                     <div class="mt-6 md:flex md:items-center md:justify-between">
                         <div class="inline-flex overflow-hidden bg-white border border-gray-100 divide-x divide-gray-100 rounded-lg dark:bg-gray-900 rtl:flex-row-reverse dark:border-gray-700 dark:divide-gray-700">
-                            <a href="{{ route('locations.tasks.index', array_filter(['location' => $location->id, 'search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection, 'per_page' => request('per_page')])) }}"
-                                class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ !$activeFilter ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                            <a href="{{ route('locations.tasks.index', array_filter(['location' => $location->id, 'filter' => 'all', 'search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection, 'per_page' => request('per_page')])) }}"
+                                class="px-5 py-2 text-xs font-medium text-gray-600 transition-colors duration-200 sm:text-sm dark:text-gray-300 {{ $activeFilter === 'all' ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                                 Bekijk alle
                             </a>
                             <a href="{{ route('locations.tasks.index', array_filter(['location' => $location->id, 'filter' => 'open', 'search_term' => $searchTerm, 'sort_by' => $sortBy, 'sort_direction' => $sortDirection, 'per_page' => request('per_page')])) }}"
@@ -99,9 +99,7 @@
                                 @if(request()->has('sort_direction'))
                                 <input type="hidden" name="sort_direction" value="{{ request('sort_direction') }}">
                                 @endif
-                                @if(request()->has('filter'))
-                                <input type="hidden" name="filter" value="{{ request('filter') }}">
-                                @endif
+                                <input type="hidden" name="filter" value="{{ $activeFilter }}">
                                 @if(request()->has('planned_filter'))
                                 <input type="hidden" name="planned_filter" value="{{ request('planned_filter') }}">
                                 @endif
@@ -242,10 +240,10 @@
                                         @empty
                                         <tr>
                                             <td colspan="8" class="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                                                @if (!empty($searchTerm) || !empty($activeFilter) || !empty($plannedFilter))
+                                                @if (!empty($searchTerm) || $activeFilter !== 'open' || !empty($plannedFilter))
                                                 <p>Geen taken gevonden voor de huidige selectie.</p>
                                                 <div class="mt-2">
-                                                    <a href="{{ route('locations.tasks.index', array_filter(['location' => $location->id, 'per_page' => request('per_page')])) }}" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Wis filters en zoekopdracht</a>
+                                                    <a href="{{ route('locations.tasks.index', array_filter(['location' => $location->id, 'filter' => 'open', 'per_page' => request('per_page')])) }}" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">Wis filters en zoekopdracht</a>
                                                 </div>
                                                 @else
                                                 <p>Er zijn nog geen taken aangemaakt voor locatie "{{ $location->name }}".</p>

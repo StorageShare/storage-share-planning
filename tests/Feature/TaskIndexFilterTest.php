@@ -28,18 +28,36 @@ class TaskIndexFilterTest extends TestCase
         $response->assertDontSee($openTask->title);
     }
 
-    public function test_admin_sees_all_tasks_in_location_task_index(): void
+    public function test_admin_sees_open_tasks_by_default_in_location_task_index(): void
     {
         $location = Location::factory()->create();
         $user = User::factory()->create(['role' => Role::ADMIN->value]);
 
         $conceptTask = Task::factory()->concept()->create(['location_id' => $location->id]);
         $openTask = Task::factory()->create(['location_id' => $location->id, 'status' => 'open']);
+        $completedTask = Task::factory()->create(['location_id' => $location->id, 'status' => 'completed']);
 
         $response = $this->actingAs($user)->get(route('locations.tasks.index', $location));
         $response->assertOk();
 
         $response->assertSee($conceptTask->title);
         $response->assertSee($openTask->title);
+        $response->assertDontSee($completedTask->title);
+    }
+
+    public function test_admin_can_view_all_tasks_with_explicit_filter(): void
+    {
+        $location = Location::factory()->create();
+        $user = User::factory()->create(['role' => Role::ADMIN->value]);
+
+        $completedTask = Task::factory()->create(['location_id' => $location->id, 'status' => 'completed']);
+
+        $response = $this->actingAs($user)->get(route('locations.tasks.index', [
+            'location' => $location,
+            'filter' => 'all',
+        ]));
+        $response->assertOk();
+
+        $response->assertSee($completedTask->title);
     }
 }

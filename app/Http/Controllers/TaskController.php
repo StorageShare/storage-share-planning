@@ -46,7 +46,9 @@ class TaskController extends Controller
 
         // Read query parameters explicitly to preserve exactly what user provided in the URL
         $searchTerm = $request->query('search_term');
-        $activeFilter = $request->query('filter');
+        $activeFilter = $request->has('filter')
+            ? $request->query('filter')
+            : 'open';
         $plannedFilter = $request->query('planned_filter');
 
         // Valid sortable columns for tasks
@@ -119,7 +121,7 @@ class TaskController extends Controller
         }
 
         // Filter functionality
-        if ($activeFilter) {
+        if ($activeFilter && $activeFilter !== 'all') {
             match ($activeFilter) {
                 'open' => $query->whereNotIn('status', ['completed', 'rejected']),
                 'completed' => $query->where('status', '=', 'completed'),
