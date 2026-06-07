@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
 use App\Models\Task;
+use App\Models\Vehicle;
 use Illuminate\Support\Collection;
 
 class PlanningFormDataService
@@ -137,5 +138,25 @@ class PlanningFormDataService
                 'planning_title' => (string) $planningTask->planning->planned_date->format('d-m-Y'),
             ]];
         });
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, Vehicle>
+     */
+    public function availableVehiclesForDate(string $selectedDate, ?Planning $planning = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return Vehicle::query()
+            ->whereDoesntHave('plannings', function ($q) use ($selectedDate, $planning) {
+                $q->whereDate('planned_date', $selectedDate);
+                if ($planning) {
+                    $q->where('plannings.id', '!=', $planning->id);
+                }
+                $q->where(function ($qq) {
+                    $qq->whereNull('status')
+                        ->orWhere('status', '!=', 'completed');
+                });
+            })
+            ->orderBy('name')
+            ->get();
     }
 }
