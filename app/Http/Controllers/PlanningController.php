@@ -19,6 +19,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleTask;
 use App\Services\ExternalLocationService;
 use App\Services\PlanningFormDataService;
+use App\Services\PlanningLocationSyncService;
 use App\Services\PlanningLocationTimerService;
 use App\Services\TravelTimeService;
 use Carbon\Carbon;
@@ -42,17 +43,21 @@ class PlanningController extends Controller
 
     private PlanningLocationTimerService $planningLocationTimerService;
 
+    private PlanningLocationSyncService $planningLocationSyncService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
         ?ExternalLocationService $externalLocationService = null,
         ?PlanningFormDataService $planningFormDataService = null,
-        ?PlanningLocationTimerService $planningLocationTimerService = null
+        ?PlanningLocationTimerService $planningLocationTimerService = null,
+        ?PlanningLocationSyncService $planningLocationSyncService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
         $this->externalLocationService = $externalLocationService ?: app(ExternalLocationService::class);
         $this->planningFormDataService = $planningFormDataService ?: app(PlanningFormDataService::class);
         $this->planningLocationTimerService = $planningLocationTimerService ?: app(PlanningLocationTimerService::class);
+        $this->planningLocationSyncService = $planningLocationSyncService ?: app(PlanningLocationSyncService::class);
     }
 
     /**
@@ -326,7 +331,7 @@ class PlanningController extends Controller
             ]);
 
             // Sync locations with order and per-location check_inactive_spaces
-            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'), $request->input('check_inactive_spaces', []));
+            $this->planningLocationSyncService->sync($planning, $validated['location_ids'], $request->input('location_order'), $request->input('check_inactive_spaces', []));
 
             // Reload locations to ensure pivot data is up-to-date for createPlanningTasks
             $planning->load('locations');
@@ -539,7 +544,7 @@ class PlanningController extends Controller
             ]);
 
             // Sync locations with order and per-location check_inactive_spaces
-            $this->syncLocations($planning, $validated['location_ids'], $request->input('location_order'), $request->input('check_inactive_spaces', []));
+            $this->planningLocationSyncService->sync($planning, $validated['location_ids'], $request->input('location_order'), $request->input('check_inactive_spaces', []));
 
             // Reload locations to ensure pivot data is up-to-date for updatePlanningTasks
             $planning->load('locations');
@@ -803,47 +808,6 @@ class PlanningController extends Controller
                 'total_duration' => $timer->total_duration_seconds,
             ],
         ]);
-    }
-
-    /**
-     * @param  array<int,int>  $locationIds
-     * @param  array<int|string, mixed>|null  $checkInactiveSpaces
-     */
-    private function syncLocations(Planning $planning, array $locationIds, ?string $locationOrder, ?array $checkInactiveSpaces = []): void
-    {
-        // Parse incoming explicit order from hidden field and preserve it strictly
-        $orderedIds = $locationOrder ? array_values(array_filter(
-            array_map(static fn ($v) => (int) trim((string) $v), explode(',', $locationOrder)),
-            static fn ($v) => $v > 0
-        )) : [];
-
-        // Build final order: keep only selected IDs in the exact user-provided order
-        $selectedSet = array_flip(array_map('intval', $locationIds));
-        $finalOrderedIds = [];
-        foreach ($orderedIds as $id) {
-            if (isset($selectedSet[$id]) && ! in_array($id, $finalOrderedIds, true)) {
-                $finalOrderedIds[] = $id;
-            }
-        }
-        // Append any selected IDs that might be missing (e.g., newly selected without drag)
-        foreach ($locationIds as $id) {
-            $iid = (int) $id;
-            if (! in_array($iid, $finalOrderedIds, true)) {
-                $finalOrderedIds[] = $iid;
-            }
-        }
-
-        // Map to pivot payload with 0-based sort_order and check_inactive_spaces
-        $locationsToSync = [];
-        foreach ($finalOrderedIds as $index => $locationId) {
-            $locationsToSync[(int) $locationId] = [
-                'sort_order' => $index,
-                'check_inactive_spaces' => (bool) ($checkInactiveSpaces[$locationId] ?? false),
-            ];
-        }
-
-        // Sync pivot table
-        $planning->locations()->sync($locationsToSync);
     }
 
     /**
