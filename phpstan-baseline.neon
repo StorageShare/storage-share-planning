@@ -15,5 +15,11 @@ parameters:
 		-
 			message: '#^Access to an undefined property App\\Models\\Location\:\:\$pivot\.$#'
 			identifier: property.notFound
-			count: 4
+			count: 2
 			path: app/Http/Controllers/PlanningController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Location\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/PlanningTaskCreationService.php

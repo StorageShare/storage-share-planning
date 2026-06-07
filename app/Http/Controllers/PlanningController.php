@@ -21,6 +21,7 @@ use App\Services\ExternalLocationService;
 use App\Services\PlanningFormDataService;
 use App\Services\PlanningLocationSyncService;
 use App\Services\PlanningLocationTimerService;
+use App\Services\PlanningTaskCreationService;
 use App\Services\TravelTimeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -45,12 +46,15 @@ class PlanningController extends Controller
 
     private PlanningLocationSyncService $planningLocationSyncService;
 
+    private PlanningTaskCreationService $planningTaskCreationService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
         ?ExternalLocationService $externalLocationService = null,
         ?PlanningFormDataService $planningFormDataService = null,
         ?PlanningLocationTimerService $planningLocationTimerService = null,
-        ?PlanningLocationSyncService $planningLocationSyncService = null
+        ?PlanningLocationSyncService $planningLocationSyncService = null,
+        ?PlanningTaskCreationService $planningTaskCreationService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
@@ -58,6 +62,7 @@ class PlanningController extends Controller
         $this->planningFormDataService = $planningFormDataService ?: app(PlanningFormDataService::class);
         $this->planningLocationTimerService = $planningLocationTimerService ?: app(PlanningLocationTimerService::class);
         $this->planningLocationSyncService = $planningLocationSyncService ?: app(PlanningLocationSyncService::class);
+        $this->planningTaskCreationService = $planningTaskCreationService ?: app(PlanningTaskCreationService::class);
     }
 
     /**
@@ -342,7 +347,7 @@ class PlanningController extends Controller
             }
 
             // Create planning tasks from default and backlog tasks
-            $this->createPlanningTasks($planning, $validated);
+            $this->planningTaskCreationService->create($planning, $validated);
         });
 
         return redirect()->route('plannings.index')->with('success', 'Planning succesvol aangemaakt.');
@@ -808,162 +813,6 @@ class PlanningController extends Controller
                 'total_duration' => $timer->total_duration_seconds,
             ],
         ]);
-    }
-
-    /**
-     * @param array{
-     *   selected_default_tasks?: array<int,int>,
-     *   selected_backlog_tasks?: array<int,int>,
-     *   location_ids?: array<int,int>
-     * } $validatedData
-     */
-    private function createPlanningTasks(Planning $planning, array $validatedData): void
-    {
-        // 1) Inject open vehicle tasks for the assigned vehicle so they appear first
-        if ($planning->vehicle_id) {
-            $openVehicleTasks = VehicleTask::where('vehicle_id', $planning->vehicle_id)
-                ->where('status', TaskStatus::OPEN->value)
-                ->orderBy('created_at')
-                ->get();
-
-            foreach ($openVehicleTasks as $vt) {
-                $planning->planningTasks()->create([
-                    'vehicle_task_id' => $vt->id,
-                    'title' => $vt->title,
-                    // Some vehicle tasks may not have a description; DB column is NOT NULL
-                    'description' => $vt->description ?? '',
-                    'status' => TaskStatus::OPEN,
-                    'estimated_time_minutes' => $vt->estimated_time_minutes,
-                    'is_vehicle_task' => true,
-                ]);
-            }
-        }
-
-        if (! empty($validatedData['selected_default_tasks']) && ! empty($validatedData['location_ids'])) {
-            /** @var array<int,int> $locIds */
-            $locIds = array_map('intval', $validatedData['location_ids']);
-            $selected_location_ids = collect($locIds);
-            /** @var array<int,int> $defaultIds */
-            $defaultIds = array_map('intval', $validatedData['selected_default_tasks']);
-            $default_task_templates = DefaultTask::with('locations')->findMany($defaultIds);
-            $locations = Location::findMany($selected_location_ids);
-
-            foreach ($selected_location_ids as $location_id) {
-                $location = $locations->firstWhere('id', $location_id);
-                if (! $location) {
-                    continue;
-                }
-
-                foreach ($default_task_templates as $template) {
-                    if ($template->locations->contains('id', $location_id)) {
-                        $estimatedTime = $template->calculateEstimatedTime($location);
-
-                        // Duplicate DefaultTask to a normal Task
-                        $newTask = Task::create([
-                            'location_id' => $location_id,
-                            'title' => $template->title,
-                            'description' => $template->description ?? '',
-                            'feedback_information' => $template->feedback_information,
-                            'feedback_owner_name' => $template->feedback_owner_name,
-                            'feedback_emails' => $template->feedback_emails,
-                            'estimated_time_minutes' => $estimatedTime,
-                            'status' => TaskStatus::OPEN,
-                            'priority' => TaskPriority::NORMAL,
-                            'end_day_action_title' => $template->end_day_action_title,
-                            'end_day_action_description' => $template->end_day_action_description,
-                            'created_by' => Auth::id(),
-                        ]);
-
-                        // Sync requirements from template to new task
-                        if ($template->requirements()->exists()) {
-                            $newTask->requirements()->sync($template->requirements->pluck('id'));
-                        }
-
-                        $planning->planningTasks()->create([
-                            'location_id' => $location_id,
-                            'task_id' => $newTask->id,
-                            'title' => $template->title,
-                            // Ensure non-null description for NOT NULL column
-                            'description' => $template->description ?? '',
-                            'feedback_information' => $template->feedback_information,
-                            'feedback_owner_name' => $template->feedback_owner_name,
-                            'feedback_emails' => $template->feedback_emails,
-                            'estimated_time_minutes' => $estimatedTime,
-                        ]);
-                    }
-                }
-            }
-        }
-
-        // Logic for adding backlog tasks
-        if (! empty($validatedData['selected_backlog_tasks'])) {
-            /** @var array<int,int> $backlogIds */
-            $backlogIds = array_map('intval', $validatedData['selected_backlog_tasks']);
-            $backlogTasks = Task::query()
-                ->whereIn('id', $backlogIds)
-                ->get();
-            foreach ($backlogTasks as $backlogTask) {
-                $planning->planningTasks()->create([
-                    'task_id' => $backlogTask->id,
-                    'title' => $backlogTask->title,
-                    // Ensure non-null description for NOT NULL column
-                    'description' => $backlogTask->description ?? '',
-                    'feedback_information' => $backlogTask->feedback_information,
-                    'feedback_owner_name' => $backlogTask->feedback_owner_name,
-                    'feedback_emails' => $backlogTask->feedback_emails,
-                    'location_id' => $backlogTask->location_id,
-                    'priority' => $backlogTask->priority,
-                    'estimated_time_minutes' => $backlogTask->estimated_time_minutes,
-                ]);
-            }
-        }
-
-        // Logic for inactive spaces
-        foreach ($planning->locations as $location) {
-            \Log::debug('Checking inactive spaces for location', [
-                'location_id' => $location->id,
-                'sync_external_id' => $location->sync_external_id,
-                'check_inactive_spaces' => $location->pivot->check_inactive_spaces,
-            ]);
-
-            $effectiveSyncId = $location->sync_external_id ?: $location->external_id;
-
-            if ($location->pivot->check_inactive_spaces && $effectiveSyncId) {
-                $inactiveRooms = $this->externalLocationService->fetchInactiveRooms($effectiveSyncId);
-                \Log::debug('Inactive rooms fetched', [
-                    'location_id' => $location->id,
-                    'sync_id' => $effectiveSyncId,
-                    'count' => is_array($inactiveRooms) ? count($inactiveRooms) : 'null',
-                ]);
-
-                if ($inactiveRooms) {
-                    foreach ($inactiveRooms as $roomData) {
-                        $room = $roomData['name'];
-                        $description = $roomData['description'] ?? 'Controleer de inactieve ruimte op bijzonderheden.';
-                        $group = $roomData['group_name'] ?? null;
-
-                        // Check if task already exists for this room on this planning to avoid duplicates
-                        $exists = $planning->planningTasks()
-                            ->where('location_id', $location->id)
-                            ->where('room_identifier', $room)
-                            ->exists();
-
-                        if (! $exists) {
-                            $planning->planningTasks()->create([
-                                'location_id' => $location->id,
-                                'title' => 'Inactieve ruimte controleren: '.$room,
-                                'description' => $description,
-                                'status' => TaskStatus::OPEN,
-                                'priority' => TaskPriority::NORMAL,
-                                'estimated_time_minutes' => 5, // Default 5 minutes per space
-                                'room_identifier' => $room,
-                                'room_group' => $group,
-                            ]);
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /**
