@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\EndChecklistItem;
 use App\Models\EndChecklistItemPhoto;
+use App\Models\Location;
 use App\Models\Planning;
 use App\Models\Requirement;
 use App\Models\Task;
 use App\Services\ImageService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -312,7 +314,7 @@ class EndChecklistController extends Controller
      */
     public function pendingReviews(): JsonResponse
     {
-        $plannings = Planning::whereHas('endChecklistItems', /** @param \Illuminate\Database\Eloquent\Builder<\App\Models\EndChecklistItem> $query */ function (\Illuminate\Database\Eloquent\Builder $query): void {
+        $plannings = Planning::whereHas('endChecklistItems', /** @param Builder<EndChecklistItem> $query */ function (Builder $query): void {
             $query->where('status', 'pending')
                 ->whereHas('photos');
         })
@@ -466,7 +468,7 @@ class EndChecklistController extends Controller
             // 4) If none are available, fall back to review page with an error
             $locationId = $item->location_id
                 ?? ($item->planning != null ? $item->planning->locations()->first()?->id : null)
-                ?? (\App\Models\Location::query()->first()?->id);
+                ?? (Location::query()->first()?->id);
 
             if (! $locationId) {
                 // No location could be determined — gracefully fall back

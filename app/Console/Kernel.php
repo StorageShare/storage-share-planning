@@ -3,7 +3,9 @@
 namespace App\Console;
 
 use App\Console\Commands\EscalateTaskPriorities;
+use App\Console\Commands\SendPlanningNotificationsCommand;
 use App\Console\Commands\SyncExternalLocationsCommand;
+use Illuminate\Console\Command;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -12,7 +14,7 @@ class Kernel extends ConsoleKernel
     /**
      * The Artisan commands provided by your application.
      *
-     * @var array<int, class-string<\Illuminate\Console\Command>>
+     * @var array<int, class-string<Command>>
      */
     protected $commands = [
         // Commands\SyncExternalLocationsCommand::class,
@@ -24,7 +26,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command(SyncExternalLocationsCommand::class)->daily();
-        $schedule->command(\App\Console\Commands\SendPlanningNotificationsCommand::class)->dailyAt('16:00');
+        $schedule->command(SendPlanningNotificationsCommand::class)->dailyAt('16:00');
         $schedule->command(EscalateTaskPriorities::class, ['--force'])
             ->dailyAt('09:00')
             ->withoutOverlapping()

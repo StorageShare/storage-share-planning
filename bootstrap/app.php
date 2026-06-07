@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Middleware\CanExecutePlannings;
+use App\Http\Middleware\CanManagePlannings;
+use App\Http\Middleware\IncreaseExecutionTime;
+use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\VerifyExternalApiSignature;
+use App\Providers\EventServiceProvider;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,18 +19,18 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Global HTTP middleware
-        $middleware->append(\App\Http\Middleware\IncreaseExecutionTime::class);
+        $middleware->append(IncreaseExecutionTime::class);
 
         $middleware->alias([
-            'is_admin' => \App\Http\Middleware\IsAdmin::class,
-            'can_execute_plannings' => \App\Http\Middleware\CanExecutePlannings::class,
-            'can_manage_plannings' => \App\Http\Middleware\CanManagePlannings::class,
-            'external_api' => \App\Http\Middleware\VerifyExternalApiSignature::class,
+            'is_admin' => IsAdmin::class,
+            'can_execute_plannings' => CanExecutePlannings::class,
+            'can_manage_plannings' => CanManagePlannings::class,
+            'external_api' => VerifyExternalApiSignature::class,
         ]);
 
     })
     ->withProviders([
-        App\Providers\EventServiceProvider::class,
+        EventServiceProvider::class,
     ])
     ->withExceptions(function (Exceptions $exceptions) {
         //

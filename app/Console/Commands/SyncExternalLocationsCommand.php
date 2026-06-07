@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Location;
+use App\Services\ExternalLocationService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
@@ -27,7 +29,7 @@ class SyncExternalLocationsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(\App\Services\ExternalLocationService $externalLocationService): int
+    public function handle(ExternalLocationService $externalLocationService): int
     {
         $this->info('Starting locations synchronization...');
         Log::info('SyncExternalLocationsCommand: Starting synchronization.');
@@ -127,7 +129,7 @@ class SyncExternalLocationsCommand extends Command
 
             return Command::SUCCESS;
 
-        } catch (\Illuminate\Http\Client\RequestException $e) {
+        } catch (RequestException $e) {
             $this->error("API Request Exception: {$e->getMessage()}");
             Log::error('SyncExternalLocationsCommand: API Request Exception.', ['exception' => $e]);
 

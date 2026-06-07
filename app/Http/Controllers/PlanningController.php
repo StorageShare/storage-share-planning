@@ -18,13 +18,16 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleTask;
+use App\Services\ExternalLocationService;
 use App\Services\TravelTimeService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 // For database transactions
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
 // Importeer de Enum
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -32,15 +35,15 @@ use Illuminate\View\View;
 
 class PlanningController extends Controller
 {
-    private \App\Services\ExternalLocationService $externalLocationService;
+    private ExternalLocationService $externalLocationService;
 
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
-        ?\App\Services\ExternalLocationService $externalLocationService = null
+        ?ExternalLocationService $externalLocationService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
-        $this->externalLocationService = $externalLocationService ?: app(\App\Services\ExternalLocationService::class);
+        $this->externalLocationService = $externalLocationService ?: app(ExternalLocationService::class);
     }
 
     /**
@@ -327,7 +330,7 @@ class PlanningController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'start_address' => $validated['start_address'],
                 'start_time' => $validated['start_time'] ?? null,
-                'created_by' => \Illuminate\Support\Facades\Auth::id(),
+                'created_by' => Auth::id(),
                 'vehicle_id' => $validated['vehicle_id'],
             ]);
 
@@ -461,13 +464,13 @@ class PlanningController extends Controller
             ->get();
 
         /**
-         * @var \Illuminate\Support\Collection<int|string, \Illuminate\Support\Collection<int, array{
+         * @var Collection<int|string, Collection<int, array{
          *   id:int,
          *   title:string,
          *   description:string|null,
          *   priority: array{value:string,label:string},
-         *   status: \App\Enums\TaskStatus,
-         *   deadline: \Carbon\Carbon|null,
+         *   status: TaskStatus,
+         *   deadline: Carbon|null,
          *   estimated_time_minutes:int
          * }>> $backlogTasksByLocation
          */
@@ -612,17 +615,17 @@ class PlanningController extends Controller
             // 0) Eerst: automatisch goedkeuren van ingediende taken (in review)
             $submittedTasks = $planning->planningTasks()
                 ->whereIn('status', [
-                    \App\Enums\TaskStatus::REVIEW->value,
-                    \App\Enums\TaskStatus::IN_REVIEW->value,
+                    TaskStatus::REVIEW->value,
+                    TaskStatus::IN_REVIEW->value,
                 ])->get();
 
             if ($submittedTasks->isNotEmpty()) {
                 // Hergebruik de bestaande approve-flow (mailing, linked vehicle sync, etc.)
-                $ptController = new \App\Http\Controllers\PlanningTaskController;
+                $ptController = new PlanningTaskController;
                 foreach ($submittedTasks as $pt) {
                     try {
                         // Lege request; we willen alleen de statuswijziging en side-effects
-                        $req = new \Illuminate\Http\Request;
+                        $req = new Request;
                         // Geef planning_id mee zodat eventuele redirects binnen approve() consistent zijn
                         $req->merge(['planning_id' => $planning->id]);
                         $ptController->approve($req, $pt);
@@ -644,7 +647,7 @@ class PlanningController extends Controller
             // - Detach the uncompleted planning task from this (now completed) planning
             $uncompletedBacklogPlanningTasks = $planning->planningTasks()
                 ->whereNotNull('task_id')
-                ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
+                ->where('status', '!=', TaskStatus::COMPLETED->value)
                 ->get();
 
             foreach ($uncompletedBacklogPlanningTasks as $pt) {
@@ -664,7 +667,7 @@ class PlanningController extends Controller
                     if ($isDefaultTask) {
                         $pt->task->delete();
                     } else {
-                        $pt->task->update(['status' => \App\Enums\TaskStatus::OPEN]);
+                        $pt->task->update(['status' => TaskStatus::OPEN]);
                     }
                 }
                 // Remove the link from this completed planning (geplande taak verwijderen)
@@ -674,7 +677,7 @@ class PlanningController extends Controller
             // 3) Inactieve ruimtetaken die niet voltooid zijn: verwijderen (zullen bij volgende planning weer verschijnen)
             $planning->planningTasks()
                 ->whereNotNull('room_identifier')
-                ->where('status', '!=', \App\Enums\TaskStatus::COMPLETED->value)
+                ->where('status', '!=', TaskStatus::COMPLETED->value)
                 ->delete();
 
             $planning->update([
@@ -876,8 +879,8 @@ class PlanningController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Location>  $locations
-     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, array{id:int,title:string,description:string,estimated_time_minutes:int,applies_to_all_locations:bool,is_always_included:bool}>>
+     * @param  Collection<int, Location>  $locations
+     * @return Collection<int, Collection<int, array{id:int,title:string,description:string,estimated_time_minutes:int,applies_to_all_locations:bool,is_always_included:bool}>>
      */
     private function buildDefaultTasksByLocation($locations)
     {
@@ -888,13 +891,13 @@ class PlanningController extends Controller
 
             return [$location->id => $allTasks->map(function ($task) use ($location) {
                 return [
-                    'id' => $task->id,
-                    'title' => $task->title,
+                    'id' => (int) $task->id,
+                    'title' => (string) $task->title,
                     // DefaultTask::description is non-null in model typing; normalize to string for views
                     'description' => (string) $task->description,
-                    'estimated_time_minutes' => $task->calculateEstimatedTime($location),
-                    'applies_to_all_locations' => $task->applies_to_all_locations ?? false,
-                    'is_always_included' => $task->is_always_included ?? false,
+                    'estimated_time_minutes' => (int) $task->calculateEstimatedTime($location),
+                    'applies_to_all_locations' => (bool) ($task->applies_to_all_locations ?? false),
+                    'is_always_included' => (bool) ($task->is_always_included ?? false),
                 ];
             })];
         });
@@ -902,17 +905,17 @@ class PlanningController extends Controller
 
     /**
      * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $tasks
-     * @return \Illuminate\Support\Collection<int|string, \Illuminate\Support\Collection<int, array<string, mixed>>>
+     * @return Collection<int|string, Collection<int|string, array<string, mixed>>>
      */
-    private function mapBacklogTasksByLocation($tasks): \Illuminate\Support\Collection
+    private function mapBacklogTasksByLocation($tasks): Collection
     {
         return $tasks->groupBy('location_id')
             ->map(
                 /**
                  * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $grouped
-                 * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+                 * @return Collection<int, array<string, mixed>>
                  */
-                static function (\Illuminate\Database\Eloquent\Collection $grouped, int|string|null $key): \Illuminate\Support\Collection {
+                static function (\Illuminate\Database\Eloquent\Collection $grouped, int|string|null $key): Collection {
                     return $grouped->map(static function (Task $task): array {
                         /** @var array<string, mixed> $row */
                         $row = [
@@ -937,25 +940,25 @@ class PlanningController extends Controller
 
     /**
      * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $tasks
-     * @return \Illuminate\Support\Collection<int|string, array{high: int, normal: int, low: int}>
+     * @return Collection<int|string, array{high: int, normal: int, low: int}>
      */
-    private function computeBacklogPriorityCounts($tasks): \Illuminate\Support\Collection
+    private function computeBacklogPriorityCounts($tasks): Collection
     {
         return $tasks->groupBy('location_id')
             ->map(function ($tasks_for_location) {
                 return [
-                    TaskPriority::HIGH->value => $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
-                    TaskPriority::NORMAL->value => $tasks_for_location->where('priority', TaskPriority::NORMAL)->count(),
-                    TaskPriority::LOW->value => $tasks_for_location->where('priority', TaskPriority::LOW)->count(),
+                    TaskPriority::HIGH->value => (int) $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
+                    TaskPriority::NORMAL->value => (int) $tasks_for_location->where('priority', TaskPriority::NORMAL)->count(),
+                    TaskPriority::LOW->value => (int) $tasks_for_location->where('priority', TaskPriority::LOW)->count(),
                 ];
             });
     }
 
     /**
      * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $tasks
-     * @return \Illuminate\Support\Collection<int|string, int>
+     * @return Collection<int|string, int>
      */
-    private function computeBacklogTotalEstimated($tasks): \Illuminate\Support\Collection
+    private function computeBacklogTotalEstimated($tasks): Collection
     {
         return $tasks->groupBy('location_id')
             ->map(function ($tasks_for_location) {
@@ -964,11 +967,11 @@ class PlanningController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Location>|\Illuminate\Support\Collection<int, Location>  $locations
-     * @param  \Illuminate\Support\Collection<int|string, array{high: int, normal: int, low: int}>  $backlogPriorityCountsByLocation
-     * @return \Illuminate\Support\Collection<int, Location>
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Location>|Collection<int, Location>  $locations
+     * @param  Collection<int|string, array{high: int, normal: int, low: int}>  $backlogPriorityCountsByLocation
+     * @return Collection<int, Location>
      */
-    private function sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation): \Illuminate\Support\Collection
+    private function sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation): Collection
     {
         return $locations->sortBy(function ($location) use ($backlogPriorityCountsByLocation) {
             $counts = $backlogPriorityCountsByLocation[$location->id] ?? [
@@ -987,7 +990,7 @@ class PlanningController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array{planning_id:int,planning_title:string}>
+     * @return Collection<int, array{planning_id:int,planning_title:string}>
      */
     private function plannedBacklogTasksMap(?Planning $planning = null, bool $excludeCurrent = false)
     {
@@ -998,8 +1001,8 @@ class PlanningController extends Controller
 
         return $query->get()->mapWithKeys(function ($planningTask) {
             return [(int) $planningTask->task_id => [
-                'planning_id' => $planningTask->planning->id,
-                'planning_title' => $planningTask->planning->planned_date->format('d-m-Y'),
+                'planning_id' => (int) $planningTask->planning->id,
+                'planning_title' => (string) $planningTask->planning->planned_date->format('d-m-Y'),
             ]];
         });
     }
@@ -1076,8 +1079,8 @@ class PlanningController extends Controller
     {
         // 1) Inject open vehicle tasks for the assigned vehicle so they appear first
         if ($planning->vehicle_id) {
-            $openVehicleTasks = \App\Models\VehicleTask::where('vehicle_id', $planning->vehicle_id)
-                ->where('status', \App\Enums\TaskStatus::OPEN->value)
+            $openVehicleTasks = VehicleTask::where('vehicle_id', $planning->vehicle_id)
+                ->where('status', TaskStatus::OPEN->value)
                 ->orderBy('created_at')
                 ->get();
 
@@ -1087,7 +1090,7 @@ class PlanningController extends Controller
                     'title' => $vt->title,
                     // Some vehicle tasks may not have a description; DB column is NOT NULL
                     'description' => $vt->description ?? '',
-                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'status' => TaskStatus::OPEN,
                     'estimated_time_minutes' => $vt->estimated_time_minutes,
                     'is_vehicle_task' => true,
                 ]);
@@ -1122,8 +1125,8 @@ class PlanningController extends Controller
                             'feedback_owner_name' => $template->feedback_owner_name,
                             'feedback_emails' => $template->feedback_emails,
                             'estimated_time_minutes' => $estimatedTime,
-                            'status' => \App\Enums\TaskStatus::OPEN,
-                            'priority' => \App\Enums\TaskPriority::NORMAL,
+                            'status' => TaskStatus::OPEN,
+                            'priority' => TaskPriority::NORMAL,
                             'end_day_action_title' => $template->end_day_action_title,
                             'end_day_action_description' => $template->end_day_action_description,
                             'created_by' => Auth::id(),
@@ -1208,8 +1211,8 @@ class PlanningController extends Controller
                                 'location_id' => $location->id,
                                 'title' => 'Inactieve ruimte controleren: '.$room,
                                 'description' => $description,
-                                'status' => \App\Enums\TaskStatus::OPEN,
-                                'priority' => \App\Enums\TaskPriority::NORMAL,
+                                'status' => TaskStatus::OPEN,
+                                'priority' => TaskPriority::NORMAL,
                                 'estimated_time_minutes' => 5, // Default 5 minutes per space
                                 'room_identifier' => $room,
                                 'room_group' => $group,
@@ -1237,8 +1240,8 @@ class PlanningController extends Controller
                 ->whereNotNull('vehicle_task_id')
                 ->pluck('vehicle_task_id');
 
-            $openVehicleTasks = \App\Models\VehicleTask::where('vehicle_id', $planning->vehicle_id)
-                ->where('status', \App\Enums\TaskStatus::OPEN->value)
+            $openVehicleTasks = VehicleTask::where('vehicle_id', $planning->vehicle_id)
+                ->where('status', TaskStatus::OPEN->value)
                 ->whereNotIn('id', $existingLinkedVehicleTaskIds)
                 ->orderBy('created_at')
                 ->get();
@@ -1248,7 +1251,7 @@ class PlanningController extends Controller
                     'vehicle_task_id' => $vt->id,
                     'title' => $vt->title,
                     'description' => $vt->description,
-                    'status' => \App\Enums\TaskStatus::OPEN,
+                    'status' => TaskStatus::OPEN,
                     'estimated_time_minutes' => $vt->estimated_time_minutes,
                     'is_vehicle_task' => true,
                 ]);
@@ -1420,8 +1423,8 @@ class PlanningController extends Controller
                             'room_group' => $group,
                             'title' => 'Inactieve ruimte controleren: '.$room,
                             'description' => $description,
-                            'status' => \App\Enums\TaskStatus::OPEN,
-                            'priority' => \App\Enums\TaskPriority::NORMAL,
+                            'status' => TaskStatus::OPEN,
+                            'priority' => TaskPriority::NORMAL,
                             'estimated_time_minutes' => 5,
                         ]);
                     }

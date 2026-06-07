@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
+use App\Models\Requirement;
 use App\Models\Task;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class CsvTaskImportService
      * Import tasks from CSV data.
      *
      * @param  array<int, array<string, mixed>>  $csvData
-     * @return array{success_count:int, error_count:int, errors: array<int, string>, imported_tasks: array<int, \App\Models\Task>}
+     * @return array{success_count:int, error_count:int, errors: array<int, string>, imported_tasks: array<int, Task>}
      */
     public function importTasks(array $csvData): array
     {
@@ -348,7 +349,7 @@ class CsvTaskImportService
     /**
      * Parse date from various formats.
      */
-    private function parseDate(string $dateString): ?\Carbon\Carbon
+    private function parseDate(string $dateString): ?Carbon
     {
         $dateString = trim($dateString);
 
@@ -367,14 +368,14 @@ class CsvTaskImportService
             ];
 
             foreach ($formats as $format) {
-                $date = \Carbon\Carbon::createFromFormat($format, $dateString);
+                $date = Carbon::createFromFormat($format, $dateString);
                 if ($date) {
                     return $date;
                 }
             }
 
             // Fallback to Carbon's flexible parsing
-            return \Carbon\Carbon::parse($dateString);
+            return Carbon::parse($dateString);
 
         } catch (\Exception $e) {
             Log::warning('Could not parse date: '.$dateString, ['error' => $e->getMessage()]);
@@ -695,7 +696,7 @@ class CsvTaskImportService
         // Check if the description contains "vanaf boven in de ruimtes kijken"
         if (str_contains(strtolower($description), 'vanaf boven in de ruimtes kijken')) {
             // Find the Selfiestick requirement
-            $selfiestick = \App\Models\Requirement::where('naam', 'Selfiestick')->first();
+            $selfiestick = Requirement::where('naam', 'Selfiestick')->first();
             if ($selfiestick) {
                 $benodigdheden[] = $selfiestick->id;
             }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -9,17 +10,39 @@ use Illuminate\Support\Facades\Log;
 
 class StorageShareApiService
 {
+    public function isConfigured(): bool
+    {
+        return $this->baseUrl() !== '' && $this->token() !== '';
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */
     public function post(string $path, array $payload = []): Response
     {
-        return Http::withToken($this->token())->post($this->url($path), $payload);
+        return $this->client()->post($this->url($path), $payload);
     }
 
     public function get(string $path): Response
     {
-        return Http::withToken($this->token())->get($this->url($path));
+        return $this->client()->get($this->url($path));
+    }
+
+    public function getSpaces(): Response
+    {
+        $spacesUrl = Config::get('services.external_locations_api.url');
+        if (is_string($spacesUrl) && $spacesUrl !== '') {
+            return $this->client()->get($spacesUrl);
+        }
+
+        return $this->get('/spaces');
+    }
+
+    public function postFile(string $path, string $fieldName, string $filePath, string $fileName): Response
+    {
+        return $this->client()
+            ->attach($fieldName, file_get_contents($filePath), $fileName)
+            ->post($this->url($path));
     }
 
     /**
@@ -143,13 +166,39 @@ class StorageShareApiService
         }
     }
 
+    private function client(): PendingRequest
+    {
+        return Http::withToken($this->token())->acceptJson();
+    }
+
     private function url(string $path): string
     {
-        return rtrim((string) Config::get('services.storage_share_api.url'), '/').'/'.ltrim($path, '/');
+        return $this->baseUrl().'/'.ltrim($path, '/');
+    }
+
+    private function baseUrl(): string
+    {
+        $url = Config::get('services.storage_share_api.url');
+        if (is_string($url) && $url !== '') {
+            return rtrim($url, '/');
+        }
+
+        $externalUrl = Config::get('services.external_locations_api.url');
+        if (is_string($externalUrl) && $externalUrl !== '') {
+            return rtrim((string) preg_replace('#/spaces/?$#', '', $externalUrl), '/');
+        }
+
+        return '';
     }
 
     private function token(): string
     {
-        return (string) Config::get('services.storage_share_api.token');
+        $token = Config::get('services.storage_share_api.token');
+
+        if (is_string($token) && $token !== '') {
+            return $token;
+        }
+
+        return (string) Config::get('services.external_locations_api.token');
     }
 }

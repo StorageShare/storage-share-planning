@@ -4,6 +4,7 @@ namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Models\EndChecklistItem;
+use App\Models\Location;
 use App\Models\Planning;
 use App\Models\Requirement;
 use App\Models\User;
@@ -357,7 +358,7 @@ class EndChecklistControllerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => Role::ADMIN->value]);
         $planning = Planning::factory()->create();
-        $location = \App\Models\Location::factory()->create();
+        $location = Location::factory()->create();
         $planning->locations()->attach($location->id, ['sort_order' => 0]);
         $item = EndChecklistItem::create([
             'planning_id' => $planning->id,

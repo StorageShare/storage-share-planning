@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class CsvImportController extends Controller
 {
@@ -87,7 +88,7 @@ class CsvImportController extends Controller
     /**
      * Download sample CSV template.
      */
-    public function downloadTemplate(): \Symfony\Component\HttpFoundation\Response
+    public function downloadTemplate(): Response
     {
         $headers = [
             'Locatie',

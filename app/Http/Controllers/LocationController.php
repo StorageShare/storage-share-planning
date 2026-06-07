@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
+use App\Services\ExternalLocationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -90,7 +91,7 @@ class LocationController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(\App\Services\ExternalLocationService $externalLocationService): View
+    public function create(ExternalLocationService $externalLocationService): View
     {
         $externalLocations = $externalLocationService->fetchExternalLocations() ?? [];
 
@@ -111,7 +112,7 @@ class LocationController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Location $location, \App\Services\ExternalLocationService $externalLocationService): View|RedirectResponse
+    public function edit(Location $location, ExternalLocationService $externalLocationService): View|RedirectResponse
     {
         if (! is_null($location->external_id)) {
             return redirect()->route('locations.index')

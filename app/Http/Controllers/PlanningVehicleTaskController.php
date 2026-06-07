@@ -6,6 +6,7 @@ use App\Enums\TaskStatus;
 use App\Models\DefaultVehicleTask;
 use App\Models\Planning;
 use App\Models\PlanningTask;
+use App\Models\User;
 use App\Models\VehicleTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,7 +62,7 @@ class PlanningVehicleTaskController extends Controller
             $defaultsById = DefaultVehicleTask::whereIn('id', $ids)->get()->keyBy('id');
         }
 
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = Auth::user();
 
         foreach ($vehicleTasks as $vtInput) {

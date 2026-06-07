@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
@@ -41,7 +42,7 @@ class TaskController extends Controller
         $status = TaskStatus::REVIEW;
 
         // If it's CUSTOMER_SERVICE, it can also stay CONCEPT or also go to REVIEW
-        if (Auth::check() && Auth::user()->role === \App\Enums\Role::CUSTOMER_SERVICE) {
+        if (Auth::check() && Auth::user()->role === Role::CUSTOMER_SERVICE) {
             $status = TaskStatus::CONCEPT;
         }
         $validatedData['status'] = $status;

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\EndChecklistItem;
+use App\Models\Location;
 use App\Models\Planning;
+use App\Models\PlanningComment;
 use App\Models\PlanningLocationTimer;
 use App\Models\Requirement;
 use App\Models\User;
@@ -215,12 +217,11 @@ class MyPlanningController extends Controller
             }
 
             // Get comments for this location (backlog)
-            $commentsForBacklog = $planning->comments->whereNull('location_id')->map(fn ($c) => [
-                'id' => $c->id,
-                'comment' => $c->comment,
-                'photos' => $c->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]),
-                'created_at' => $c->created_at->format('H:i'),
-            ])->values()->all();
+            $commentsForBacklog = $planning->comments
+                ->whereNull('location_id')
+                ->map(fn (PlanningComment $comment) => $this->mapPlanningCommentForView($comment))
+                ->values()
+                ->all();
 
             if (! empty($tasksForBacklog) || ! empty($commentsForBacklog)) {
                 $locationSteps[] = [
@@ -313,12 +314,11 @@ class MyPlanningController extends Controller
             }
 
             // Get comments for this location
-            $commentsForLocation = $planning->comments->where('location_id', $location->id)->map(fn ($c) => [
-                'id' => $c->id,
-                'comment' => $c->comment,
-                'photos' => $c->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]),
-                'created_at' => $c->created_at->format('H:i'),
-            ])->values()->all();
+            $commentsForLocation = $planning->comments
+                ->where('location_id', $location->id)
+                ->map(fn (PlanningComment $comment) => $this->mapPlanningCommentForView($comment))
+                ->values()
+                ->all();
 
             // Calculate travel info to this location
             $travelInfo = null;
@@ -521,7 +521,7 @@ class MyPlanningController extends Controller
         ];
 
         // Pass all locations to the view for the photo workflow
-        $allLocations = \App\Models\Location::orderBy('name')->get(['id', 'name']);
+        $allLocations = Location::orderBy('name')->get(['id', 'name']);
 
         return view($this->viewName('my-planning.show'), [
             'planning' => $planning,
@@ -701,5 +701,35 @@ class MyPlanningController extends Controller
                 $existingItem->delete();
             }
         }
+    }
+
+    /**
+     * @return array<int, array{id: int, url: string}>
+     */
+    private function mapPlanningCommentPhotos(PlanningComment $comment): array
+    {
+        $photos = [];
+
+        foreach ($comment->photos as $photo) {
+            $photos[] = [
+                'id' => $photo->id,
+                'url' => $photo->url,
+            ];
+        }
+
+        return $photos;
+    }
+
+    /**
+     * @return array{id: int, comment: string|null, photos: array<int, array{id: int, url: string}>, created_at: string}
+     */
+    private function mapPlanningCommentForView(PlanningComment $comment): array
+    {
+        return [
+            'id' => $comment->id,
+            'comment' => $comment->comment,
+            'photos' => $this->mapPlanningCommentPhotos($comment),
+            'created_at' => $comment->created_at->format('H:i'),
+        ];
     }
 }

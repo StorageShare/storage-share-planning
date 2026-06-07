@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class LocationCRUDTest extends TestCase
@@ -19,7 +20,7 @@ class LocationCRUDTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->token = \Illuminate\Support\Str::random(40);
+        $this->token = Str::random(40);
         $this->withSession(['_token' => $this->token]);
         $this->admin = User::factory()->create(['role' => Role::ADMIN->value]);
     }

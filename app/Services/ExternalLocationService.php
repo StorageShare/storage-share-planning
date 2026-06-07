@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ExternalLocationService
 {
+    public function __construct(
+        private readonly StorageShareApiService $storageShareApi,
+    ) {}
+
     /**
      * Fetch external locations from the API.
      *
@@ -15,17 +17,14 @@ class ExternalLocationService
      */
     public function fetchExternalLocations(): ?array
     {
-        $apiUrl = Config::get('services.external_locations_api.url');
-        $apiToken = Config::get('services.external_locations_api.token');
-
-        if (empty($apiUrl) || empty($apiToken)) {
+        if (! $this->storageShareApi->isConfigured()) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
 
             return null;
         }
 
         try {
-            $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
+            $response = $this->storageShareApi->getSpaces();
 
             if (! $response->successful()) {
                 Log::error('ExternalLocationService: API request failed.', [
@@ -38,20 +37,19 @@ class ExternalLocationService
 
             $rawResponseData = $response->json();
 
-            // 1. Check for 'spaces' key
             if (isset($rawResponseData['spaces']) && is_array($rawResponseData['spaces'])) {
                 return $rawResponseData['spaces'];
             }
-            // 2. Check for 'data' key
-            elseif (isset($rawResponseData['data']) && is_array($rawResponseData['data'])) {
+
+            if (isset($rawResponseData['data']) && is_array($rawResponseData['data'])) {
                 return $rawResponseData['data'];
             }
-            // 3. Check if the raw response itself is the array of locations
-            elseif (is_array($rawResponseData) && ! empty($rawResponseData) && isset($rawResponseData[0]['id']) && isset($rawResponseData[0]['name'])) {
+
+            if (is_array($rawResponseData) && ! empty($rawResponseData) && isset($rawResponseData[0]['id']) && isset($rawResponseData[0]['name'])) {
                 return $rawResponseData;
             }
-            // 4. Handle empty array
-            elseif (is_array($rawResponseData) && empty($rawResponseData)) {
+
+            if (is_array($rawResponseData) && empty($rawResponseData)) {
                 return [];
             }
 
@@ -60,7 +58,6 @@ class ExternalLocationService
             ]);
 
             return null;
-
         } catch (\Exception $e) {
             Log::error('ExternalLocationService: Unexpected error.', ['exception' => $e]);
 
@@ -76,26 +73,20 @@ class ExternalLocationService
      */
     public function fetchInactiveRooms($externalId): ?array
     {
-        $baseUrl = Config::get('services.external_locations_api.url');
-        $apiToken = Config::get('services.external_locations_api.token');
-
-        // The base URL is likely ".../api/spaces", we want ".../api/spaces/{id}/inactive-rooms"
-        $apiUrl = dirname($baseUrl).'/spaces/'.$externalId.'/inactive-rooms';
-
-        if (empty($baseUrl) || empty($apiToken)) {
+        if (! $this->storageShareApi->isConfigured()) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
 
             return null;
         }
 
         try {
-            $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
+            $response = $this->storageShareApi->get('/spaces/'.$externalId.'/inactive-rooms');
 
             if (! $response->successful()) {
                 Log::error('ExternalLocationService: Inactive rooms API request failed.', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'url' => $apiUrl,
+                    'external_id' => $externalId,
                 ]);
 
                 return null;
@@ -122,25 +113,19 @@ class ExternalLocationService
      */
     public function fetchInactiveRoomCounts(): ?array
     {
-        $baseUrl = Config::get('services.external_locations_api.url');
-        $apiToken = Config::get('services.external_locations_api.token');
-
-        $apiUrl = dirname($baseUrl).'/inactive-rooms-counts';
-
-        if (empty($baseUrl) || empty($apiToken)) {
+        if (! $this->storageShareApi->isConfigured()) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
 
             return null;
         }
 
         try {
-            $response = Http::withToken($apiToken)->acceptJson()->get($apiUrl);
+            $response = $this->storageShareApi->get('/inactive-rooms-counts');
 
             if (! $response->successful()) {
                 Log::error('ExternalLocationService: Inactive room counts API request failed.', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'url' => $apiUrl,
                 ]);
 
                 return null;
@@ -168,13 +153,7 @@ class ExternalLocationService
      */
     public function uploadRoomPhoto($externalId, string $roomNumber, string $photoPath): bool
     {
-        $baseUrl = Config::get('services.external_locations_api.url');
-        $apiToken = Config::get('services.external_locations_api.token');
-
-        // URL: .../api/spaces/{id}/rooms/{room_number}/photos
-        $apiUrl = dirname($baseUrl).'/spaces/'.$externalId.'/rooms/'.urlencode($roomNumber).'/photos';
-
-        if (empty($baseUrl) || empty($apiToken)) {
+        if (! $this->storageShareApi->isConfigured()) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
 
             return false;
@@ -187,16 +166,17 @@ class ExternalLocationService
         }
 
         try {
-            $response = Http::withToken($apiToken)
-                ->acceptJson()
-                ->attach('photo', file_get_contents($photoPath), basename($photoPath))
-                ->post($apiUrl);
+            $response = $this->storageShareApi->postFile(
+                '/spaces/'.$externalId.'/rooms/'.urlencode($roomNumber).'/photos',
+                'photo',
+                $photoPath,
+                basename($photoPath),
+            );
 
             if (! $response->successful()) {
                 Log::error('ExternalLocationService: Room photo upload failed.', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'url' => $apiUrl,
                     'room' => $roomNumber,
                 ]);
 

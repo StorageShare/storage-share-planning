@@ -313,7 +313,7 @@ class TaskReviewController extends Controller
 
         if ($action === 'add_to_backlog') {
             // Create a new backlog task from the skipped planning task
-            $newBacklogTask = new \App\Models\Task([
+            $newBacklogTask = new Task([
                 'title' => $planning_task->title.' (Opnieuw)',
                 'description' => $this->appendSkipHistory($planning_task, $planning_task->description),
                 'location_id' => $planning_task->task->location_id ??
@@ -341,7 +341,7 @@ class TaskReviewController extends Controller
             $skipCompletion->update([
                 'review_notes' => $reviewNotes,
                 'reviewed_at' => now(),
-                'reviewed_by' => \Illuminate\Support\Facades\Auth::id(),
+                'reviewed_by' => Auth::id(),
             ]);
         }
 

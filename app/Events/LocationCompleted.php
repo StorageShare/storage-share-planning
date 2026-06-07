@@ -15,14 +15,14 @@ class LocationCompleted
     /**
      * The location instance.
      *
-     * @var \App\Models\Location
+     * @var Location
      */
     public $location;
 
     /**
      * The planning instance.
      *
-     * @var \App\Models\Planning
+     * @var Planning
      */
     public $planning;
 

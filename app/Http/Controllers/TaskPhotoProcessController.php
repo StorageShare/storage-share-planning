@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
+use App\Models\PlanningCommentPhoto;
 use App\Models\PlanningTask;
 use App\Models\PlanningTaskCompletionPhoto;
 use App\Models\PlanningTaskPhoto;
@@ -12,10 +13,13 @@ use App\Models\Task;
 use App\Models\TaskCompletionPhoto;
 use App\Models\TaskPhoto;
 use App\Services\StorageShareApiService;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
 class TaskPhotoProcessController extends Controller
 {
@@ -26,7 +30,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Start the photo distribution process.
      */
-    public function distribute(Request $request, Task $task): \Illuminate\Http\RedirectResponse
+    public function distribute(Request $request, Task $task): RedirectResponse
     {
         if (! auth()->user()->canTriggerPhotoWorkflow()) {
             abort(403, 'U heeft geen toestemming om dit proces te starten.');
@@ -89,7 +93,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Link a room and location to a specific photo.
      */
-    public function linkRoomToPhoto(Request $request, PlanningTaskPhoto $photo): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function linkRoomToPhoto(Request $request, PlanningTaskPhoto $photo): JsonResponse|RedirectResponse
     {
         return $this->updatePhotoRoom($request, $photo);
     }
@@ -97,7 +101,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Link a room and location to a specific task photo.
      */
-    public function linkRoomToTaskPhoto(Request $request, TaskPhoto $photo): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function linkRoomToTaskPhoto(Request $request, TaskPhoto $photo): JsonResponse|RedirectResponse
     {
         return $this->updatePhotoRoom($request, $photo);
     }
@@ -105,7 +109,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Link a room and location to a specific completion photo.
      */
-    public function linkRoomToCompletionPhoto(Request $request, TaskCompletionPhoto $photo): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function linkRoomToCompletionPhoto(Request $request, TaskCompletionPhoto $photo): JsonResponse|RedirectResponse
     {
         return $this->updatePhotoRoom($request, $photo);
     }
@@ -113,7 +117,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Link a room and location to a specific planning completion photo.
      */
-    public function linkRoomToPlanningCompletionPhoto(Request $request, PlanningTaskCompletionPhoto $photo): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function linkRoomToPlanningCompletionPhoto(Request $request, PlanningTaskCompletionPhoto $photo): JsonResponse|RedirectResponse
     {
         return $this->updatePhotoRoom($request, $photo);
     }
@@ -121,12 +125,12 @@ class TaskPhotoProcessController extends Controller
     /**
      * Link a room and location to a specific planning comment photo.
      */
-    public function linkRoomToCommentPhoto(Request $request, \App\Models\PlanningCommentPhoto $photo): JsonResponse|\Illuminate\Http\RedirectResponse
+    public function linkRoomToCommentPhoto(Request $request, PlanningCommentPhoto $photo): JsonResponse|RedirectResponse
     {
         return $this->updatePhotoRoom($request, $photo);
     }
 
-    private function updatePhotoRoom(Request $request, Model $photo): JsonResponse|\Illuminate\Http\RedirectResponse
+    private function updatePhotoRoom(Request $request, Model $photo): JsonResponse|RedirectResponse
     {
         if (! auth()->user()->canExecutePlannings()) {
             abort(403);
@@ -154,7 +158,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Start the photo distribution process for an external room (no specific task model).
      */
-    public function distributeExternal(Request $request, string $externalId): \Illuminate\Http\RedirectResponse
+    public function distributeExternal(Request $request, string $externalId): RedirectResponse
     {
         if (! auth()->user()->canTriggerPhotoWorkflow()) {
             abort(403, 'U heeft geen toestemming om dit proces te starten.');
@@ -172,7 +176,7 @@ class TaskPhotoProcessController extends Controller
 
         // We need at least one photo URL to distribute.
         // We look for the latest completion photo for this room at this location.
-        $photo = \App\Models\PlanningTaskCompletionPhoto::whereHas('planningTaskCompletion.planningTask', function ($query) use ($location, $request) {
+        $photo = PlanningTaskCompletionPhoto::whereHas('planningTaskCompletion.planningTask', function ($query) use ($location, $request) {
             $query->where('location_id', $location->id)
                 ->where('room_identifier', $request->room);
         })
@@ -181,8 +185,8 @@ class TaskPhotoProcessController extends Controller
 
         if (! $photo) {
             // Try to find it in normal completion photos if room matches
-            $photo = \App\Models\TaskCompletionPhoto::where('room', $request->room)
-                ->whereHas('taskCompletion.task', function (\Illuminate\Contracts\Database\Eloquent\Builder $query) use ($location) {
+            $photo = TaskCompletionPhoto::where('room', $request->room)
+                ->whereHas('taskCompletion.task', function (Builder $query) use ($location) {
                     $query->where('location_id', $location->id);
                 })
                 ->latest()
@@ -213,7 +217,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Start the photo distribution process for a planning comment photo.
      */
-    public function distributeCommentPhoto(Request $request, \App\Models\PlanningCommentPhoto $photo): \Illuminate\Http\RedirectResponse
+    public function distributeCommentPhoto(Request $request, PlanningCommentPhoto $photo): RedirectResponse
     {
         if (! auth()->user()->canTriggerPhotoWorkflow()) {
             abort(403, 'U heeft geen toestemming om dit proces te starten.');
@@ -257,7 +261,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Start the photo distribution process for a planning task (used for inactive rooms).
      */
-    public function distributePlanningTask(Request $request, PlanningTask $planningTask): \Illuminate\Http\RedirectResponse
+    public function distributePlanningTask(Request $request, PlanningTask $planningTask): RedirectResponse
     {
         if (! auth()->user()->canTriggerPhotoWorkflow()) {
             abort(403, 'U heeft geen toestemming om dit proces te starten.');
@@ -347,7 +351,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Create a task for sticking a sticker.
      */
-    public function createStickerTask(Request $request, Task $task): \Illuminate\View\View
+    public function createStickerTask(Request $request, Task $task): View
     {
         $newTask = Task::create([
             'location_id' => $task->location_id,
@@ -379,7 +383,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Create a task for taking a new photo.
      */
-    public function createNewPhotoTask(Task $task): \Illuminate\View\View
+    public function createNewPhotoTask(Task $task): View
     {
         $newTask = Task::create([
             'location_id' => $task->location_id,
@@ -402,7 +406,7 @@ class TaskPhotoProcessController extends Controller
     /**
      * Create a task for evacuation.
      */
-    public function createEvacuationTask(Task $task): \Illuminate\View\View
+    public function createEvacuationTask(Task $task): View
     {
         $newTask = Task::create([
             'location_id' => $task->location_id,

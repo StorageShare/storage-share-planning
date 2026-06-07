@@ -53,4 +53,3 @@ jobs:
 
       - name: Composer audit
         run: composer audit
-        continue-on-error: true

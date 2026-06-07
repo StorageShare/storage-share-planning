@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\EndChecklistItem;
+use App\Models\PlanningTask;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
 class UpdateEndChecklistLocations extends Command
 {
@@ -40,7 +42,7 @@ class UpdateEndChecklistLocations extends Command
         foreach ($items as $item) {
             if ($item->type === 'material' && $item->requirement) {
                 // Find location through planning tasks
-                /** @var \Illuminate\Support\Collection<int, \App\Models\PlanningTask> $planningTasks */
+                /** @var Collection<int, PlanningTask> $planningTasks */
                 $planningTasks = $item->planning->planningTasks;
                 $planningTask = $planningTasks
                     ->filter(function ($pt) use ($item) {
@@ -60,7 +62,7 @@ class UpdateEndChecklistLocations extends Command
                 }
             } elseif ($item->type === 'end_action') {
                 // Find location through planning tasks with end_day_action
-                /** @var \Illuminate\Support\Collection<int, \App\Models\PlanningTask> $planningTasks */
+                /** @var Collection<int, PlanningTask> $planningTasks */
                 $planningTasks = $item->planning->planningTasks;
                 $planningTask = $planningTasks
                     ->filter(function ($pt) use ($item) {

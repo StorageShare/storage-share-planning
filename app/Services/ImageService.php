@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\ImageInterface;
@@ -107,7 +108,7 @@ class ImageService
 
         $path = $directory.'/'.$filename;
 
-        \Illuminate\Support\Facades\Storage::disk($disk)->put($path, $compressedData);
+        Storage::disk($disk)->put($path, $compressedData);
 
         return $path;
     }

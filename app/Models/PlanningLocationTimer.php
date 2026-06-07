@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,10 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $location_id
  * @property string|null $location_type
  * @property int|null $total_duration_seconds
- * @property \Carbon\CarbonInterface|null $started_at
- * @property \Carbon\CarbonInterface|null $ended_at
- * @property \Carbon\CarbonInterface|null $created_at
- * @property \Carbon\CarbonInterface|null $updated_at
+ * @property CarbonInterface|null $started_at
+ * @property CarbonInterface|null $ended_at
+ * @property CarbonInterface|null $created_at
+ * @property CarbonInterface|null $updated_at
  * @property-read Planning $planning
  * @property-read Location|null $location
  */

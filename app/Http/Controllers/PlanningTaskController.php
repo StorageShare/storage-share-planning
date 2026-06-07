@@ -2,19 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Events\LocationCompleted;
 use App\Events\TaskReadyForReview;
 use App\Mail\TaskCompletedApprovedMail;
+use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningComment;
 use App\Models\PlanningTask;
+use App\Models\Task;
+use App\Models\User;
+// For manual validation if needed
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-// For manual validation if needed
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -59,7 +64,7 @@ class PlanningTaskController extends Controller
             abort(404);
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         $validationRules = [
@@ -164,8 +169,8 @@ class PlanningTaskController extends Controller
         }
 
         // Admins must provide a reason for reopening
-        /** @var \App\Models\User $user */
-        $user = \Illuminate\Support\Facades\Auth::user();
+        /** @var User $user */
+        $user = Auth::user();
         if ($user->isAdmin()) {
             $request->validate([
                 'rejection_reason' => 'required|string|max:65535',
@@ -372,12 +377,12 @@ class PlanningTaskController extends Controller
                     $descriptionWithReason = $prependReason($planning_task->description);
                     $descriptionFull = $this->appendCompletionHistory($planning_task, $descriptionWithReason);
 
-                    $new_backlog_task = new \App\Models\Task([
+                    $new_backlog_task = new Task([
                         'title' => $planning_task->title.' (Herstel)',
                         'description' => $descriptionFull,
                         'location_id' => $planning_task->location_id ?? $planning_task->planning->locations()->first()->id,
                         'status' => TaskStatus::OPEN,
-                        'priority' => \App\Enums\TaskPriority::NORMAL,
+                        'priority' => TaskPriority::NORMAL,
                         'estimated_time_minutes' => $planning_task->estimated_time_minutes,
                         'created_by' => Auth::id(),
                     ]);
@@ -536,7 +541,7 @@ class PlanningTaskController extends Controller
             abort(404);
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         $request->validate([
@@ -641,7 +646,7 @@ class PlanningTaskController extends Controller
             abort(404);
         }
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         $request->validate([
@@ -883,7 +888,7 @@ class PlanningTaskController extends Controller
         $location = null;
         if ($planningTask->location_id) {
             // Default task with direct location assignment
-            $location = \App\Models\Location::find($planningTask->location_id);
+            $location = Location::find($planningTask->location_id);
         } elseif ($planningTask->task && $planningTask->task->location_id) {
             // Backlog task with location
             $location = $planningTask->task->location;
@@ -898,12 +903,12 @@ class PlanningTaskController extends Controller
             $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
 
             // Only trigger if not already notified for this planning/location combination
-            if (! \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 // Trigger the LocationCompleted event
                 LocationCompleted::dispatch($location, $planning);
 
                 // Mark as notified for 24 hours
-                \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addDay());
+                Cache::put($cacheKey, true, now()->addDay());
             }
         }
     }

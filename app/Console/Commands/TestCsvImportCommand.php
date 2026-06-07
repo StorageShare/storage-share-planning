@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Location;
 use App\Services\CsvTaskImportService;
 use Illuminate\Console\Command;
 
@@ -30,7 +31,7 @@ class TestCsvImportCommand extends Command
 
         if (! $filePath) {
             // First, let's see what locations exist in the database
-            $existingLocations = \App\Models\Location::limit(3)->pluck('name')->toArray();
+            $existingLocations = Location::limit(3)->pluck('name')->toArray();
 
             if (empty($existingLocations)) {
                 $this->error('No locations found in database. Cannot test CSV import without existing locations.');

@@ -6,13 +6,14 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class MediaLibraryController extends Controller
 {
     /**
      * Display a listing of the media resources.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function index(Request $request)
     {

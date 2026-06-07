@@ -2,6 +2,8 @@
 
 namespace App\Logging;
 
+use Illuminate\Log\Logger;
+use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 
@@ -10,7 +12,7 @@ class CustomizeLogHandler
     /**
      * Customize the given logger instance.
      *
-     * @param  \Illuminate\Log\Logger  $logger
+     * @param  Logger  $logger
      * @return void
      */
     public function __invoke($logger)
@@ -22,7 +24,7 @@ class CustomizeLogHandler
             }
 
             if ($handler instanceof RotatingFileHandler || $handler instanceof StreamHandler) {
-                $handler->setFormatter(new \Monolog\Formatter\LineFormatter(
+                $handler->setFormatter(new LineFormatter(
                     null,
                     null,
                     true,

@@ -4,6 +4,7 @@ namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
 use App\Mail\PlanningReadyNotificationMail;
 use App\Models\DefaultTask;
 use App\Models\Location;
@@ -452,13 +453,13 @@ class PlanningControllerTest extends TestCase
             'planning_id' => $p1->id,
             'title' => 'T1',
             'description' => '',
-            'status' => \App\Enums\TaskStatus::REVIEW->value,
+            'status' => TaskStatus::REVIEW->value,
         ]);
         PlanningTask::create([
             'planning_id' => $p2->id,
             'title' => 'T2',
             'description' => '',
-            'status' => \App\Enums\TaskStatus::OPEN->value,
+            'status' => TaskStatus::OPEN->value,
         ]);
 
         // Request with awaiting_approval

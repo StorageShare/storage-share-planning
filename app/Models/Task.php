@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use Carbon\Carbon;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -224,7 +225,7 @@ class Task extends Model
         $newTask->parent_recurring_task_id = $this->id;
         $newTask->status = TaskStatus::OPEN;
         // Ensure Carbon|null assignment to match casted property type
-        $newTask->deadline = $newDeadline ? \Carbon\Carbon::instance(\DateTime::createFromInterface($newDeadline)) : null;
+        $newTask->deadline = $newDeadline ? Carbon::instance(\DateTime::createFromInterface($newDeadline)) : null;
         $newTask->save();
 
         // Copy requirements relationship

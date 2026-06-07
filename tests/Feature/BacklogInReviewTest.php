@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\TaskStatus;
 use App\Models\Location;
+use App\Models\Planning;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +48,7 @@ class BacklogInReviewTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $location = Location::factory()->create();
-        $planning = \App\Models\Planning::factory()->create();
+        $planning = Planning::factory()->create();
         $planning->locations()->attach($location);
 
         $inReviewTask = Task::factory()->create([

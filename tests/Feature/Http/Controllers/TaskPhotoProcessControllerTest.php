@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -17,7 +18,7 @@ class TaskPhotoProcessControllerTest extends TestCase
 
     public function test_distributes_inactive_room_planning_task_photo(): void
     {
-        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
+        $this->withoutMiddleware(VerifyCsrfToken::class);
 
         config([
             'services.storage_share_api.url' => 'https://storage-share-api.test/api',

@@ -9,6 +9,7 @@ use App\Models\Planning;
 use App\Models\PlanningTask;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PlanningStatusUpdateTest extends TestCase
@@ -20,7 +21,7 @@ class PlanningStatusUpdateTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->token = \Illuminate\Support\Str::random(40);
+        $this->token = Str::random(40);
         $this->withSession(['_token' => $this->token]);
     }
 

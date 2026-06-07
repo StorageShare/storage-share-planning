@@ -5,7 +5,11 @@ namespace App\Http\Requests;
 use App\Enums\TaskStatus;
 use App\Models\DefaultTask;
 use App\Models\Location;
+use App\Models\Planning;
 use App\Models\Task;
+use App\Models\User;
+use App\Models\Vehicle;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -111,7 +115,7 @@ class UpdatePlanningRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -126,13 +130,13 @@ class UpdatePlanningRequest extends FormRequest
             'vehicle_id' => [
                 'required',
                 'integer',
-                Rule::exists(\App\Models\Vehicle::class, 'id'),
+                Rule::exists(Vehicle::class, 'id'),
                 function ($attribute, $value, $fail) use ($planning_id) {
                     $date = $this->input('planned_date');
                     if (! $date) {
                         return; // other rule will handle
                     }
-                    $exists = \App\Models\Planning::query()
+                    $exists = Planning::query()
                         ->whereDate('planned_date', $date)
                         ->where('vehicle_id', $value)
                         ->when($planning_id, fn ($q) => $q->where('id', '!=', $planning_id))
@@ -150,7 +154,7 @@ class UpdatePlanningRequest extends FormRequest
             'start_address' => 'required|string|max:255',
             'start_time' => 'nullable|date_format:H:i',
             'user_ids' => 'nullable|array',
-            'user_ids.*' => ['integer', Rule::exists(\App\Models\User::class, 'id')],
+            'user_ids.*' => ['integer', Rule::exists(User::class, 'id')],
             'selected_default_tasks' => 'nullable|array',
             'selected_default_tasks.*' => [
                 'integer',

@@ -13,6 +13,7 @@ use App\Models\Requirement;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\ImageService;
+use App\Services\RecurringTaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
@@ -340,7 +341,7 @@ class TaskControllerTest extends TestCase
                 return null;
             }
         };
-        $this->app->instance(\App\Services\RecurringTaskService::class, $recurringService);
+        $this->app->instance(RecurringTaskService::class, $recurringService);
 
         $resp = $this->actingAs($admin)
             ->withHeader('X-CSRF-TOKEN', $this->token)

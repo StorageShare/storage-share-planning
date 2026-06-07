@@ -5,6 +5,8 @@ namespace Tests\Unit;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
+use App\Models\Planning;
+use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
@@ -176,11 +178,11 @@ class EscalateTaskPrioritiesTest extends TestCase
         ]);
 
         // Create a planning task to simulate the task being assigned to a planning
-        $planning = \App\Models\Planning::factory()->create([
+        $planning = Planning::factory()->create([
             'created_by' => $this->user->id,
         ]);
 
-        \App\Models\PlanningTask::factory()->create([
+        PlanningTask::factory()->create([
             'planning_id' => $planning->id,
             'task_id' => $task->id,
             'title' => $task->title,

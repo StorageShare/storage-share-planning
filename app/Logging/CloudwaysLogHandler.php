@@ -2,6 +2,7 @@
 
 namespace App\Logging;
 
+use Illuminate\Log\Logger;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 
@@ -10,7 +11,7 @@ class CloudwaysLogHandler
     /**
      * Customize the given logger instance for Cloudways hosting.
      *
-     * @param  \Illuminate\Log\Logger  $logger
+     * @param  Logger  $logger
      * @return void
      */
     public function __invoke($logger)

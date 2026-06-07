@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\ViewErrorBag;
 use Symfony\Component\HttpFoundation\Response;
 
 class ClearValidationErrors
@@ -23,10 +24,10 @@ class ClearValidationErrors
             $request->session()->forget(['errors', '_old_input']);
 
             // Wis flash data voor errors
-            $request->session()->flash('errors', new \Illuminate\Support\ViewErrorBag);
+            $request->session()->flash('errors', new ViewErrorBag);
 
             // Force regenereer de errors ViewErrorBag als leeg
-            view()->share('errors', new \Illuminate\Support\ViewErrorBag);
+            view()->share('errors', new ViewErrorBag);
         }
 
         return $next($request);

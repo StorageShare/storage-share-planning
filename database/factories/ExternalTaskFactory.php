@@ -9,7 +9,7 @@ use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ExternalTask>
+ * @extends Factory<ExternalTask>
  */
 class ExternalTaskFactory extends Factory
 {

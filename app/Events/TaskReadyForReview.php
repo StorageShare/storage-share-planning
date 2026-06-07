@@ -14,7 +14,7 @@ class TaskReadyForReview
     /**
      * The task instance.
      *
-     * @var \App\Models\Task
+     * @var Task
      */
     public $task;
 

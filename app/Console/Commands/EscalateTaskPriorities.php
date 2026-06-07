@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Models\Task;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -94,7 +95,7 @@ class EscalateTaskPriorities extends Command
     /**
      * Get all tasks that are in the backlog.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Task>
+     * @return \Illuminate\Database\Eloquent\Collection<int, Task>
      */
     private function getBacklogTasks(): \Illuminate\Database\Eloquent\Collection
     {
@@ -108,8 +109,8 @@ class EscalateTaskPriorities extends Command
     /**
      * Categorize tasks that need escalation.
      *
-     * @param  iterable<\App\Models\Task>  $tasks
-     * @return array<string, \Illuminate\Support\Collection<int, array<string, mixed>>>
+     * @param  iterable<Task>  $tasks
+     * @return array<string, Collection<int, array<string, mixed>>>
      */
     private function categorizeTasks(iterable $tasks): array
     {
@@ -152,7 +153,7 @@ class EscalateTaskPriorities extends Command
     /**
      * Show the escalation plan.
      *
-     * @param  array<string, \Illuminate\Support\Collection<int, array<string, mixed>>>  $tasksToEscalate
+     * @param  array<string, Collection<int, array<string, mixed>>>  $tasksToEscalate
      */
     private function showEscalationPlan(array $tasksToEscalate): void
     {
@@ -194,7 +195,7 @@ class EscalateTaskPriorities extends Command
     /**
      * Perform the actual escalation.
      *
-     * @param  array<string, \Illuminate\Support\Collection<int, array<string, mixed>>>  $tasksToEscalate
+     * @param  array<string, Collection<int, array<string, mixed>>>  $tasksToEscalate
      * @return array<string, mixed>
      */
     private function performEscalation(array $tasksToEscalate): array

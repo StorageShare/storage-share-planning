@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Planning;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -11,7 +12,7 @@ class OfflinePlanningController extends Controller
 {
     public function getFullPlanningData(Planning $planning): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         // Controleer toegang
@@ -106,7 +107,7 @@ class OfflinePlanningController extends Controller
 
     public function checkSyncStatus(Planning $planning): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if (! $user->isAdmin() && ! $planning->users->contains($user)) {

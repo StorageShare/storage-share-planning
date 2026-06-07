@@ -4,8 +4,11 @@ namespace App\Http\Requests;
 
 use App\Enums\TaskPriority;
 use App\Models\Location;
-use Illuminate\Foundation\Http\FormRequest; // Import Location model for exists rule
-use Illuminate\Validation\Rule; // Import Rule facade
+use Illuminate\Contracts\Validation\ValidationRule; // Import Location model for exists rule
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+ // Import Rule facade
 
 class StoreTaskRequest extends FormRequest
 {
@@ -21,7 +24,7 @@ class StoreTaskRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

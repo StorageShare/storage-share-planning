@@ -9,14 +9,20 @@ use App\Events\LocationCompleted;
 use App\Http\Requests\StoreBulkTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Models\DefaultTask;
 use App\Models\ExternalTask;
 use App\Models\Location;
+use App\Models\PlanningTask;
 use App\Models\Requirement;
 use App\Models\Task;
+use App\Services\ImageService;
+use App\Services\RecurringTaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -218,7 +224,7 @@ class TaskController extends Controller
     {
         $locations = Location::orderBy('name')->get();
         $requirements = Requirement::orderBy('name')->get();
-        $availableDoorTypes = \App\Models\DefaultTask::getAvailableDoorTypes();
+        $availableDoorTypes = DefaultTask::getAvailableDoorTypes();
 
         return view($this->viewName('tasks.bulk-create'), compact('locations', 'requirements', 'availableDoorTypes'));
     }
@@ -246,7 +252,7 @@ class TaskController extends Controller
             $locationIds = Location::where('lift', 'Ja')->pluck('id')->toArray();
         } elseif ($request->boolean('applies_to_door_types') && ! empty($validatedData['door_types'])) {
             $doorTypes = array_map('trim', array_map('strtolower', $validatedData['door_types']));
-            $locationIds = Location::whereIn(\Illuminate\Support\Facades\DB::raw('TRIM(LOWER(type_deur))'), $doorTypes)->pluck('id')->toArray();
+            $locationIds = Location::whereIn(DB::raw('TRIM(LOWER(type_deur))'), $doorTypes)->pluck('id')->toArray();
         } elseif (! empty($validatedData['locations'])) {
             $locationIds = $validatedData['locations'];
         }
@@ -321,7 +327,7 @@ class TaskController extends Controller
 
         // Handle photo uploads
         if ($request->hasFile('photos')) {
-            $imageService = app(\App\Services\ImageService::class);
+            $imageService = app(ImageService::class);
 
             foreach ($request->file('photos') as $file) {
                 $filename = uniqid('tp_'.$new_task->id.'_', true).'.'.$file->getClientOriginalExtension();
@@ -340,7 +346,7 @@ class TaskController extends Controller
                     ]);
                 } catch (\Exception $e) {
                     // Log the error but don't fail the task creation
-                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: '.$e->getMessage());
+                    Log::error('Error uploading task photo: '.$e->getMessage());
                 }
             }
         }
@@ -414,7 +420,7 @@ class TaskController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateTaskRequest $request, Task $task): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function update(UpdateTaskRequest $request, Task $task): RedirectResponse|JsonResponse
     {
         $validatedData = $request->validated();
 
@@ -432,7 +438,7 @@ class TaskController extends Controller
 
         // Handle photo uploads
         if ($request->hasFile('photos')) {
-            $imageService = app(\App\Services\ImageService::class);
+            $imageService = app(ImageService::class);
 
             foreach ($request->file('photos') as $file) {
                 $filename = uniqid('tp_'.$task->id.'_', true).'.'.$file->getClientOriginalExtension();
@@ -451,7 +457,7 @@ class TaskController extends Controller
                     ]);
                 } catch (\Exception $e) {
                     // Log the error but don't fail the task update
-                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: '.$e->getMessage());
+                    Log::error('Error uploading task photo: '.$e->getMessage());
                 }
             }
         }
@@ -524,7 +530,7 @@ class TaskController extends Controller
         }
 
         // Handle recurring task creation if applicable
-        $recurringService = app(\App\Services\RecurringTaskService::class);
+        $recurringService = app(RecurringTaskService::class);
         $newRecurringTask = $recurringService->createRecurringInstance($task);
 
         $message = 'Taak goedgekeurd.';
@@ -576,7 +582,7 @@ class TaskController extends Controller
     /**
      * Check if a location is completed within a planning and trigger LocationCompleted event.
      */
-    private function checkLocationCompletionAndNotify(\App\Models\PlanningTask $planningTask): void
+    private function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
     {
         $planning = $planningTask->planning;
 
@@ -584,7 +590,7 @@ class TaskController extends Controller
         $location = null;
         if ($planningTask->location_id) {
             // Default task with direct location assignment
-            $location = \App\Models\Location::find($planningTask->location_id);
+            $location = Location::find($planningTask->location_id);
         } elseif ($planningTask->task && $planningTask->task->location_id) {
             // Backlog task with location
             $location = $planningTask->task->location;
@@ -599,12 +605,12 @@ class TaskController extends Controller
             $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
 
             // Only trigger if not already notified for this planning/location combination
-            if (! \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if (! Cache::has($cacheKey)) {
                 // Trigger the LocationCompleted event
                 LocationCompleted::dispatch($location, $planning);
 
                 // Mark as notified for 24 hours
-                \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addDay());
+                Cache::put($cacheKey, true, now()->addDay());
             }
         }
     }

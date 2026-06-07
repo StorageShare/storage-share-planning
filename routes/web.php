@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\BvStatsController;
+use App\Http\Controllers\Admin\SyslogController;
 use App\Http\Controllers\Admin\TaskReviewController;
+use App\Http\Controllers\Admin\TimerController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CsvImportController;
 use App\Http\Controllers\DashboardController;
@@ -23,6 +26,7 @@ use App\Http\Controllers\TaskPhotoProcessController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/_xdebug', function () {
     phpinfo(); // leave it for now
@@ -163,9 +167,9 @@ Route::middleware('auth')->group(function () {
 
     // Serve media files from the public storage via Laravel to avoid web server 403s
     Route::get('media/{path}', function (string $path) {
-        abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($path), 404);
+        abort_unless(Storage::disk('public')->exists($path), 404);
 
-        return \Illuminate\Support\Facades\Storage::disk('public')->response($path);
+        return Storage::disk('public')->response($path);
     })->where('path', '.*')->name('media');
 
     // Backlog - alle gebruikers kunnen taken bekijken en aanmaken
@@ -194,15 +198,15 @@ Route::middleware('auth')->group(function () {
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/timers', [\App\Http\Controllers\Admin\TimerController::class, 'index'])->name('timers.index');
-        Route::get('/timers/export', [\App\Http\Controllers\Admin\TimerController::class, 'export'])->name('timers.export');
-        Route::get('/timers/{planning}', [\App\Http\Controllers\Admin\TimerController::class, 'show'])->name('timers.show');
-        Route::get('/timers/{planning}/live-data', [\App\Http\Controllers\Admin\TimerController::class, 'getLiveData'])->name('timers.live-data');
-        Route::get('/bv-stats', [\App\Http\Controllers\Admin\BvStatsController::class, 'index'])->name('bv-stats.index');
+        Route::get('/timers', [TimerController::class, 'index'])->name('timers.index');
+        Route::get('/timers/export', [TimerController::class, 'export'])->name('timers.export');
+        Route::get('/timers/{planning}', [TimerController::class, 'show'])->name('timers.show');
+        Route::get('/timers/{planning}/live-data', [TimerController::class, 'getLiveData'])->name('timers.live-data');
+        Route::get('/bv-stats', [BvStatsController::class, 'index'])->name('bv-stats.index');
 
         // Syslog routes
-        Route::get('/logs/syslog', [\App\Http\Controllers\Admin\SyslogController::class, 'index'])->name('logs.syslog');
-        Route::get('/logs/syslog/api', [\App\Http\Controllers\Admin\SyslogController::class, 'api'])->name('logs.syslog.api');
+        Route::get('/logs/syslog', [SyslogController::class, 'index'])->name('logs.syslog');
+        Route::get('/logs/syslog/api', [SyslogController::class, 'api'])->name('logs.syslog.api');
     });
 });
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -136,9 +137,9 @@ class LocationDistance extends Model
      * Haal alle afstanden op vanaf een specifieke locatie, gesorteerd op afstand
      */
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, self>
+     * @return Collection<int, self>
      */
-    public static function getDistancesFrom(int $fromLocationId, string $sortBy = 'distance_km'): \Illuminate\Database\Eloquent\Collection
+    public static function getDistancesFrom(int $fromLocationId, string $sortBy = 'distance_km'): Collection
     {
         return self::where('from_location_id', $fromLocationId)
             ->with('toLocation')
@@ -150,9 +151,9 @@ class LocationDistance extends Model
      * Haal alle afstanden op naar een specifieke locatie
      */
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, self>
+     * @return Collection<int, self>
      */
-    public static function getDistancesTo(int $toLocationId, string $sortBy = 'distance_km'): \Illuminate\Database\Eloquent\Collection
+    public static function getDistancesTo(int $toLocationId, string $sortBy = 'distance_km'): Collection
     {
         return self::where('to_location_id', $toLocationId)
             ->with('fromLocation')

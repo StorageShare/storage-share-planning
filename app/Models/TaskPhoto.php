@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class TaskPhoto extends Model
 {
@@ -42,6 +43,6 @@ class TaskPhoto extends Model
      */
     public function getUrlAttribute(): string
     {
-        return \Illuminate\Support\Facades\Storage::url($this->file_path);
+        return Storage::url($this->file_path);
     }
 }

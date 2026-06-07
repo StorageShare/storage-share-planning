@@ -6,6 +6,7 @@ use App\Enums\VehicleType;
 use App\Http\Requests\StoreVehicleRequest;
 use App\Http\Requests\UpdateVehicleRequest;
 use App\Models\Vehicle;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,7 +42,7 @@ class VehicleController extends Controller
     {
         try {
             Vehicle::create($request->validated());
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Handle potential DB-level unique constraint violations gracefully
             if ((string) $e->getCode() === '23000') {
                 return back()

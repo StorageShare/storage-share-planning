@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class PlanningComment extends Model
 {
@@ -22,9 +23,9 @@ class PlanningComment extends Model
     /**
      * Get the photos for JSON.
      *
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @return Collection<int, array<string, mixed>>
      */
-    public function getPhotosJsonAttribute(): \Illuminate\Support\Collection
+    public function getPhotosJsonAttribute(): Collection
     {
         return $this->photos->map(function (PlanningCommentPhoto $p): array {
             /** @var array<string, mixed> $row */

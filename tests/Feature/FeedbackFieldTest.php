@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Role;
+use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
 use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\Planning;
+use App\Models\PlanningTask;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -20,7 +24,7 @@ class FeedbackFieldTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => \App\Enums\Role::ADMIN]);
+        $this->admin = User::factory()->create(['role' => Role::ADMIN]);
     }
 
     public function test_can_store_and_update_task_with_feedback_information(): void
@@ -32,7 +36,7 @@ class FeedbackFieldTest extends TestCase
             'description' => 'Test Omschrijving',
             'feedback_information' => 'Jaap',
             'location_id' => $location->id,
-            'priority' => \App\Enums\TaskPriority::NORMAL->value,
+            'priority' => TaskPriority::NORMAL->value,
             'created_by' => $this->admin->id,
         ]);
 
@@ -47,7 +51,7 @@ class FeedbackFieldTest extends TestCase
             'title' => 'Updated Taak',
             'description' => 'Test Omschrijving',
             'feedback_information' => 'Kees',
-            'status' => \App\Enums\TaskStatus::OPEN->value,
+            'status' => TaskStatus::OPEN->value,
         ]);
 
         $response->assertRedirect();
@@ -134,14 +138,14 @@ class FeedbackFieldTest extends TestCase
 
         $t = Task::factory()->create(['location_id' => $location->id, 'feedback_information' => 'Kees']);
 
-        \App\Models\PlanningTask::create([
+        PlanningTask::create([
             'planning_id' => $planning->id,
             'location_id' => $location->id,
             'task_id' => $t->id,
             'title' => 'Feedback Task',
             'description' => 'Desc',
             'feedback_information' => 'Jaap',
-            'status' => \App\Enums\TaskStatus::OPEN,
+            'status' => TaskStatus::OPEN,
         ]);
 
         $response = $this->actingAs($this->admin)->get(route('plannings.show', $planning));

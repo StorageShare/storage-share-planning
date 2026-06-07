@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
+use App\Models\LocationDistance;
 use App\Services\LocationDistanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -261,9 +262,9 @@ class LocationDistanceController extends Controller
     public function getCacheStats(): JsonResponse
     {
         try {
-            $totalDistances = \App\Models\LocationDistance::count();
-            $recentDistances = \App\Models\LocationDistance::recent(24)->count();
-            $oldDistances = \App\Models\LocationDistance::where('calculated_at', '<', now()->subDays(365))->count();
+            $totalDistances = LocationDistance::count();
+            $recentDistances = LocationDistance::recent(24)->count();
+            $oldDistances = LocationDistance::where('calculated_at', '<', now()->subDays(365))->count();
             $totalLocations = Location::count();
             $maxPossibleDistances = $totalLocations * ($totalLocations - 1); // A→B en B→A zijn apart
 

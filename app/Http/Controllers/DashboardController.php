@@ -6,7 +6,8 @@ use App\Enums\TaskStatus;
 use App\Models\Planning;
 use App\Models\PlanningTask; // Import Planning model
 use App\Models\Task; // Import Task model
-use Carbon\Carbon; // Import Carbon for date handling
+use App\Models\User; // Import Carbon for date handling
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -21,7 +22,7 @@ class DashboardController extends Controller
         $endOfWeek = Carbon::today()->endOfWeek();
         $startOfNextWeek = Carbon::today()->addWeek()->startOfWeek();
         $endOfNextWeek = Carbon::today()->addWeek()->endOfWeek();
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         $planningQuery = Planning::with(['locations', 'planningTasks', 'users']);

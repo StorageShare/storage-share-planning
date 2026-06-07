@@ -9,6 +9,7 @@ use App\Models\PlanningLocationTimer;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -70,9 +71,9 @@ class BvStatsController extends Controller
         foreach ($plannings as $planning) {
             // Travel time distribution among locations removed; no safety-net redistribution.
 
-            /** @var \Illuminate\Support\Collection<int, \App\Models\Location> $planningLocations */
+            /** @var Collection<int, Location> $planningLocations */
             $planningLocations = $planning->locations;
-            /** @var \Illuminate\Support\Collection<int, PlanningLocationTimer> $planningTimers */
+            /** @var Collection<int, PlanningLocationTimer> $planningTimers */
             $planningTimers = $planning->locationTimers->keyBy(function (PlanningLocationTimer $timer): int|string {
                 return $timer->location_id ?? ('travel_'.(string) $timer->location_type);
             });

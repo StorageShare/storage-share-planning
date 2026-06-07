@@ -5,7 +5,11 @@ namespace App\Http\Requests;
 use App\Enums\TaskStatus;
 use App\Models\DefaultTask;
 use App\Models\Location;
+use App\Models\Planning;
 use App\Models\Task;
+use App\Models\User;
+use App\Models\Vehicle;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,7 +44,7 @@ class StorePlanningRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -51,14 +55,14 @@ class StorePlanningRequest extends FormRequest
             'vehicle_id' => [
                 'required',
                 'integer',
-                Rule::exists(\App\Models\Vehicle::class, 'id'),
+                Rule::exists(Vehicle::class, 'id'),
                 function ($attribute, $value, $fail) {
                     // Vehicle must be available (not used in another planning on the same date)
                     $date = $this->input('planned_date');
                     if (! $date) {
                         return; // other rule will report missing date
                     }
-                    $exists = \App\Models\Planning::query()
+                    $exists = Planning::query()
                         ->whereDate('planned_date', $date)
                         ->where('vehicle_id', $value)
                         // Allow if the only planning(s) on that date are completed
@@ -78,7 +82,7 @@ class StorePlanningRequest extends FormRequest
             'start_address' => 'required|string|max:255',
             'start_time' => 'nullable|date_format:H:i',
             'user_ids' => 'nullable|array',
-            'user_ids.*' => ['integer', Rule::exists(\App\Models\User::class, 'id')],
+            'user_ids.*' => ['integer', Rule::exists(User::class, 'id')],
             'selected_default_tasks' => 'nullable|array',
             'selected_default_tasks.*' => [
                 'integer',

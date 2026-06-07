@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\ExternalTaskController;
 use App\Http\Controllers\Api\V1\LocationDistanceController;
+use App\Http\Controllers\Api\V1\OfflinePlanningController;
+use App\Http\Controllers\Api\V1\OfflineSyncController;
 use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TravelTimeController;
 use Illuminate\Http\Request;
@@ -42,9 +44,9 @@ Route::prefix('v1/external')->middleware(['external_api'])->group(function () {
 
 // Offline API endpoints - using web auth for session-based authentication
 Route::prefix('v1/offline')->middleware(['web', 'auth'])->name('api.offline.')->group(function () {
-    Route::get('/planning/{planning}/full', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'getFullPlanningData']);
-    Route::get('/planning/{planning}/sync-status', [\App\Http\Controllers\Api\V1\OfflinePlanningController::class, 'checkSyncStatus']);
-    Route::post('/sync/planning-tasks', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPlanningTasks']);
-    Route::post('/sync/photos', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'syncPhotos']);
-    Route::get('/sync/status', [\App\Http\Controllers\Api\V1\OfflineSyncController::class, 'getSyncStatus']);
+    Route::get('/planning/{planning}/full', [OfflinePlanningController::class, 'getFullPlanningData']);
+    Route::get('/planning/{planning}/sync-status', [OfflinePlanningController::class, 'checkSyncStatus']);
+    Route::post('/sync/planning-tasks', [OfflineSyncController::class, 'syncPlanningTasks']);
+    Route::post('/sync/photos', [OfflineSyncController::class, 'syncPhotos']);
+    Route::get('/sync/status', [OfflineSyncController::class, 'getSyncStatus']);
 });

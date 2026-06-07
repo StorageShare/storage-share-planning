@@ -30,7 +30,7 @@ class OfflineSyncController extends Controller
         ]);
 
         $results = [];
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         foreach ($request->input('completions') as $completionData) {
@@ -192,7 +192,7 @@ class OfflineSyncController extends Controller
 
     public function getSyncStatus(): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         $pendingItems = OfflineSyncQueue::forUser($user->id)
