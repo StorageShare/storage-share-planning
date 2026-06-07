@@ -12,13 +12,13 @@ use App\Models\DefaultTask;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningLocationTimer;
-use App\Models\PlanningTask;
 use App\Models\Requirement;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleTask;
 use App\Services\ExternalLocationService;
+use App\Services\PlanningFormDataService;
 use App\Services\TravelTimeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -37,13 +37,17 @@ class PlanningController extends Controller
 {
     private ExternalLocationService $externalLocationService;
 
+    private PlanningFormDataService $planningFormDataService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
-        ?ExternalLocationService $externalLocationService = null
+        ?ExternalLocationService $externalLocationService = null,
+        ?PlanningFormDataService $planningFormDataService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
         $this->externalLocationService = $externalLocationService ?: app(ExternalLocationService::class);
+        $this->planningFormDataService = $planningFormDataService ?: app(PlanningFormDataService::class);
     }
 
     /**
@@ -259,7 +263,7 @@ class PlanningController extends Controller
     {
         $users = User::all();
         $locations = Location::with('defaultTasks')->orderBy('name')->get();
-        $defaultTasksByLocation = $this->buildDefaultTasksByLocation($locations);
+        $defaultTasksByLocation = $this->planningFormDataService->buildDefaultTasksByLocation($locations);
 
         // Haal alle backlog taken op die beschikbaar zijn voor planning.
         $all_backlog_tasks = Task::query()
@@ -276,9 +280,9 @@ class PlanningController extends Controller
             ->orderBy('created_at', 'asc') // Als laatste tie-breaker: created_at
             ->get();
 
-        $backlogTasksByLocation = $this->mapBacklogTasksByLocation($all_backlog_tasks);
-        $backlogPriorityCountsByLocation = $this->computeBacklogPriorityCounts($all_backlog_tasks);
-        $backlogTotalEstimatedTimeByLocation = $this->computeBacklogTotalEstimated($all_backlog_tasks);
+        $backlogTasksByLocation = $this->planningFormDataService->mapBacklogTasksByLocation($all_backlog_tasks);
+        $backlogPriorityCountsByLocation = $this->planningFormDataService->computeBacklogPriorityCounts($all_backlog_tasks);
+        $backlogTotalEstimatedTimeByLocation = $this->planningFormDataService->computeBacklogTotalEstimated($all_backlog_tasks);
 
         // Fetch inactive room counts for all locations in one call
         $allInactiveCounts = $this->externalLocationService->fetchInactiveRoomCounts() ?? [];
@@ -288,13 +292,13 @@ class PlanningController extends Controller
         }
 
         // Sort locations based on priority task counts and then name
-        $locations = $this->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
+        $locations = $this->planningFormDataService->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
 
         $selected_location_id = $request->query('location_id');
 
         $requirements = Requirement::orderBy('name')->get();
 
-        $plannedBacklogTasks = $this->plannedBacklogTasksMap();
+        $plannedBacklogTasks = $this->planningFormDataService->plannedBacklogTasksMap();
 
         // Vehicles available for selected/planned date (default should match UI: tomorrow)
         // The create form defaults the planned_date input to tomorrow (now()->addDay()),
@@ -438,7 +442,7 @@ class PlanningController extends Controller
     {
         $users = User::all();
         $locations = Location::with('defaultTasks')->orderBy('name')->get();
-        $defaultTasksByLocation = $this->buildDefaultTasksByLocation($locations);
+        $defaultTasksByLocation = $this->planningFormDataService->buildDefaultTasksByLocation($locations);
 
         $planning->load('locations');
         $current_selected_location_ids = $planning->locations->pluck('id')->all();
@@ -474,10 +478,10 @@ class PlanningController extends Controller
          *   estimated_time_minutes:int
          * }>> $backlogTasksByLocation
          */
-        $backlogTasksByLocation = $this->mapBacklogTasksByLocation($availableBacklogTasks);
+        $backlogTasksByLocation = $this->planningFormDataService->mapBacklogTasksByLocation($availableBacklogTasks);
 
-        $backlogPriorityCountsByLocation = $this->computeBacklogPriorityCounts($availableBacklogTasks);
-        $backlogTotalEstimatedTimeByLocation = $this->computeBacklogTotalEstimated($availableBacklogTasks);
+        $backlogPriorityCountsByLocation = $this->planningFormDataService->computeBacklogPriorityCounts($availableBacklogTasks);
+        $backlogTotalEstimatedTimeByLocation = $this->planningFormDataService->computeBacklogTotalEstimated($availableBacklogTasks);
 
         // Fetch inactive room counts for all locations in one call
         $allInactiveCounts = $this->externalLocationService->fetchInactiveRoomCounts() ?? [];
@@ -499,9 +503,9 @@ class PlanningController extends Controller
             ->all();
 
         // Sort locations based on priority task counts and then name
-        $locations = $this->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
+        $locations = $this->planningFormDataService->sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation);
 
-        $plannedBacklogTasks = $this->plannedBacklogTasksMap($planning, true);
+        $plannedBacklogTasks = $this->planningFormDataService->plannedBacklogTasksMap($planning, true);
 
         // Vehicles available for the planning date; include currently assigned vehicle if set
         $selectedDate = $planning->planned_date->toDateString();
@@ -876,135 +880,6 @@ class PlanningController extends Controller
 
         // string() returns Str, but cast to string for clarity and phpstan
         return (string) $request->string('time');
-    }
-
-    /**
-     * @param  Collection<int, Location>  $locations
-     * @return Collection<int, Collection<int, array{id:int,title:string,description:string,estimated_time_minutes:int,applies_to_all_locations:bool,is_always_included:bool}>>
-     */
-    private function buildDefaultTasksByLocation($locations)
-    {
-        return $locations->mapWithKeys(function ($location) {
-            $locationSpecificTasks = $location->defaultTasks;
-            $allLocationTasks = DefaultTask::forAllLocations()->get();
-            $allTasks = $locationSpecificTasks->merge($allLocationTasks)->unique('id');
-
-            return [$location->id => $allTasks->map(function ($task) use ($location) {
-                return [
-                    'id' => (int) $task->id,
-                    'title' => (string) $task->title,
-                    // DefaultTask::description is non-null in model typing; normalize to string for views
-                    'description' => (string) $task->description,
-                    'estimated_time_minutes' => (int) $task->calculateEstimatedTime($location),
-                    'applies_to_all_locations' => (bool) ($task->applies_to_all_locations ?? false),
-                    'is_always_included' => (bool) ($task->is_always_included ?? false),
-                ];
-            })];
-        });
-    }
-
-    /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $tasks
-     * @return Collection<int|string, Collection<int|string, array<string, mixed>>>
-     */
-    private function mapBacklogTasksByLocation($tasks): Collection
-    {
-        return $tasks->groupBy('location_id')
-            ->map(
-                /**
-                 * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $grouped
-                 * @return Collection<int, array<string, mixed>>
-                 */
-                static function (\Illuminate\Database\Eloquent\Collection $grouped, int|string|null $key): Collection {
-                    return $grouped->map(static function (Task $task): array {
-                        /** @var array<string, mixed> $row */
-                        $row = [
-                            'id' => $task->id,
-                            'title' => $task->title,
-                            // Normalize to string to match model typing and UI expectations
-                            'description' => (string) $task->description,
-                            'priority' => [
-                                'value' => $task->priority->value,
-                                'label' => $task->priority->label(),
-                            ],
-                            'status' => $task->status,
-                            'deadline' => $task->deadline,
-                            'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
-                        ];
-
-                        return $row;
-                    })->toBase();
-                }
-            );
-    }
-
-    /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $tasks
-     * @return Collection<int|string, array{high: int, normal: int, low: int}>
-     */
-    private function computeBacklogPriorityCounts($tasks): Collection
-    {
-        return $tasks->groupBy('location_id')
-            ->map(function ($tasks_for_location) {
-                return [
-                    TaskPriority::HIGH->value => (int) $tasks_for_location->where('priority', TaskPriority::HIGH)->count(),
-                    TaskPriority::NORMAL->value => (int) $tasks_for_location->where('priority', TaskPriority::NORMAL)->count(),
-                    TaskPriority::LOW->value => (int) $tasks_for_location->where('priority', TaskPriority::LOW)->count(),
-                ];
-            });
-    }
-
-    /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Task>  $tasks
-     * @return Collection<int|string, int>
-     */
-    private function computeBacklogTotalEstimated($tasks): Collection
-    {
-        return $tasks->groupBy('location_id')
-            ->map(function ($tasks_for_location) {
-                return $tasks_for_location->sum('estimated_time_minutes');
-            });
-    }
-
-    /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Location>|Collection<int, Location>  $locations
-     * @param  Collection<int|string, array{high: int, normal: int, low: int}>  $backlogPriorityCountsByLocation
-     * @return Collection<int, Location>
-     */
-    private function sortLocationsByBacklogCounts($locations, $backlogPriorityCountsByLocation): Collection
-    {
-        return $locations->sortBy(function ($location) use ($backlogPriorityCountsByLocation) {
-            $counts = $backlogPriorityCountsByLocation[$location->id] ?? [
-                TaskPriority::HIGH->value => 0,
-                TaskPriority::NORMAL->value => 0,
-                TaskPriority::LOW->value => 0,
-            ];
-
-            return [
-                -($counts[TaskPriority::HIGH->value]),
-                -($counts[TaskPriority::NORMAL->value]),
-                -($counts[TaskPriority::LOW->value]),
-                $location->name,
-            ];
-        })->values();
-    }
-
-    /**
-     * @return Collection<int, array{planning_id:int,planning_title:string}>
-     */
-    private function plannedBacklogTasksMap(?Planning $planning = null, bool $excludeCurrent = false)
-    {
-        $query = PlanningTask::whereNotNull('task_id')->with('planning:id,planned_date');
-        if ($planning && $excludeCurrent) {
-            $query->where('planning_id', '!=', $planning->id);
-        }
-
-        return $query->get()->mapWithKeys(function ($planningTask) {
-            return [(int) $planningTask->task_id => [
-                'planning_id' => (int) $planningTask->planning->id,
-                'planning_title' => (string) $planningTask->planning->planned_date->format('d-m-Y'),
-            ]];
-        });
     }
 
     /**
