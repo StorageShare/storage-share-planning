@@ -19,6 +19,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleTask;
 use App\Services\ExternalLocationService;
 use App\Services\PlanningFormDataService;
+use App\Services\PlanningLocationTimerService;
 use App\Services\TravelTimeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -39,15 +40,19 @@ class PlanningController extends Controller
 
     private PlanningFormDataService $planningFormDataService;
 
+    private PlanningLocationTimerService $planningLocationTimerService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
         ?ExternalLocationService $externalLocationService = null,
-        ?PlanningFormDataService $planningFormDataService = null
+        ?PlanningFormDataService $planningFormDataService = null,
+        ?PlanningLocationTimerService $planningLocationTimerService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
         $this->externalLocationService = $externalLocationService ?: app(ExternalLocationService::class);
         $this->planningFormDataService = $planningFormDataService ?: app(PlanningFormDataService::class);
+        $this->planningLocationTimerService = $planningLocationTimerService ?: app(PlanningLocationTimerService::class);
     }
 
     /**
@@ -80,8 +85,8 @@ class PlanningController extends Controller
      */
     public function updateLocationActualTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
     {
-        $time = $this->validateTimeInput($request);
-        $seconds = $this->parseHHMMToSeconds($time);
+        $time = $this->planningLocationTimerService->validateTimeInput($request);
+        $seconds = $this->planningLocationTimerService->parseHHMMToSeconds($time);
 
         // Set the total on-location time directly to the provided HH:mm (interpreted as total desired time on location)
         $timer = PlanningLocationTimer::firstOrNew([
@@ -96,7 +101,7 @@ class PlanningController extends Controller
             return response()->json([
                 'ok' => true,
                 'seconds' => $timer->total_duration_seconds,
-                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+                'hhmm' => $this->planningLocationTimerService->formatSecondsHHMM($timer->total_duration_seconds),
             ]);
         }
 
@@ -108,8 +113,8 @@ class PlanningController extends Controller
      */
     public function updateTravelToTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
     {
-        $time = $this->validateTimeInput($request);
-        $seconds = $this->parseHHMMToSeconds($time);
+        $time = $this->planningLocationTimerService->validateTimeInput($request);
+        $seconds = $this->planningLocationTimerService->parseHHMMToSeconds($time);
 
         $timer = PlanningLocationTimer::firstOrNew([
             'planning_id' => $planning->id,
@@ -125,7 +130,7 @@ class PlanningController extends Controller
             return response()->json([
                 'ok' => true,
                 'seconds' => $timer->total_duration_seconds,
-                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+                'hhmm' => $this->planningLocationTimerService->formatSecondsHHMM($timer->total_duration_seconds),
             ]);
         }
 
@@ -137,8 +142,8 @@ class PlanningController extends Controller
      */
     public function updateTravelBackTime(Request $request, Planning $planning): JsonResponse|RedirectResponse
     {
-        $time = $this->validateTimeInput($request);
-        $seconds = $this->parseHHMMToSeconds($time);
+        $time = $this->planningLocationTimerService->validateTimeInput($request);
+        $seconds = $this->planningLocationTimerService->parseHHMMToSeconds($time);
 
         $timer = PlanningLocationTimer::firstOrNew([
             'planning_id' => $planning->id,
@@ -154,29 +159,11 @@ class PlanningController extends Controller
             return response()->json([
                 'ok' => true,
                 'seconds' => $timer->total_duration_seconds,
-                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+                'hhmm' => $this->planningLocationTimerService->formatSecondsHHMM($timer->total_duration_seconds),
             ]);
         }
 
         return back()->with('success', 'Reistijd terug bijgewerkt.');
-    }
-
-    private function parseHHMMToSeconds(string $hhmm): int
-    {
-        [$h, $m] = array_map('intval', explode(':', $hhmm));
-        $h = max(0, $h);
-        $m = max(0, min(59, $m));
-
-        return $h * 3600 + $m * 60;
-    }
-
-    private function formatSecondsHHMM(int $seconds): string
-    {
-        $seconds = max(0, $seconds);
-        $h = intdiv($seconds, 3600);
-        $m = intdiv($seconds % 3600, 60);
-
-        return sprintf('%02d:%02d', $h, $m);
     }
 
     /**
@@ -713,8 +700,8 @@ class PlanningController extends Controller
      */
     public function getLocationTimer(Planning $planning, int|string $locationId): JsonResponse
     {
-        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
-        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
+        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
 
         if (! $timer) {
             return response()->json([
@@ -724,7 +711,7 @@ class PlanningController extends Controller
             ]);
         }
 
-        return $this->buildTimerJson($timer);
+        return $this->planningLocationTimerService->buildTimerJson($timer);
     }
 
     /**
@@ -732,15 +719,15 @@ class PlanningController extends Controller
      */
     public function startLocationTimer(Planning $planning, int|string $locationId): JsonResponse
     {
-        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
-        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
+        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
         if ($timer) {
             $timer->update([
                 'started_at' => now(),
                 'ended_at' => null,
             ]);
         } else {
-            $timer = $this->ensureTimerStarted($planning, $actualLocationId, $locationType);
+            $timer = $this->planningLocationTimerService->ensureTimerStarted($planning, $actualLocationId, $locationType);
         }
 
         return response()->json([
@@ -761,8 +748,8 @@ class PlanningController extends Controller
             'total_duration' => 'required|integer|min:0',
         ]);
 
-        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
-        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
+        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
 
         if (! $timer) {
             return response()->json(['error' => 'Timer not found'], 404);
@@ -794,8 +781,8 @@ class PlanningController extends Controller
             'previous_duration' => 'required|integer|min:0',
         ]);
 
-        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
-        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
+        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
 
         if (! $timer) {
             return response()->json(['error' => 'Timer not found'], 404);
@@ -816,70 +803,6 @@ class PlanningController extends Controller
                 'total_duration' => $timer->total_duration_seconds,
             ],
         ]);
-    }
-
-    /**
-     * Shared helpers (private) to keep controller lean and DRY.
-     */
-    /**
-     * @return array{0:int|string|null,1:string}
-     */
-    private function resolveTimerTarget(int|string $locationId): array
-    {
-        if ($locationId === 'backlog') {
-            return [null, 'backlog'];
-        }
-        if (is_string($locationId) && str_starts_with($locationId, 'travel_to_')) {
-            return [str_replace('travel_to_', '', $locationId), 'travel'];
-        }
-        if ($locationId === 'travel_back') {
-            return [null, 'travel_back'];
-        }
-
-        return [$locationId, 'location'];
-    }
-
-    private function findTimer(Planning $planning, int|string|null $actualLocationId, string $locationType): ?PlanningLocationTimer
-    {
-        return PlanningLocationTimer::where('planning_id', $planning->id)
-            ->where('location_id', $actualLocationId)
-            ->where('location_type', $locationType)
-            ->first();
-    }
-
-    private function ensureTimerStarted(Planning $planning, int|string|null $actualLocationId, string $locationType): PlanningLocationTimer
-    {
-        return PlanningLocationTimer::create([
-            'planning_id' => $planning->id,
-            'location_id' => $actualLocationId,
-            'location_type' => $locationType,
-            'started_at' => now(),
-            'ended_at' => null,
-            'total_duration_seconds' => 0,
-        ]);
-    }
-
-    private function buildTimerJson(PlanningLocationTimer $timer): JsonResponse
-    {
-        return response()->json([
-            'started_at' => $timer->started_at?->toISOString(),
-            'ended_at' => $timer->ended_at?->toISOString(),
-            'total_duration' => $timer->total_duration_seconds,
-        ]);
-    }
-
-    /**
-     * Validate the required HH:mm time input and return it as string.
-     * Keeps validation behavior identical across endpoints.
-     */
-    private function validateTimeInput(Request $request): string
-    {
-        $request->validate([
-            'time' => ['required', 'regex:/^\d{1,2}:\d{2}$/'],
-        ]);
-
-        // string() returns Str, but cast to string for clarity and phpstan
-        return (string) $request->string('time');
     }
 
     /**
