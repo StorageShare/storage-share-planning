@@ -16,6 +16,7 @@ use App\Models\PlanningTask;
 use App\Models\Requirement;
 use App\Models\Task;
 use App\Services\ImageService;
+use App\Services\PlanningTaskRejectionService;
 use App\Services\RecurringTaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -563,7 +564,7 @@ class TaskController extends Controller
         });
     }
 
-    public function reject(Request $request, Task $task): RedirectResponse
+    public function reject(Request $request, Task $task, PlanningTaskRejectionService $planningTaskRejectionService): RedirectResponse
     {
         // Find the specific PlanningTask that is in review for this backlog task.
         $triggering_planning_task = $task->planningTasks()
@@ -571,12 +572,7 @@ class TaskController extends Controller
             ->latest('completed_at')
             ->firstOrFail(); // We must find one, otherwise we shouldn't be here.
 
-        // Instantiate the PlanningTaskController and call its reject method,
-        // passing along the request and the found PlanningTask.
-        // This keeps all rejection logic centralized in one place.
-        $planningTaskController = new PlanningTaskController;
-
-        return $planningTaskController->reject($request, $triggering_planning_task);
+        return $planningTaskRejectionService->reject($request, $triggering_planning_task);
     }
 
     /**

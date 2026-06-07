@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\TaskStatus;
-use App\Http\Controllers\PlanningTaskController;
 use App\Models\DefaultTask;
 use App\Models\Planning;
 use Illuminate\Http\Request;
@@ -12,6 +11,10 @@ use Illuminate\Support\Facades\Log;
 
 class PlanningCompletionService
 {
+    public function __construct(
+        private PlanningTaskApprovalService $planningTaskApprovalService
+    ) {}
+
     public function complete(Planning $planning): void
     {
         DB::transaction(function () use ($planning) {
@@ -22,12 +25,11 @@ class PlanningCompletionService
                 ])->get();
 
             if ($submittedTasks->isNotEmpty()) {
-                $ptController = new PlanningTaskController;
                 foreach ($submittedTasks as $pt) {
                     try {
                         $req = new Request;
                         $req->merge(['planning_id' => $planning->id]);
-                        $ptController->approve($req, $pt);
+                        $this->planningTaskApprovalService->approve($req, $pt);
                     } catch (\Throwable $e) {
                         Log::warning('Automatische goedkeuring bij afronden planning faalde', [
                             'planning_id' => $planning->id,
