@@ -76,6 +76,72 @@ class PlanningLocationTimerService
         ]);
     }
 
+    public function getLocationTimer(Planning $planning, int|string $locationId): JsonResponse
+    {
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+
+        if (! $timer) {
+            return response()->json([
+                'started_at' => null,
+                'ended_at' => null,
+                'total_duration' => 0,
+            ]);
+        }
+
+        return $this->buildTimerJson($timer);
+    }
+
+    public function startLocationTimer(Planning $planning, int|string $locationId): JsonResponse
+    {
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+        if ($timer) {
+            $timer->update([
+                'started_at' => now(),
+                'ended_at' => null,
+            ]);
+        } else {
+            $timer = $this->ensureTimerStarted($planning, $actualLocationId, $locationType);
+        }
+
+        return response()->json([
+            'success' => true,
+            'timer' => [
+                'started_at' => $timer->started_at->toISOString(),
+                'total_duration' => $timer->total_duration_seconds,
+            ],
+        ]);
+    }
+
+    public function stopLocationTimer(Request $request, Planning $planning, int|string $locationId): JsonResponse
+    {
+        $request->validate([
+            'total_duration' => 'required|integer|min:0',
+        ]);
+
+        [$actualLocationId, $locationType] = $this->resolveTimerTarget($locationId);
+        $timer = $this->findTimer($planning, $actualLocationId, $locationType);
+
+        if (! $timer) {
+            return response()->json(['error' => 'Timer not found'], 404);
+        }
+
+        $timer->update([
+            'ended_at' => now(),
+            'total_duration_seconds' => $request->input('total_duration'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'timer' => [
+                'started_at' => $timer->started_at->toISOString(),
+                'ended_at' => $timer->ended_at->toISOString(),
+                'total_duration' => $timer->total_duration_seconds,
+            ],
+        ]);
+    }
+
     public function validateTimeInput(Request $request): string
     {
         $request->validate([

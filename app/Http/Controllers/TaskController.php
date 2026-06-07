@@ -5,23 +5,21 @@ namespace App\Http\Controllers;
 use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Events\LocationCompleted;
 use App\Http\Requests\StoreBulkTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\DefaultTask;
 use App\Models\ExternalTask;
 use App\Models\Location;
-use App\Models\PlanningTask;
 use App\Models\Requirement;
 use App\Models\Task;
 use App\Services\ImageService;
 use App\Services\PlanningTaskRejectionService;
+use App\Services\PlanningTaskSyncService;
 use App\Services\RecurringTaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -496,7 +494,7 @@ class TaskController extends Controller
         // Alternatief: return redirect()->route('locations.show', $location)->with('success', 'Taak succesvol verwijderd.');
     }
 
-    public function approve(Request $request, Task $task): RedirectResponse
+    public function approve(Request $request, Task $task, PlanningTaskSyncService $planningTaskSyncService): RedirectResponse
     {
         if ($task->status === TaskStatus::IN_REVIEW) {
             $task->update(['status' => TaskStatus::OPEN]);
@@ -529,7 +527,7 @@ class TaskController extends Controller
             $triggering_planning_task->planning->checkAndUpdateStatus();
 
             // Check if this location is now completed and notify if needed
-            $this->checkLocationCompletionAndNotify($triggering_planning_task);
+            $planningTaskSyncService->checkLocationCompletionAndNotify($triggering_planning_task);
         }
 
         // Handle recurring task creation if applicable
@@ -575,41 +573,5 @@ class TaskController extends Controller
             ->firstOrFail(); // We must find one, otherwise we shouldn't be here.
 
         return $planningTaskRejectionService->reject($request, $triggering_planning_task);
-    }
-
-    /**
-     * Check if a location is completed within a planning and trigger LocationCompleted event.
-     */
-    private function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
-    {
-        $planning = $planningTask->planning;
-
-        // Determine the location for this task
-        $location = null;
-        if ($planningTask->location_id) {
-            // Default task with direct location assignment
-            $location = Location::find($planningTask->location_id);
-        } elseif ($planningTask->task && $planningTask->task->location_id) {
-            // Backlog task with location
-            $location = $planningTask->task->location;
-        }
-
-        if (! $location) {
-            return; // No location found, nothing to check
-        }
-
-        // Check if all tasks for this location in this planning are completed
-        if ($location->areAllTasksCompletedInPlanning($planning)) {
-            $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
-
-            // Only trigger if not already notified for this planning/location combination
-            if (! Cache::has($cacheKey)) {
-                // Trigger the LocationCompleted event
-                LocationCompleted::dispatch($location, $planning);
-
-                // Mark as notified for 24 hours
-                Cache::put($cacheKey, true, now()->addDay());
-            }
-        }
     }
 }

@@ -543,81 +543,19 @@ class PlanningController extends Controller
      */
     public function getLocationTimer(Planning $planning, int|string $locationId): JsonResponse
     {
-        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
-        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
-
-        if (! $timer) {
-            return response()->json([
-                'started_at' => null,
-                'ended_at' => null,
-                'total_duration' => 0,
-            ]);
-        }
-
-        return $this->planningLocationTimerService->buildTimerJson($timer);
+        return $this->planningLocationTimerService->getLocationTimer($planning, $locationId);
     }
 
-    /**
-     * Start timer for a specific location in a planning.
-     */
     public function startLocationTimer(Planning $planning, int|string $locationId): JsonResponse
     {
-        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
-        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
-        if ($timer) {
-            $timer->update([
-                'started_at' => now(),
-                'ended_at' => null,
-            ]);
-        } else {
-            $timer = $this->planningLocationTimerService->ensureTimerStarted($planning, $actualLocationId, $locationType);
-        }
-
-        return response()->json([
-            'success' => true,
-            'timer' => [
-                'started_at' => $timer->started_at->toISOString(),
-                'total_duration' => $timer->total_duration_seconds,
-            ],
-        ]);
+        return $this->planningLocationTimerService->startLocationTimer($planning, $locationId);
     }
 
-    /**
-     * Stop timer for a specific location in a planning.
-     */
     public function stopLocationTimer(Request $request, Planning $planning, int|string $locationId): JsonResponse
     {
-        $request->validate([
-            'total_duration' => 'required|integer|min:0',
-        ]);
-
-        [$actualLocationId, $locationType] = $this->planningLocationTimerService->resolveTimerTarget($locationId);
-        $timer = $this->planningLocationTimerService->findTimer($planning, $actualLocationId, $locationType);
-
-        if (! $timer) {
-            return response()->json(['error' => 'Timer not found'], 404);
-        }
-
-        // End the timer and persist total duration
-        $timer->update([
-            'ended_at' => now(),
-            'total_duration_seconds' => $request->input('total_duration'),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'timer' => [
-                'started_at' => $timer->started_at->toISOString(),
-                'ended_at' => $timer->ended_at->toISOString(),
-                'total_duration' => $timer->total_duration_seconds,
-            ],
-        ]);
+        return $this->planningLocationTimerService->stopLocationTimer($request, $planning, $locationId);
     }
 
-    /**
-     * Restart timer for a specific location in a planning.
-     * This preserves the previous duration and starts counting again.
-     */
     public function restartLocationTimer(Request $request, Planning $planning, int|string $locationId): JsonResponse
     {
         return $this->planningLocationTimerService->restartLocationTimer($request, $planning, $locationId);
