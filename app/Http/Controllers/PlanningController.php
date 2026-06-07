@@ -20,6 +20,7 @@ use App\Services\ExternalLocationService;
 use App\Services\PlanningFormDataService;
 use App\Services\PlanningLocationSyncService;
 use App\Services\PlanningLocationTimerService;
+use App\Services\PlanningShowDataService;
 use App\Services\PlanningTaskCreationService;
 use App\Services\PlanningTaskUpdateService;
 use App\Services\TravelTimeService;
@@ -50,6 +51,8 @@ class PlanningController extends Controller
 
     private PlanningTaskUpdateService $planningTaskUpdateService;
 
+    private PlanningShowDataService $planningShowDataService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
         ?ExternalLocationService $externalLocationService = null,
@@ -57,7 +60,8 @@ class PlanningController extends Controller
         ?PlanningLocationTimerService $planningLocationTimerService = null,
         ?PlanningLocationSyncService $planningLocationSyncService = null,
         ?PlanningTaskCreationService $planningTaskCreationService = null,
-        ?PlanningTaskUpdateService $planningTaskUpdateService = null
+        ?PlanningTaskUpdateService $planningTaskUpdateService = null,
+        ?PlanningShowDataService $planningShowDataService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
@@ -67,6 +71,7 @@ class PlanningController extends Controller
         $this->planningLocationSyncService = $planningLocationSyncService ?: app(PlanningLocationSyncService::class);
         $this->planningTaskCreationService = $planningTaskCreationService ?: app(PlanningTaskCreationService::class);
         $this->planningTaskUpdateService = $planningTaskUpdateService ?: app(PlanningTaskUpdateService::class);
+        $this->planningShowDataService = $planningShowDataService ?: app(PlanningShowDataService::class);
     }
 
     /**
@@ -386,54 +391,9 @@ class PlanningController extends Controller
             'comments.photos',
         ]);
 
-        // Calculate travel times between locations
-        $travelTimes = null;
-        if ($planning->locations->count() > 1) {
-            $travelTimes = $this->travelTimeService->calculateTravelTimesForSequence(
-                $planning->locations->all(),
-                $planning->start_address
-            );
-        }
+        $showData = $this->planningShowDataService->build($planning);
 
-        // Calculate task times
-        $totalTaskMinutes = $planning->planningTasks->sum(function ($planningTask) {
-            if ($planningTask->task && isset($planningTask->task->estimated_time_minutes)) {
-                return (int) $planningTask->task->estimated_time_minutes;
-            } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) {
-                return (int) $planningTask->defaultTask->estimated_time_minutes;
-            }
-
-            return 0;
-        });
-
-        // Build timers lookups
-        $onLocationTimers = $planning->locationTimers->where('location_type', 'location')->keyBy('location_id');
-        $travelToTimers = $planning->locationTimers->where('location_type', 'travel')->keyBy('location_id');
-        $travelBackTimer = $planning->locationTimers->firstWhere('location_type', 'travel_back');
-
-        // Calculate time overview (planned)
-        $timeOverview = [
-            'task_minutes' => $totalTaskMinutes,
-            'travel_minutes' => $travelTimes ? $travelTimes['total_duration_minutes'] : 0,
-            'total_minutes' => $totalTaskMinutes + ($travelTimes ? $travelTimes['total_duration_minutes'] : 0),
-        ];
-
-        // Calculate actual totals from timers
-        $actualTravelSeconds = $planning->locationTimers
-            ->whereIn('location_type', ['travel', 'travel_back'])
-            ->sum('total_duration_seconds');
-        $actualOnLocationSeconds = $planning->locationTimers
-            ->where('location_type', 'location')
-            ->sum('total_duration_seconds');
-
-        $actualTotals = [
-            'travel_seconds' => (int) $actualTravelSeconds,
-            'on_location_seconds' => (int) $actualOnLocationSeconds,
-        ];
-
-        $allLocations = Location::orderBy('name')->get(['id', 'name']);
-
-        return view($this->viewName('plannings.show'), compact('planning', 'travelTimes', 'timeOverview', 'onLocationTimers', 'travelToTimers', 'travelBackTimer', 'actualTotals', 'allLocations'));
+        return view($this->viewName('plannings.show'), array_merge(['planning' => $planning], $showData));
     }
 
     /**
