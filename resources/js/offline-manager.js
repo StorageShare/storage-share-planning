@@ -104,8 +104,7 @@ class OfflinePlanningManager {
                 offline_data: data.offline_data,
                 cached_at: new Date().toISOString()
             });
-            
-            console.log('Planning data cached successfully');
+
             return data;
         } catch (error) {
             console.error('Error caching planning data:', error);
@@ -167,8 +166,6 @@ class OfflinePlanningManager {
         const transaction = this.db.transaction(['task_completions'], 'readwrite');
         await this.promisifyRequest(transaction.objectStore('task_completions').put(completion));
         
-        console.log('Task completion saved offline:', syncHash);
-        
         // Attempt immediate sync if online
         if (this.isOnline) {
             this.attemptSync();
@@ -188,7 +185,6 @@ class OfflinePlanningManager {
         try {
             await this.syncCompletions();
             await this.syncPhotos();
-            console.log('Sync completed successfully');
             this.notifyListeners('sync_completed');
         } catch (error) {
             console.error('Sync failed:', error);
@@ -208,8 +204,6 @@ class OfflinePlanningManager {
         if (pendingCompletions.length === 0) {
             return;
         }
-        
-        console.log(`Syncing ${pendingCompletions.length} completions`);
         
         try {
             const response = await fetch('/api/v1/offline/sync/planning-tasks', {
@@ -261,8 +255,6 @@ class OfflinePlanningManager {
         if (pendingPhotos.length === 0) {
             return;
         }
-        
-        console.log(`Syncing ${pendingPhotos.length} photos`);
         
         try {
             const response = await fetch('/api/v1/offline/sync/photos', {

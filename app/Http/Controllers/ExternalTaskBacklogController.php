@@ -8,6 +8,7 @@ use App\Http\Requests\StoreExternalTaskWebRequest;
 use App\Http\Requests\UpdateExternalTaskWebRequest;
 use App\Models\ExternalTask;
 use App\Models\Location;
+use App\Services\ExternalTaskConversionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -131,5 +132,16 @@ class ExternalTaskBacklogController extends Controller
         return redirect()->route('external-backlog.show', $externalTask)->with('success', 'Status bijgewerkt.');
     }
 
+    public function approve(ExternalTask $externalTask, ExternalTaskConversionService $conversionService): RedirectResponse
+    {
+        if (! in_array($externalTask->status, [TaskStatus::IN_REVIEW, TaskStatus::REVIEW], true)) {
+            return redirect()->route('external-backlog.show', $externalTask)
+                ->with('error', 'Deze externe taak kan niet worden goedgekeurd.');
+        }
 
+        $task = $conversionService->convertToTask($externalTask, TaskStatus::OPEN);
+
+        return redirect()->route('backlog.index')
+            ->with('success', "Externe taak goedgekeurd en omgezet naar taak \"{$task->title}\".");
+    }
 }

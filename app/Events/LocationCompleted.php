@@ -29,8 +29,6 @@ class LocationCompleted
     /**
      * Create a new event instance.
      *
-     * @param \App\Models\Location $location
-     * @param \App\Models\Planning $planning
      * @return void
      */
     public function __construct(Location $location, Planning $planning)
@@ -38,4 +36,4 @@ class LocationCompleted
         $this->location = $location;
         $this->planning = $planning;
     }
-} 
+}

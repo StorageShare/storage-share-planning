@@ -6,14 +6,17 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
-use App\Models\Location;
+use App\Mail\NewApiTaskReceivedMail;
 use App\Models\Task;
+use App\Services\LocationResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Mail;
 
 class TaskController extends Controller
 {
+    public function __construct(private readonly LocationResolver $locationResolver) {}
+
     /**
      * Store a newly created task in storage via API.
      */
@@ -22,7 +25,7 @@ class TaskController extends Controller
         $validatedData = $request->validated();
 
         // Resolve the location by internal id, or by external id when only that is provided.
-        $location = $this->resolveLocation($validatedData);
+        $location = $this->locationResolver->resolve($validatedData);
         $validatedData['location_id'] = $location->id;
         unset($validatedData['location_external_id']);
 
@@ -30,7 +33,7 @@ class TaskController extends Controller
         $validatedData['created_by'] = Auth::id();
 
         // Default priority if not provided (handled in StoreTaskRequest)
-        if (!isset($validatedData['priority'])) {
+        if (! isset($validatedData['priority'])) {
             $validatedData['priority'] = TaskPriority::NORMAL->value;
         }
 
@@ -46,9 +49,12 @@ class TaskController extends Controller
         $task = $location->tasks()->create($validatedData);
 
         // Sync requirements if provided
-        if (!empty($validatedData['requirements'])) {
+        if (! empty($validatedData['requirements'])) {
             $task->requirements()->sync($validatedData['requirements']);
         }
+
+        Mail::to(config('mail.planning_notifications.address'))
+            ->send(new NewApiTaskReceivedMail($task));
 
         return response()->json([
             'success' => true,
@@ -66,41 +72,7 @@ class TaskController extends Controller
                 'deadline' => $task->deadline,
                 'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                 'location_id' => $task->location_id,
-            ]
+            ],
         ], 201);
-    }
-
-    /**
-     * Resolve the target location by internal id or by external id.
-     *
-     * @param array<string, mixed> $data
-     *
-     * @throws ValidationException
-     */
-    private function resolveLocation(array $data): Location
-    {
-        if (! empty($data['location_id'])) {
-            return Location::findOrFail($data['location_id']);
-        }
-
-        $externalId = $data['location_external_id'] ?? null;
-        if ($externalId === null) {
-            throw ValidationException::withMessages([
-                'location_id' => 'Location is required.',
-            ]);
-        }
-
-        $location = Location::query()
-            ->where('external_id', $externalId)
-            ->orWhere('sync_external_id', $externalId)
-            ->first();
-
-        if (! $location) {
-            throw ValidationException::withMessages([
-                'location_external_id' => 'No location found for the provided external id.',
-            ]);
-        }
-
-        return $location;
     }
 }

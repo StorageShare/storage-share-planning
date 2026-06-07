@@ -24,7 +24,6 @@ class PlanningReadyNotificationMail extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param \App\Models\Planning $planning
      * @return void
      */
     public function __construct(Planning $planning)
@@ -40,14 +39,12 @@ class PlanningReadyNotificationMail extends Mailable
     public function envelope()
     {
         return new Envelope(
-            subject: 'Planning klaar voor ' . $this->planning->planned_date->format('d-m-Y'),
+            subject: 'Planning klaar voor '.$this->planning->planned_date->format('d-m-Y'),
         );
     }
 
     /**
      * Get the message content definition.
-     *
-     * @return Content
      */
     public function content(): Content
     {

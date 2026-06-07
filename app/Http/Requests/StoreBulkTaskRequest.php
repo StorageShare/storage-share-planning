@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\TaskPriority;
-use App\Models\Location;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

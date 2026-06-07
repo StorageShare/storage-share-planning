@@ -4,17 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Models\EndChecklistItem;
 use App\Models\Planning;
 use App\Models\PlanningLocationTimer;
+use App\Models\Requirement;
 use App\Models\User;
-use App\Models\EndChecklistItem;
 use App\Services\TravelTimeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use App\Models\Requirement;
 
 class MyPlanningController extends Controller
 {
@@ -28,7 +27,7 @@ class MyPlanningController extends Controller
         $user = Auth::user();
 
         // If no planning is provided, find today's planning (original behavior)
-        if (!$planning) {
+        if (! $planning) {
             $today = now()->startOfDay();
 
             $planning = Planning::where('planned_date', $today)
@@ -42,12 +41,12 @@ class MyPlanningController extends Controller
             $planning->load(['locations', 'vehicle', 'planningTasks.specificLocation', 'planningTasks.task.location', 'planningTasks.task.taskPhotos', 'planningTasks.task.requirements', 'planningTasks.defaultTask.requirements', 'planningTasks.completions.photos', 'comments.photos']);
 
             // Check if user has access to this planning
-            if (!$user->isAdmin() && !$planning->users->contains($user)) {
+            if (! $user->isAdmin() && ! $planning->users->contains($user)) {
                 abort(403, 'Je hebt geen toegang tot deze planning.');
             }
         }
 
-        if (!$planning) {
+        if (! $planning) {
             return view($this->viewName('my-planning.show-empty'));
         }
 
@@ -63,7 +62,7 @@ class MyPlanningController extends Controller
         foreach ($planning->planningTasks as $planningTask) {
             // Determine the location context for this planning task
             $taskLocationName = null;
-            if ($planningTask->task?->location != null ) {
+            if ($planningTask->task?->location != null) {
                 $taskLocationName = $planningTask->task->location->name;
             } elseif ($planningTask->specificLocation) {
                 $taskLocationName = $planningTask->specificLocation->name;
@@ -90,7 +89,7 @@ class MyPlanningController extends Controller
         }
 
         // Get automatically required requirements for selected locations
-        if (!empty($planning->locations)) {
+        if (! empty($planning->locations)) {
             foreach ($planning->locations as $location) {
                 $automaticRequirements = Requirement::whereHas('requiredForLocations', function ($query) use ($location) {
                     $query->where('location_id', $location->id);
@@ -99,8 +98,8 @@ class MyPlanningController extends Controller
                 foreach ($automaticRequirements as $requirement) {
                     if (str_contains($requirement->name, '[locatie]')) {
                         // Create location-specific variant
-                        $compositeId = $requirement->id . '_' . $location->id;
-                        $locationSpecificRequirements->push((object)[
+                        $compositeId = $requirement->id.'_'.$location->id;
+                        $locationSpecificRequirements->push((object) [
                             'id' => $compositeId, // Unique ID for this variant
                             'original_id' => $requirement->id,
                             'naam' => str_replace('[locatie]', $location->name, $requirement->name),
@@ -128,6 +127,7 @@ class MyPlanningController extends Controller
             if (isset($item->is_location_specific) && $item->is_location_specific) {
                 return $item->id; // Use composite ID for location-specific items
             }
+
             return $item->id; // Use original ID for regular items
         })->sortBy(function ($item) {
             return isset($item->is_location_specific) && $item->is_location_specific
@@ -150,6 +150,7 @@ class MyPlanningController extends Controller
                 'details' => 'Controleer of je alle benodigde materialen hebt voordat je begint',
                 'requirements' => $uniqueRequirements->map(function ($requirement) use ($requirementLocations) {
                     $id = $requirement->id;
+
                     return [
                         'id' => $id,
                         'naam' => $requirement->naam ?? $requirement->name,
@@ -197,15 +198,15 @@ class MyPlanningController extends Controller
                     'task_id' => $task->id,
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
-                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
-                    'backlog_photos' => $task->task ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'backlog_photos' => $task->task ? $task->task->taskPhotos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
-                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
-                    'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
+                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'is_extra' => ! $task->task_id && ! $task->default_task_id && ! $task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
                     'room' => $task->task?->room ?? $task->room_identifier,
                     'room_identifier' => $task->room_identifier,
-                    'is_inactive_room_task' => !is_null($task->room_identifier),
+                    'is_inactive_room_task' => ! is_null($task->room_identifier),
                     'photo_process_step' => $task->task?->photo_process_step,
                     'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
@@ -214,14 +215,14 @@ class MyPlanningController extends Controller
             }
 
             // Get comments for this location (backlog)
-            $commentsForBacklog = $planning->comments->whereNull('location_id')->map(fn($c) => [
+            $commentsForBacklog = $planning->comments->whereNull('location_id')->map(fn ($c) => [
                 'id' => $c->id,
                 'comment' => $c->comment,
-                'photos' => $c->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]),
+                'photos' => $c->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]),
                 'created_at' => $c->created_at->format('H:i'),
             ])->values()->all();
 
-            if (!empty($tasksForBacklog) || !empty($commentsForBacklog)) {
+            if (! empty($tasksForBacklog) || ! empty($commentsForBacklog)) {
                 $locationSteps[] = [
                     'type' => 'location',
                     'title' => 'Backlog taken',
@@ -251,7 +252,7 @@ class MyPlanningController extends Controller
             $locationTasks = $tasksByLocation[$location->id] ?? collect();
 
             // Split into regular tasks and inactive room tasks
-            [$inactiveRoomTasks, $otherLocationTasks] = $locationTasks->partition(fn ($pt) => !is_null($pt->room_identifier));
+            [$inactiveRoomTasks, $otherLocationTasks] = $locationTasks->partition(fn ($pt) => ! is_null($pt->room_identifier));
 
             // Partition into backlog vs standard for this location
             [$backlogLocationTasks, $standardLocationTasks] = $otherLocationTasks->partition(fn ($pt) => ! is_null($pt->task_id));
@@ -276,15 +277,15 @@ class MyPlanningController extends Controller
                     'task_id' => $task->id,
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
-                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
-                    'backlog_photos' => $task->task ? $task->task->taskPhotos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'backlog_photos' => $task->task ? $task->task->taskPhotos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'skip_reason' => $isSkipped && $skipCompletion ? $skipCompletion->comment : null,
-                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
-                    'is_extra' => !$task->task_id && !$task->default_task_id && !$task->vehicle_task_id,
+                    'skip_photos' => $isSkipped && $skipCompletion ? $skipCompletion->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'is_extra' => ! $task->task_id && ! $task->default_task_id && ! $task->vehicle_task_id,
                     'is_photo_required' => (bool) ($task->task->is_photo_required ?? $task->defaultTask->is_photo_required ?? false),
                     'room' => $task->task?->room ?? $task->room_identifier,
                     'room_identifier' => $task->room_identifier,
-                    'is_inactive_room_task' => !is_null($task->room_identifier),
+                    'is_inactive_room_task' => ! is_null($task->room_identifier),
                     'photo_process_step' => $task->task?->photo_process_step,
                     'photo_process_at' => $task->task?->photo_process_at?->format('d-m-Y H:i'),
                     'underlying_task_id' => $task->task_id,
@@ -303,7 +304,7 @@ class MyPlanningController extends Controller
                     'task_id' => $task->id,
                     'status' => $task->status,
                     'completed_notes' => $latestCompletion ? $latestCompletion->comment : ($task->completed_notes ?? null),
-                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]) : [],
+                    'photos' => $latestCompletion ? $latestCompletion->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]) : [],
                     'room' => $task->room_identifier,
                     'room_identifier' => $task->room_identifier,
                     'room_group' => $task->room_group,
@@ -312,10 +313,10 @@ class MyPlanningController extends Controller
             }
 
             // Get comments for this location
-            $commentsForLocation = $planning->comments->where('location_id', $location->id)->map(fn($c) => [
+            $commentsForLocation = $planning->comments->where('location_id', $location->id)->map(fn ($c) => [
                 'id' => $c->id,
                 'comment' => $c->comment,
-                'photos' => $c->photos->map(fn($p) => ['id' => $p->id, 'url' => $p->url]),
+                'photos' => $c->photos->map(fn ($p) => ['id' => $p->id, 'url' => $p->url]),
                 'created_at' => $c->created_at->format('H:i'),
             ])->values()->all();
 
@@ -334,7 +335,7 @@ class MyPlanningController extends Controller
                     'duration_minutes' => $travelTime['duration_minutes'],
                     'duration_text' => $this->travelTimeService->formatDuration($travelTime['duration_minutes']),
                     'distance_km' => $travelTime['distance_km'],
-            ];
+                ];
             } else {
                 // Travel from previous location
                 $previousLocation = $planning->locations[$index - 1];
@@ -350,7 +351,7 @@ class MyPlanningController extends Controller
             }
 
             // Only add location if it has tasks or comments or inactive room tasks or the check_inactive_spaces flag is set
-            if (!empty($tasksForLocation) || !empty($commentsForLocation) || !empty($inactiveRoomsForLocation) || (bool) $location->pivot->check_inactive_spaces) {
+            if (! empty($tasksForLocation) || ! empty($commentsForLocation) || ! empty($inactiveRoomsForLocation) || (bool) $location->pivot->check_inactive_spaces) {
                 // Add travel step if we have travel info and travel time > 0
                 if ($travelInfo != null && $travelInfo['duration_minutes'] > 0) {
                     $locationSteps[] = [
@@ -400,7 +401,7 @@ class MyPlanningController extends Controller
             if ($returnTravel['duration_minutes'] > 0) {
                 $locationSteps[] = [
                     'type' => 'travel',
-                    'title' => "Reis terug naar start",
+                    'title' => 'Reis terug naar start',
                     'travel_id' => 'travel_back',
                     'destination_location_id' => null,
                     'from' => $lastLocation->name,
@@ -423,7 +424,7 @@ class MyPlanningController extends Controller
                 // Get end day actions from backlog task
                 if ($planningTask->task && ($planningTask->task->end_day_action_title || $planningTask->task->end_day_action_description)) {
                     $endDayActions->push([
-                        'id' => 'task_' . $planningTask->task->id,
+                        'id' => 'task_'.$planningTask->task->id,
                         'title' => $planningTask->task->end_day_action_title,
                         'description' => $planningTask->task->end_day_action_description,
                         'source' => $planningTask->task->title,
@@ -434,7 +435,7 @@ class MyPlanningController extends Controller
                 // Get end day actions from default task
                 if ($planningTask->defaultTask && ($planningTask->defaultTask->end_day_action_title || $planningTask->defaultTask->end_day_action_description)) {
                     $endDayActions->push([
-                        'id' => 'default_task_' . $planningTask->defaultTask->id . '_' . $planningTask->id,
+                        'id' => 'default_task_'.$planningTask->defaultTask->id.'_'.$planningTask->id,
                         'title' => $planningTask->defaultTask->end_day_action_title,
                         'description' => $planningTask->defaultTask->end_day_action_description,
                         'source' => $planningTask->defaultTask->title,
@@ -465,7 +466,7 @@ class MyPlanningController extends Controller
                         // Needed on the client to rebuild payload when adding vehicle tasks
                         'requirement_id' => $item->requirement?->id,
                         'photo_path' => $item->photo_path,
-                        'photo_url' => $item->photo_path ? asset('storage/' . $item->photo_path) : null,
+                        'photo_url' => $item->photo_path ? asset('storage/'.$item->photo_path) : null,
                         'status' => $item->status,
                         'admin_notes' => $item->admin_notes,
                         'reviewed_at' => $item->reviewed_at,
@@ -504,10 +505,11 @@ class MyPlanningController extends Controller
         // Calculate task times (same as in planning show)
         $totalTaskMinutes = $planning->planningTasks->sum(function ($planningTask) {
             if ($planningTask->task && isset($planningTask->task->estimated_time_minutes)) {
-                return (int)$planningTask->task->estimated_time_minutes;
+                return (int) $planningTask->task->estimated_time_minutes;
             } elseif ($planningTask->defaultTask && isset($planningTask->defaultTask->estimated_time_minutes)) {
-                return (int)$planningTask->defaultTask->estimated_time_minutes;
+                return (int) $planningTask->defaultTask->estimated_time_minutes;
             }
+
             return 0;
         });
 
@@ -526,7 +528,7 @@ class MyPlanningController extends Controller
             'locationSteps' => $locationSteps,
             'travelTimes' => $travelTimes,
             'timeOverview' => $timeOverview,
-            'allLocations' => $allLocations
+            'allLocations' => $allLocations,
         ]);
     }
 
@@ -544,7 +546,7 @@ class MyPlanningController extends Controller
 
         $timer = $this->findTimer($planning, $actualLocationId, $locationType);
 
-        if (!$timer) {
+        if (! $timer) {
             return response()->json(['error' => 'Timer not found'], 404);
         }
 
@@ -581,6 +583,7 @@ class MyPlanningController extends Controller
         if ($locationId === 'travel_back') {
             return [null, 'travel_back'];
         }
+
         return [$locationId, 'location'];
     }
 
@@ -607,8 +610,8 @@ class MyPlanningController extends Controller
      * This will create items if they don't exist yet or update them if the requirements have changed.
      */
     /**
-     * @param iterable<int, object> $uniqueRequirements  List of requirement-like objects (may be Requirement models or location-specific wrappers)
-     * @param iterable<int, array{ id:int|string, title:string, description:string, location?:string }> $endDayActions
+     * @param  iterable<int, object>  $uniqueRequirements  List of requirement-like objects (may be Requirement models or location-specific wrappers)
+     * @param  iterable<int, array{ id:int|string, title:string, description:string, location?:string }>  $endDayActions
      */
     private function ensureEndChecklistItemsExist(Planning $planning, iterable $uniqueRequirements, iterable $endDayActions): void
     {
@@ -626,8 +629,8 @@ class MyPlanningController extends Controller
                     $requirement->original_id : $requirement->id,
                 'location_id' => isset($requirement->location_id) ? $requirement->location_id : null,
                 'title' => ($requirement->naam ?? $requirement->name),
-                'description' => "Terugbrengen: " . ($requirement->naam ?? $requirement->name),
-                'unique_key' => 'material_' . (isset($requirement->is_location_specific) && $requirement->is_location_specific ?
+                'description' => 'Terugbrengen: '.($requirement->naam ?? $requirement->name),
+                'unique_key' => 'material_'.(isset($requirement->is_location_specific) && $requirement->is_location_specific ?
                     $requirement->id : $requirement->id), // Use composite ID for location-specific items
             ]);
         }
@@ -647,7 +650,7 @@ class MyPlanningController extends Controller
                 'location_id' => $locationId,
                 'title' => $endAction['title'],
                 'description' => $endAction['description'],
-                'unique_key' => 'end_action_' . $endAction['id'],
+                'unique_key' => 'end_action_'.$endAction['id'],
             ]);
         }
 
@@ -667,7 +670,7 @@ class MyPlanningController extends Controller
                 }
             });
 
-            if (!$exists) {
+            if (! $exists) {
                 EndChecklistItem::create([
                     'planning_id' => $planning->id,
                     'location_id' => $expectedItem['location_id'] ?? null,
@@ -687,13 +690,13 @@ class MyPlanningController extends Controller
                 'end_action' => (string) ($existingItem->title),
             ];
             // If an unexpected type appears, skip deletion logic for safety
-            if (!array_key_exists($existingItem->type, $map)) {
+            if (! array_key_exists($existingItem->type, $map)) {
                 continue;
             }
             $keyPart = (string) $map[$existingItem->type];
-            $currentKey = $existingItem->type . '_' . $keyPart;
+            $currentKey = $existingItem->type.'_'.$keyPart;
 
-            if (!$expectedKeys->contains($currentKey) && $existingItem->isOpen() && !$existingItem->photo_path) {
+            if (! $expectedKeys->contains($currentKey) && $existingItem->isOpen() && ! $existingItem->photo_path) {
                 // Only delete items that haven't been started yet (still 'open' and no photo)
                 $existingItem->delete();
             }

@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\EndChecklistItem;
+use Illuminate\Console\Command;
 
 class UpdateEndChecklistLocations extends Command
 {
@@ -32,7 +32,7 @@ class UpdateEndChecklistLocations extends Command
             'requirement',
             'planning.planningTasks.task',
             'planning.planningTasks.defaultTask',
-            'planning.planningTasks.specificLocation'
+            'planning.planningTasks.specificLocation',
         ])->get();
 
         $updated = 0;
@@ -43,7 +43,7 @@ class UpdateEndChecklistLocations extends Command
                 /** @var \Illuminate\Support\Collection<int, \App\Models\PlanningTask> $planningTasks */
                 $planningTasks = $item->planning->planningTasks;
                 $planningTask = $planningTasks
-                    ->filter(function($pt) use ($item) {
+                    ->filter(function ($pt) use ($item) {
                         return ($pt->task && $pt->task->requirements->contains($item->requirement_id)) ||
                                ($pt->defaultTask && $pt->defaultTask->requirements->contains($item->requirement_id));
                     })
@@ -63,7 +63,7 @@ class UpdateEndChecklistLocations extends Command
                 /** @var \Illuminate\Support\Collection<int, \App\Models\PlanningTask> $planningTasks */
                 $planningTasks = $item->planning->planningTasks;
                 $planningTask = $planningTasks
-                    ->filter(function($pt) use ($item) {
+                    ->filter(function ($pt) use ($item) {
                         return ($pt->task && $pt->task->end_day_action_title === $item->title) ||
                                ($pt->defaultTask && $pt->defaultTask->end_day_action_title === $item->title);
                     })
@@ -82,6 +82,7 @@ class UpdateEndChecklistLocations extends Command
         }
 
         $this->info("Migration completed. Updated {$updated} items.");
+
         return 0;
     }
 }

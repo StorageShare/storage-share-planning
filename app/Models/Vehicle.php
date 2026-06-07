@@ -43,6 +43,7 @@ class Vehicle extends Model
         }
         // Keep only letters and digits, remove hyphens/spaces/other punctuation, then uppercase
         $clean = preg_replace('/[^A-Za-z0-9]/', '', (string) $value);
+
         return strtoupper($clean ?? '');
     }
 

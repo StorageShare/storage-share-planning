@@ -14,7 +14,7 @@ class NewApiTaskReceivedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /** @var Task  */
+    /** @var Task */
     public $task;
 
     /**
@@ -31,7 +31,7 @@ class NewApiTaskReceivedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Nieuwe taak ontvangen via API: ' . $this->task->title,
+            subject: 'Nieuwe taak ontvangen via API: '.$this->task->title,
         );
     }
 

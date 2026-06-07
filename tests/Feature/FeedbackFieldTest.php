@@ -106,7 +106,7 @@ class FeedbackFieldTest extends TestCase
             'start_time' => '08:00',
             'vehicle_id' => $vehicle->id,
             'location_ids' => [$location->id],
-            'location_order' => (string)$location->id,
+            'location_order' => (string) $location->id,
             'user_ids' => [$user->id],
             'selected_default_tasks' => [$dt->id],
             'selected_backlog_tasks' => [$t->id],

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -20,7 +19,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class PlanningLocationTimer extends Model
 {
-
     protected $fillable = [
         'planning_id',
         'location_id',
@@ -42,6 +40,7 @@ class PlanningLocationTimer extends Model
 
     /**
      * Get the planning that owns the timer.
+     *
      * @return BelongsTo<Planning, $this>
      */
     public function planning(): BelongsTo
@@ -51,6 +50,7 @@ class PlanningLocationTimer extends Model
 
     /**
      * Get the location that owns the timer.
+     *
      * @return BelongsTo<Location, $this>
      */
     public function location(): BelongsTo
@@ -58,9 +58,6 @@ class PlanningLocationTimer extends Model
         return $this->belongsTo(Location::class);
     }
 
-    /**
-     * @return string
-     */
     public function label(): string
     {
         switch ($this->location_type) {

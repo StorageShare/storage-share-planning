@@ -24,7 +24,7 @@ class TravelTimeController extends Controller
             $validated = $request->validate([
                 'origin' => 'required|string',
                 'destination' => 'required|string',
-                'mode' => 'nullable|string|in:driving,walking,transit'
+                'mode' => 'nullable|string|in:driving,walking,transit',
             ]);
 
             $result = $this->travelTimeService->calculateTravelTime(
@@ -35,20 +35,20 @@ class TravelTimeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $result
+                'data' => $result,
             ]);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validatiefout',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Fout bij berekenen reistijd',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -63,7 +63,7 @@ class TravelTimeController extends Controller
                 'location_ids' => 'required|array|min:1',
                 'location_ids.*' => 'required|integer|exists:locations,id',
                 'start_address' => 'nullable|string',
-                'mode' => 'nullable|string|in:driving,walking,transit'
+                'mode' => 'nullable|string|in:driving,walking,transit',
             ]);
 
             $locations = Location::whereIn('id', $validated['location_ids'])
@@ -81,20 +81,20 @@ class TravelTimeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $result
+                'data' => $result,
             ]);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validatiefout',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Fout bij berekenen reistijden',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

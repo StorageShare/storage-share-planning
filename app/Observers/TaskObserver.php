@@ -21,7 +21,7 @@ class TaskObserver
      */
     public function updating(Task $task): void
     {
-        if ($task->isDirty('priority') && !$task->isDirty('priority_updated_at')) {
+        if ($task->isDirty('priority') && ! $task->isDirty('priority_updated_at')) {
             $task->priority_updated_at = now();
         }
     }

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class LocationDistance extends Model
 {
@@ -28,6 +28,7 @@ class LocationDistance extends Model
 
     /**
      * Relatie naar de van-locatie
+     *
      * @return BelongsTo<Location, $this>
      */
     public function fromLocation(): BelongsTo
@@ -37,6 +38,7 @@ class LocationDistance extends Model
 
     /**
      * Relatie naar de naar-locatie
+     *
      * @return BelongsTo<Location, $this>
      */
     public function toLocation(): BelongsTo
@@ -46,18 +48,20 @@ class LocationDistance extends Model
 
     /**
      * Scope voor het vinden van afstand tussen specifieke locaties
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeBetweenLocations(Builder $query, int $fromLocationId, int $toLocationId): Builder
     {
         return $query->where('from_location_id', $fromLocationId)
-                    ->where('to_location_id', $toLocationId);
+            ->where('to_location_id', $toLocationId);
     }
 
     /**
      * Scope voor recente berekeningen
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeRecent(Builder $query, int $hours = 24): Builder
@@ -75,7 +79,7 @@ class LocationDistance extends Model
         $distance = self::betweenLocations($fromLocationId, $toLocationId)->first();
 
         // Als niet gevonden, probeer de omgekeerde richting
-        if (!$distance) {
+        if (! $distance) {
             $distance = self::betweenLocations($toLocationId, $fromLocationId)->first();
         }
 
@@ -88,6 +92,7 @@ class LocationDistance extends Model
     public static function getDistanceKm(int $fromLocationId, int $toLocationId): ?float
     {
         $distance = self::getDistance($fromLocationId, $toLocationId);
+
         return $distance?->distance_km !== null ? (float) $distance->distance_km : null;
     }
 
@@ -97,6 +102,7 @@ class LocationDistance extends Model
     public static function getDurationMinutes(int $fromLocationId, int $toLocationId): ?int
     {
         $distance = self::getDistance($fromLocationId, $toLocationId);
+
         return $distance?->duration_minutes;
     }
 
@@ -135,9 +141,9 @@ class LocationDistance extends Model
     public static function getDistancesFrom(int $fromLocationId, string $sortBy = 'distance_km'): \Illuminate\Database\Eloquent\Collection
     {
         return self::where('from_location_id', $fromLocationId)
-                  ->with('toLocation')
-                  ->orderBy($sortBy)
-                  ->get();
+            ->with('toLocation')
+            ->orderBy($sortBy)
+            ->get();
     }
 
     /**
@@ -149,9 +155,9 @@ class LocationDistance extends Model
     public static function getDistancesTo(int $toLocationId, string $sortBy = 'distance_km'): \Illuminate\Database\Eloquent\Collection
     {
         return self::where('to_location_id', $toLocationId)
-                  ->with('fromLocation')
-                  ->orderBy($sortBy)
-                  ->get();
+            ->with('fromLocation')
+            ->orderBy($sortBy)
+            ->get();
     }
 
     /**
@@ -159,7 +165,7 @@ class LocationDistance extends Model
      */
     public function isRecent(int $hours = 24): bool
     {
-        if (!$this->calculated_at) {
+        if (! $this->calculated_at) {
             return false;
         }
 
@@ -171,11 +177,11 @@ class LocationDistance extends Model
      */
     public function getFormattedDistanceAttribute(): string
     {
-        if (!$this->distance_km) {
+        if (! $this->distance_km) {
             return 'Onbekend';
         }
 
-        return number_format((float) $this->distance_km, 1) . ' km';
+        return number_format((float) $this->distance_km, 1).' km';
     }
 
     /**
@@ -183,7 +189,7 @@ class LocationDistance extends Model
      */
     public function getFormattedDurationAttribute(): string
     {
-        if (!$this->duration_minutes) {
+        if (! $this->duration_minutes) {
             return 'Onbekend';
         }
 

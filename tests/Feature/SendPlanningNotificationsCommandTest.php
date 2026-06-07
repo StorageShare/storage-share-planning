@@ -78,7 +78,7 @@ class SendPlanningNotificationsCommandTest extends TestCase
         // 2. Run the command
         $this->artisan('app:send-planning-notifications')
             ->assertExitCode(0)
-            ->expectsOutputToContain("Planning #1 heeft geen toegewezen gebruikers. Overslaan.");
+            ->expectsOutputToContain('Planning #1 heeft geen toegewezen gebruikers. Overslaan.');
 
         // 3. Assert no mail sent
         Mail::assertNothingSent();

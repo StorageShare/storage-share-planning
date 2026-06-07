@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Services\CsvTaskImportService;
 use App\Models\Location;
+use App\Services\CsvTaskImportService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class TestLocationMatchingCommand extends Command
 {
@@ -22,12 +21,13 @@ class TestLocationMatchingCommand extends Command
 
         if ($existingLocations->isEmpty()) {
             $this->error('No locations found in database. Please add some locations first.');
+
             return 1;
         }
 
-        $this->info('📍 Found ' . $existingLocations->count() . ' existing locations:');
+        $this->info('📍 Found '.$existingLocations->count().' existing locations:');
         foreach ($existingLocations as $location) {
-            $this->line("  - {$location->name}" . ($location->address ? " ({$location->address})" : ''));
+            $this->line("  - {$location->name}".($location->address ? " ({$location->address})" : ''));
         }
 
         // Create test cases based on existing locations
@@ -40,14 +40,14 @@ class TestLocationMatchingCommand extends Command
             $testCases[] = [
                 'input' => $originalName,
                 'expected' => $location,
-                'test_type' => 'exact_match'
+                'test_type' => 'exact_match',
             ];
 
             // Test case-insensitive
             $testCases[] = [
                 'input' => strtoupper($originalName),
                 'expected' => $location,
-                'test_type' => 'case_insensitive'
+                'test_type' => 'case_insensitive',
             ];
 
             // Test with comma variations
@@ -55,15 +55,15 @@ class TestLocationMatchingCommand extends Command
                 $testCases[] = [
                     'input' => str_replace(',', '', $originalName),
                     'expected' => $location,
-                    'test_type' => 'comma_removed'
+                    'test_type' => 'comma_removed',
                 ];
             } else {
                 $parts = explode(' ', $originalName, 2);
                 if (count($parts) === 2) {
                     $testCases[] = [
-                        'input' => $parts[0] . ', ' . $parts[1],
+                        'input' => $parts[0].', '.$parts[1],
                         'expected' => $location,
-                        'test_type' => 'comma_added'
+                        'test_type' => 'comma_added',
                     ];
                 }
             }
@@ -72,7 +72,7 @@ class TestLocationMatchingCommand extends Command
             $testCases[] = [
                 'input' => str_replace(['.', '-', '_'], ' ', $originalName),
                 'expected' => $location,
-                'test_type' => 'punctuation_normalized'
+                'test_type' => 'punctuation_normalized',
             ];
 
             // Test with slight typos (only for first location)
@@ -80,7 +80,7 @@ class TestLocationMatchingCommand extends Command
                 $testCases[] = [
                     'input' => $this->introduceTypo($originalName),
                     'expected' => $location,
-                    'test_type' => 'typo_test'
+                    'test_type' => 'typo_test',
                 ];
             }
         }
@@ -89,24 +89,24 @@ class TestLocationMatchingCommand extends Command
         $testCases[] = [
             'input' => 'Leeuwarden Lange Marktstraat 11',
             'expected' => null, // Will be determined by matching
-            'test_type' => 'manual_example_1'
+            'test_type' => 'manual_example_1',
         ];
 
         $testCases[] = [
             'input' => 'Leeuwarden, Lange Marktstraat 11',
             'expected' => null,
-            'test_type' => 'manual_example_2'
+            'test_type' => 'manual_example_2',
         ];
 
         // Test the matching
-        $this->info("\n🧪 Running " . count($testCases) . " test cases...\n");
+        $this->info("\n🧪 Running ".count($testCases)." test cases...\n");
 
-        $csvService = new CsvTaskImportService();
+        $csvService = new CsvTaskImportService;
         $successCount = 0;
         $failureCount = 0;
 
         foreach ($testCases as $index => $testCase) {
-            $this->line("Test " . ($index + 1) . ": {$testCase['test_type']}");
+            $this->line('Test '.($index + 1).": {$testCase['test_type']}");
             $this->line("  Input: '{$testCase['input']}'");
 
             // Use reflection to access the private method
@@ -117,25 +117,25 @@ class TestLocationMatchingCommand extends Command
             $foundLocation = $findLocationMethod->invoke($csvService, $testCase['input']);
 
             if ($foundLocation) {
-                $this->line("  ✅ Found: {$foundLocation->name}" . ($foundLocation->address ? " ({$foundLocation->address})" : ''));
+                $this->line("  ✅ Found: {$foundLocation->name}".($foundLocation->address ? " ({$foundLocation->address})" : ''));
 
                 if ($testCase['expected'] && $foundLocation->id === $testCase['expected']->id) {
-                    $this->info("  🎯 MATCH: Correctly matched expected location");
+                    $this->info('  🎯 MATCH: Correctly matched expected location');
                     $successCount++;
-                } elseif (!$testCase['expected']) {
-                    $this->info("  ℹ️  Manual test case - please verify if this is correct");
+                } elseif (! $testCase['expected']) {
+                    $this->info('  ℹ️  Manual test case - please verify if this is correct');
                     $successCount++;
                 } else {
                     $this->error("  ❌ MISMATCH: Expected {$testCase['expected']->name}");
                     $failureCount++;
                 }
             } else {
-                $this->line("  ❌ No match found");
+                $this->line('  ❌ No match found');
                 if ($testCase['expected']) {
                     $this->error("  ❌ FAILED: Expected to find {$testCase['expected']->name}");
                     $failureCount++;
                 } else {
-                    $this->info("  ℹ️  No expected match - this is OK");
+                    $this->info('  ℹ️  No expected match - this is OK');
                     $successCount++;
                 }
             }
@@ -144,7 +144,7 @@ class TestLocationMatchingCommand extends Command
         }
 
         // Summary
-        $this->info("📊 Test Results Summary:");
+        $this->info('📊 Test Results Summary:');
         $this->info("  ✅ Successful matches: {$successCount}");
         if ($failureCount > 0) {
             $this->error("  ❌ Failed matches: {$failureCount}");
@@ -153,7 +153,7 @@ class TestLocationMatchingCommand extends Command
         }
 
         $successRate = $successCount / ($successCount + $failureCount) * 100;
-        $this->info("  📈 Success rate: " . round($successRate, 1) . "%");
+        $this->info('  📈 Success rate: '.round($successRate, 1).'%');
 
         $this->info("\n💡 You can check the logs for detailed matching information:");
         $this->comment("  php artisan logs:syslog | grep 'Location matching'");
@@ -178,12 +178,12 @@ class TestLocationMatchingCommand extends Command
         $replacements = [
             'a' => 'e', 'e' => 'a', 'i' => 'e', 'o' => 'a',
             'n' => 'm', 'm' => 'n', 'r' => 'l', 'l' => 'r',
-            't' => 'd', 'd' => 't'
+            't' => 'd', 'd' => 't',
         ];
 
-        $targetChar = $chars[(int)$middle];
+        $targetChar = $chars[(int) $middle];
         if (isset($replacements[strtolower($targetChar)])) {
-            $chars[(int)$middle] = $replacements[strtolower($targetChar)];
+            $chars[(int) $middle] = $replacements[strtolower($targetChar)];
         }
 
         return implode('', $chars);

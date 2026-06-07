@@ -75,16 +75,24 @@ class ExternalTaskInReviewTest extends TestCase
 
     public function test_admin_can_approve_external_task_to_open_backlog_task(): void
     {
-        $this->markTestIncomplete('Approval logic for ExternalTask needs to be defined (should it convert to Task?)');
-
         $admin = User::factory()->create(['role' => 'admin']);
         $location = Location::factory()->create();
-        $task = ExternalTask::factory()->create([
+        $externalTask = ExternalTask::factory()->create([
             'location_id' => $location->id,
+            'title' => 'Te goedkeuren externe taak',
             'status' => TaskStatus::IN_REVIEW,
         ]);
 
-        // Assuming there will be a route to approve external task
-        // $response = $this->actingAs($admin)->post(route('external-tasks.approve', $task));
+        $response = $this->actingAs($admin)->post(route('external-backlog.approve', $externalTask));
+
+        $response->assertRedirect(route('backlog.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('tasks', [
+            'title' => 'Te goedkeuren externe taak',
+            'location_id' => $location->id,
+            'status' => TaskStatus::OPEN->value,
+        ]);
+        $this->assertDatabaseMissing('external_tasks', ['id' => $externalTask->id]);
     }
 }

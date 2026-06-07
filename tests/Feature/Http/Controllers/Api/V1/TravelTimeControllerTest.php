@@ -115,9 +115,10 @@ class TravelTimeControllerTest extends TestCase
                 ->once()
                 ->with(Mockery::on(function ($locations) use ($l1, $l3, $l2) {
                     // Expect the order to match the provided location_ids
-                    if (!is_array($locations) || count($locations) !== 3) {
+                    if (! is_array($locations) || count($locations) !== 3) {
                         return false;
                     }
+
                     return $locations[0]->id === $l1->id
                         && $locations[1]->id === $l3->id
                         && $locations[2]->id === $l2->id;
@@ -170,7 +171,7 @@ class TravelTimeControllerTest extends TestCase
             'location_ids' => [$l1->id],
         ];
 
-        $this->mock(TravelTimeService::class, function ($m) use ($l1) {
+        $this->mock(TravelTimeService::class, function ($m) {
             $m->shouldReceive('calculateTravelTimesForSequence')
                 ->once()
                 ->with(Mockery::type('array'), null, 'driving')

@@ -1,12 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ExternalTaskController;
-use App\Http\Controllers\Api\V1\DefaultTaskController;
-use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\LocationDistanceController;
-use App\Http\Controllers\Api\V1\PlanningController as PlanningControllerV1;
 use App\Http\Controllers\Api\V1\TaskController;
-use App\Http\Controllers\Api\V1\TaskPhotoController;
 use App\Http\Controllers\Api\V1\TravelTimeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;

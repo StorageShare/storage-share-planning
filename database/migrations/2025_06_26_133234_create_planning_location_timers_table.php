@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamp('ended_at')->nullable();
             $table->integer('total_duration_seconds')->default(0);
             $table->timestamps();
-            
+
             // Index voor betere prestaties
             $table->index(['planning_id', 'location_id', 'location_type'], 'plt_planning_location_type_idx');
         });

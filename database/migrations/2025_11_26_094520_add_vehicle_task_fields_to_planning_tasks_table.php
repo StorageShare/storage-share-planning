@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('planning_tasks', function (Blueprint $table) {
             $table->foreignId('vehicle_task_id')->nullable()->after('default_task_id')->constrained('vehicle_tasks')->nullOnDelete();
             $table->boolean('is_vehicle_task')->default(false)->after('vehicle_task_id');
-            if (!Schema::hasColumn('planning_tasks', 'estimated_time_minutes')) {
+            if (! Schema::hasColumn('planning_tasks', 'estimated_time_minutes')) {
                 $table->integer('estimated_time_minutes')->nullable()->after('status');
             }
         });

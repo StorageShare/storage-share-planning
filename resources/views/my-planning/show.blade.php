@@ -1184,7 +1184,6 @@
                                     </div>
 
                                     {{-- Inactive Rooms Section --}}
-                                    <div x-init="console.log('Location data:', location)" class="hidden"></div>
                                     <template x-if="location.check_inactive_spaces">
                                         <div class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
                                             <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Inactieve ruimtes behandelen</h4>
@@ -2978,7 +2977,6 @@
                             this.locationStartTime = new Date(timerData.started_at).getTime();
                             this.locationBaseDuration = timerData.total_duration || 0;
                             this.locationElapsedSeconds = this.locationBaseDuration + Math.floor((Date.now() - this.locationStartTime) / 1000);
-                            console.log(`Timer hervat voor ${currentLocation.title || currentLocation.location_name}`);
                         } else if (!timerData.started_at) {
                             // Eerste keer - start nieuwe timer vanaf 0
                             this.locationStartTime = Date.now();
@@ -2987,7 +2985,6 @@
 
                             // Start timer in database
                             await axios.post(`/plannings/${this.planningId}/locations/${timerId}/timer/start`);
-                            console.log(`Timer gestart voor ${currentLocation.title || currentLocation.location_name}`);
                         } else if (timerData.ended_at) {
                             // Timer was beëindigd - herstart en behoud de tijd
                             this.locationStartTime = Date.now();
@@ -2997,7 +2994,6 @@
                             // Herstart timer in database
                             await axios.post(`/plannings/${this.planningId}/locations/${timerId}/timer/start`);
 
-                            console.log(`Timer herstart voor ${currentLocation.title || currentLocation.location_name} vanaf ${this.formatDuration(this.locationBaseDuration)}`);
                         } else {
                             // Onbekende staat - start opnieuw
                             this.locationStartTime = Date.now();
@@ -3006,7 +3002,6 @@
 
                             // Start timer in database
                             await axios.post(`/plannings/${this.planningId}/locations/${timerId}/timer/start`);
-                            console.log(`Timer gestart voor ${currentLocation.title || currentLocation.location_name}`);
                         }
                     } catch (error) {
                         console.warn('Kon timer data niet ophalen, gebruik fallback:', error);
@@ -3079,7 +3074,6 @@
                                     total_duration: finalTotalDuration
                                 });
 
-                                console.log(`Timer opgeslagen voor ${currentLocation.title || currentLocation.location_name}: ${this.formatDuration(finalTotalDuration)}`);
                             } catch (error) {
                                 console.error('Kon timer niet opslaan in database:', error);
                             }
@@ -3139,8 +3133,6 @@
                                     startTime: Date.now(),
                                     totalDuration: totalDuration
                                 }));
-
-                                console.log(`Timer gestopt voor ${locationStep.location_name || locationStep.title}: ${this.formatDuration(totalDuration)}`);
                             }
                         } catch (error) {
                             console.error('Kon timer niet stoppen voor vorige locatie:', error);

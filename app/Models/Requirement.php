@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Database\Factories\RequirementFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -77,7 +77,7 @@ class Requirement extends Model
     /**
      * Scope to get requirements that are required for a specific location.
      *
-     * @param Builder<Requirement> $query
+     * @param  Builder<Requirement>  $query
      * @return Builder<Requirement>
      */
     public function scopeRequiredForLocation(Builder $query, int $locationId): Builder

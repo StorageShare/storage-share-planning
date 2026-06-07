@@ -31,14 +31,15 @@ class SendPlanningNotificationsCommand extends Command
     public function handle(): int
     {
         $tomorrow = Carbon::tomorrow();
-        $this->info("Zoeken naar planningen voor morgen: " . $tomorrow->toDateString());
+        $this->info('Zoeken naar planningen voor morgen: '.$tomorrow->toDateString());
 
         $plannings = Planning::whereDate('planned_date', $tomorrow)
             ->with(['users'])
             ->get();
 
         if ($plannings->isEmpty()) {
-            $this->info("Geen planningen gevonden voor morgen.");
+            $this->info('Geen planningen gevonden voor morgen.');
+
             return Command::SUCCESS;
         }
 
@@ -47,6 +48,7 @@ class SendPlanningNotificationsCommand extends Command
         foreach ($plannings as $planning) {
             if ($planning->users->isEmpty()) {
                 $this->warn("Planning #{$planning->id} heeft geen toegewezen gebruikers. Overslaan.");
+
                 continue;
             }
 
@@ -56,7 +58,7 @@ class SendPlanningNotificationsCommand extends Command
                     $totalSent++;
                     $this->info("Notificatie verstuurd naar {$user->email} voor planning #{$planning->id}");
                 } catch (\Exception $e) {
-                    $errorMessage = "Fout bij het versturen van notificatie naar user #{$user->id} voor planning #{$planning->id}: " . $e->getMessage();
+                    $errorMessage = "Fout bij het versturen van notificatie naar user #{$user->id} voor planning #{$planning->id}: ".$e->getMessage();
                     $this->error($errorMessage);
                     Log::error($errorMessage);
                 }

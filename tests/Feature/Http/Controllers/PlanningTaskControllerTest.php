@@ -42,6 +42,7 @@ class PlanningTaskControllerTest extends TestCase
             'description' => $task->description,
             'status' => TaskStatus::OPEN->value,
         ]);
+
         return [$planning, $pt, $task, $location];
     }
 
@@ -247,7 +248,7 @@ class PlanningTaskControllerTest extends TestCase
 
         // There should be a new Task with title including (Herstel)
         $this->assertDatabaseHas('tasks', [
-            'title' => $task->title . ' (Herstel)',
+            'title' => $task->title.' (Herstel)',
             'status' => TaskStatus::OPEN->value,
         ]);
 

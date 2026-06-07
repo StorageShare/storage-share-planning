@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Requirement;
 use App\Models\EndChecklistItem;
 use App\Models\EndChecklistItemPhoto;
 use App\Models\Planning;
+use App\Models\Requirement;
 use App\Models\Task;
-use App\Models\DefaultTask;
-use App\Models\PlanningTask;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +15,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use App\Services\ImageService;
 use Illuminate\View\View;
 
 class EndChecklistController extends Controller
@@ -66,7 +64,7 @@ class EndChecklistController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'End checklist aangemaakt',
-            'items' => $planning->fresh()->endChecklistItems
+            'items' => $planning->fresh()->endChecklistItems,
         ]);
     }
 
@@ -93,14 +91,14 @@ class EndChecklistController extends Controller
             if (empty($files)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Geen foto\'s ontvangen'
+                    'message' => 'Geen foto\'s ontvangen',
                 ], 422);
             }
 
             $saved = [];
             foreach ($files as $photo) {
                 // Use ImageService for consistent compression and storage pattern like Tasks
-                $filename = uniqid('eci_'.$item->id.'_', true) . '.' . $photo->getClientOriginalExtension();
+                $filename = uniqid('eci_'.$item->id.'_', true).'.'.$photo->getClientOriginalExtension();
                 $directory = 'end-checklist-photos/'.$item->id;
 
                 try {
@@ -141,6 +139,7 @@ class EndChecklistController extends Controller
                 'photos' => $item->photos->map->only(['id', 'file_path', 'uploaded_at'])
                     ->map(function ($p) {
                         $p['photo_url'] = Storage::disk('public')->url($p['file_path']);
+
                         return $p;
                     })
                     ->values()
@@ -149,7 +148,7 @@ class EndChecklistController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij uploaden van foto\'s: ' . $e->getMessage()
+                'message' => 'Fout bij uploaden van foto\'s: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -180,12 +179,12 @@ class EndChecklistController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Alle foto\'s succesvol verwijderd'
+                'message' => 'Alle foto\'s succesvol verwijderd',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij verwijderen van foto\'s: ' . $e->getMessage()
+                'message' => 'Fout bij verwijderen van foto\'s: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -218,12 +217,12 @@ class EndChecklistController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Foto verwijderd'
+                'message' => 'Foto verwijderd',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij verwijderen van foto: ' . $e->getMessage()
+                'message' => 'Fout bij verwijderen van foto: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -243,7 +242,7 @@ class EndChecklistController extends Controller
         if ($itemsWithoutPhotos > 0) {
             return response()->json([
                 'success' => false,
-                'message' => "Er zijn nog {$itemsWithoutPhotos} items zonder foto. Upload alle foto's voordat je de checklist indient."
+                'message' => "Er zijn nog {$itemsWithoutPhotos} items zonder foto. Upload alle foto's voordat je de checklist indient.",
             ], 422);
         }
 
@@ -260,7 +259,7 @@ class EndChecklistController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'End checklist ingediend voor beoordeling'
+            'message' => 'End checklist ingediend voor beoordeling',
         ]);
     }
 
@@ -304,32 +303,31 @@ class EndChecklistController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Checklist item beoordeeld'
+            'message' => 'Checklist item beoordeeld',
         ]);
     }
 
     /**
      * Admin: Get plannings with pending end checklists.
-     *
      */
     public function pendingReviews(): JsonResponse
     {
         $plannings = Planning::whereHas('endChecklistItems', /** @param \Illuminate\Database\Eloquent\Builder<\App\Models\EndChecklistItem> $query */ function (\Illuminate\Database\Eloquent\Builder $query): void {
             $query->where('status', 'pending')
-                  ->whereHas('photos');
+                ->whereHas('photos');
         })
-        ->with([
-            'endChecklistItems' => function ($query) {
-                $query->with(['requirement', 'reviewer', 'location', 'uploader', 'photos']);
-            },
-            'locations',
-            'users'
-        ])
-        ->orderBy('updated_at', 'desc')
-        ->get();
+            ->with([
+                'endChecklistItems' => function ($query) {
+                    $query->with(['requirement', 'reviewer', 'location', 'uploader', 'photos']);
+                },
+                'locations',
+                'users',
+            ])
+            ->orderBy('updated_at', 'desc')
+            ->get();
 
         return response()->json([
-            'plannings' => $plannings
+            'plannings' => $plannings,
         ]);
     }
 
@@ -470,30 +468,31 @@ class EndChecklistController extends Controller
                 ?? ($item->planning != null ? $item->planning->locations()->first()?->id : null)
                 ?? (\App\Models\Location::query()->first()?->id);
 
-            if (!$locationId) {
+            if (! $locationId) {
                 // No location could be determined — gracefully fall back
                 if ($request->expectsJson()) {
                     return response()->json([
                         'status' => 'ok',
-                        'message' => $message . ' Geen locatie gevonden om een nieuwe taak aan te maken.',
+                        'message' => $message.' Geen locatie gevonden om een nieuwe taak aan te maken.',
                         'affected_count' => $count,
                         'new_task' => null,
                     ]);
                 }
+
                 return redirect()->route('admin.tasks.review')
                     ->with('error', 'Kan geen locatie bepalen voor de nieuwe taak. De checklist is afgewezen, maar er is geen nieuwe taak aangemaakt.');
             }
 
             $prefill = [
                 'title' => $item->title,
-                'description' => ($item->description ?? '') . "\n\nGemaakt vanuit afgewezen end checklist item.\nAfwijzingsreden: " . $request->admin_notes,
+                'description' => ($item->description ?? '')."\n\nGemaakt vanuit afgewezen end checklist item.\nAfwijzingsreden: ".$request->admin_notes,
                 'location_id' => $locationId,
             ];
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => 'ok',
-                    'message' => $message . ' Een nieuwe taak kan worden aangemaakt.',
+                    'message' => $message.' Een nieuwe taak kan worden aangemaakt.',
                     'affected_count' => $count,
                     'new_task' => [
                         'create_url' => route('locations.tasks.create', ['location' => $locationId]),
@@ -504,7 +503,7 @@ class EndChecklistController extends Controller
 
             return redirect()->route('locations.tasks.create', ['location' => $locationId])
                 ->with('prefill', $prefill)
-                ->with('success', $message . ' Een nieuwe taak wordt aangemaakt.');
+                ->with('success', $message.' Een nieuwe taak wordt aangemaakt.');
         }
 
         if ($request->expectsJson()) {

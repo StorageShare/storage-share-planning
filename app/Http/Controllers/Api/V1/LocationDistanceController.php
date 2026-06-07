@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Services\LocationDistanceService;
 use App\Models\Location;
-use Illuminate\Http\Request;
+use App\Services\LocationDistanceService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -28,10 +28,10 @@ class LocationDistanceController extends Controller
     {
         try {
             $location = Location::find($locationId);
-            if (!$location) {
+            if (! $location) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Locatie niet gevonden'
+                    'message' => 'Locatie niet gevonden',
                 ], 404);
             }
 
@@ -46,19 +46,19 @@ class LocationDistanceController extends Controller
                     ],
                     'distances' => $distances,
                     'total_count' => count($distances),
-                    'cached_at' => now()->toISOString()
-                ]
+                    'cached_at' => now()->toISOString(),
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error getting sorted distances', [
                 'location_id' => $locationId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij ophalen afstanden'
+                'message' => 'Fout bij ophalen afstanden',
             ], 500);
         }
     }
@@ -84,7 +84,7 @@ class LocationDistanceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validatie mislukt',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -93,7 +93,7 @@ class LocationDistanceController extends Controller
             $locationIds = $request->input('location_ids');
 
             // Verwijder de from_location uit de lijst als deze erin zit
-            $locationIds = array_filter($locationIds, fn($id) => $id != $fromLocationId);
+            $locationIds = array_filter($locationIds, fn ($id) => $id != $fromLocationId);
 
             $sortedIds = $this->locationDistanceService->sortLocationsByDistance($fromLocationId, $locationIds);
 
@@ -120,19 +120,19 @@ class LocationDistanceController extends Controller
                     'sorted_location_ids' => $sortedIds,
                     'locations_with_distances' => $locationsWithDistances,
                     'total_count' => count($sortedIds),
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error sorting locations by distance', [
                 'from_location_id' => $request->input('from_location_id'),
                 'location_ids' => $request->input('location_ids'),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij sorteren locaties'
+                'message' => 'Fout bij sorteren locaties',
             ], 500);
         }
     }
@@ -148,23 +148,23 @@ class LocationDistanceController extends Controller
             $fromLocation = Location::find($fromLocationId);
             $toLocation = Location::find($toLocationId);
 
-            if (!$fromLocation || !$toLocation) {
+            if (! $fromLocation || ! $toLocation) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Een of beide locaties niet gevonden'
+                    'message' => 'Een of beide locaties niet gevonden',
                 ], 404);
             }
 
             $distance = $this->locationDistanceService->getDistance($fromLocationId, $toLocationId);
 
-            if (!$distance) {
+            if (! $distance) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Afstand kon niet worden berekend',
                     'data' => [
                         'from_location' => ['id' => $fromLocationId, 'name' => $fromLocation->name],
                         'to_location' => ['id' => $toLocationId, 'name' => $toLocation->name],
-                    ]
+                    ],
                 ], 404);
             }
 
@@ -180,19 +180,19 @@ class LocationDistanceController extends Controller
                     'calculated_at' => $distance->calculated_at?->toISOString(),
                     'is_recent' => $distance->isRecent(),
                     'calculation_method' => $distance->calculation_method,
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error getting distance between locations', [
                 'from_location_id' => $fromLocationId,
                 'to_location_id' => $toLocationId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij ophalen afstand'
+                'message' => 'Fout bij ophalen afstand',
             ], 500);
         }
     }
@@ -208,19 +208,19 @@ class LocationDistanceController extends Controller
             $fromLocation = Location::find($fromLocationId);
             $toLocation = Location::find($toLocationId);
 
-            if (!$fromLocation || !$toLocation) {
+            if (! $fromLocation || ! $toLocation) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Een of beide locaties niet gevonden'
+                    'message' => 'Een of beide locaties niet gevonden',
                 ], 404);
             }
 
             $distance = $this->locationDistanceService->getDistance($fromLocationId, $toLocationId, true);
 
-            if (!$distance) {
+            if (! $distance) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Afstand kon niet worden herberekend'
+                    'message' => 'Afstand kon niet worden herberekend',
                 ], 500);
             }
 
@@ -236,19 +236,19 @@ class LocationDistanceController extends Controller
                     'formatted_duration' => $distance->formatted_duration,
                     'calculated_at' => $distance->calculated_at?->toISOString(),
                     'calculation_method' => $distance->calculation_method,
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error recalculating distance', [
                 'from_location_id' => $fromLocationId,
                 'to_location_id' => $toLocationId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij herberekenen afstand'
+                'message' => 'Fout bij herberekenen afstand',
             ], 500);
         }
     }
@@ -282,18 +282,18 @@ class LocationDistanceController extends Controller
                     'cache_stats' => [
                         'recent_threshold_hours' => 24,
                         'old_threshold_days' => 365,
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error getting cache stats', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Fout bij ophalen cache statistieken'
+                'message' => 'Fout bij ophalen cache statistieken',
             ], 500);
         }
     }

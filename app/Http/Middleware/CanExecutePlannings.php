@@ -16,10 +16,10 @@ class CanExecutePlannings
         /** @var \App\Models\User|null $user */
         $user = $request->user();
 
-        if (!$user || !$user->canExecutePlannings()) {
+        if (! $user || ! $user->canExecutePlannings()) {
             abort(403, 'Access denied');
         }
 
         return $next($request);
     }
-} 
+}

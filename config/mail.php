@@ -117,6 +117,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Planning Notification Recipient
+    |--------------------------------------------------------------------------
+    |
+    | Address that receives notifications when tasks are created via the API.
+    |
+    */
+
+    'planning_notifications' => [
+        'address' => env('MAIL_PLANNING_NOTIFICATION_ADDRESS', 'planning@storage-share.nl'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Markdown Mail Settings
     |--------------------------------------------------------------------------
     |

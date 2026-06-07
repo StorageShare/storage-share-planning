@@ -16,7 +16,7 @@ class CanManagePlannings
         /** @var \App\Models\User|null $user */
         $user = $request->user();
 
-        if (!$user || !$user->canManagePlannings()) {
+        if (! $user || ! $user->canManagePlannings()) {
             abort(403, 'Access denied');
         }
 

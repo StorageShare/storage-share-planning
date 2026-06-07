@@ -40,6 +40,7 @@ class UserControllerTest extends TestCase
             $ids = $paginator->getCollection()->pluck('id')->all();
             $this->assertContains($u1->id, $ids);
             $this->assertContains($u2->id, $ids);
+
             return true;
         });
     }
@@ -54,6 +55,7 @@ class UserControllerTest extends TestCase
         $resp->assertViewHas('roles', function ($roles) {
             // Expect Role::cases()
             $this->assertIsArray($roles) || $this->assertInstanceOf(\UnitEnum::class, $roles[0] ?? null);
+
             return count($roles) > 0;
         });
     }

@@ -33,13 +33,13 @@ class CsvImportController extends Controller
                 'required',
                 'file',
                 'mimes:csv,txt',
-                'max:10240' // 10MB max
-            ]
+                'max:10240', // 10MB max
+            ],
         ], [
             'csv_file.required' => 'Selecteer een CSV bestand om te uploaden.',
             'csv_file.file' => 'Het geüploade bestand is ongeldig.',
             'csv_file.mimes' => 'Het bestand moet een CSV bestand zijn.',
-            'csv_file.max' => 'Het bestand mag niet groter zijn dan 10MB.'
+            'csv_file.max' => 'Het bestand mag niet groter zijn dan 10MB.',
         ]);
 
         if ($validator->fails()) {
@@ -79,7 +79,7 @@ class CsvImportController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->withErrors(['csv_file' => 'Er is een fout opgetreden bij het importeren: ' . $e->getMessage()])
+                ->withErrors(['csv_file' => 'Er is een fout opgetreden bij het importeren: '.$e->getMessage()])
                 ->withInput();
         }
     }
@@ -96,7 +96,7 @@ class CsvImportController extends Controller
             'Prioriteit',
             'Team 1',
             'Geplande datum',
-            'Medewerker'
+            'Medewerker',
         ];
 
         $sampleData = [
@@ -107,7 +107,7 @@ class CsvImportController extends Controller
                 'Hoog',
                 '',
                 '01/12/2024',
-                ''
+                '',
             ],
             [
                 'Soest Weteringpad 18',
@@ -116,22 +116,22 @@ class CsvImportController extends Controller
                 'Laag',
                 '',
                 '15/12/2024',
-                ''
-            ]
+                '',
+            ],
         ];
 
         $csvContent = '';
 
         // Add headers
-        $csvContent .= implode(',', array_map(function($header) {
-            return '"' . str_replace('"', '""', $header) . '"';
-        }, $headers)) . "\n";
+        $csvContent .= implode(',', array_map(function ($header) {
+            return '"'.str_replace('"', '""', $header).'"';
+        }, $headers))."\n";
 
         // Add sample data
         foreach ($sampleData as $row) {
-            $csvContent .= implode(',', array_map(function($field) {
-                return '"' . str_replace('"', '""', $field) . '"';
-            }, $row)) . "\n";
+            $csvContent .= implode(',', array_map(function ($field) {
+                return '"'.str_replace('"', '""', $field).'"';
+            }, $row))."\n";
         }
 
         return response($csvContent)

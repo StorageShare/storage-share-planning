@@ -20,13 +20,9 @@ const API_CACHE_PATTERNS = [
 ];
 
 self.addEventListener('install', (event) => {
-    console.log('Service Worker installing...');
     event.waitUntil(
         Promise.all([
-            caches.open(STATIC_CACHE).then(cache => {
-                console.log('Caching static assets');
-                return cache.addAll(STATIC_ASSETS);
-            }),
+            caches.open(STATIC_CACHE).then(cache => cache.addAll(STATIC_ASSETS)),
             caches.open(CACHE_NAME)
         ])
     );
@@ -34,13 +30,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker activating...');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
                     if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE) {
-                        console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -99,7 +93,6 @@ async function handlePlanningPage(request) {
         }
         throw new Error('Network response not ok');
     } catch (error) {
-        console.log('Network failed for planning page, trying cache');
         // Try cache
         const cachedResponse = await caches.match(request);
         if (cachedResponse) {
@@ -133,7 +126,6 @@ async function handleOfflineAPI(request) {
         }
         throw new Error('Network response not ok');
     } catch (error) {
-        console.log('Network failed for API, trying cache');
         // Try cache
         const cachedResponse = await caches.match(request);
         if (cachedResponse) {
@@ -166,7 +158,6 @@ async function handleStaticAsset(request) {
         }
         return networkResponse;
     } catch (error) {
-        console.log('Failed to fetch static asset:', request.url);
         return new Response('Asset not available offline', { status: 404 });
     }
 }
@@ -220,8 +211,6 @@ self.addEventListener('sync', (event) => {
 });
 
 async function doBackgroundSync() {
-    console.log('Background sync triggered');
-    // Post message to main thread to trigger sync
     const clients = await self.clients.matchAll();
     clients.forEach(client => {
         client.postMessage({

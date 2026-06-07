@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Enums\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class SyslogController extends Controller
 {
@@ -15,7 +14,7 @@ class SyslogController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403);
         }
 
@@ -31,7 +30,7 @@ class SyslogController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -43,7 +42,7 @@ class SyslogController extends Controller
         return response()->json([
             'logs' => $logs,
             'count' => count($logs),
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]);
     }
 
@@ -55,23 +54,23 @@ class SyslogController extends Controller
         $syslogPaths = [
             '/var/log/syslog',
             '/var/log/messages',
-            '/var/log/system.log'
+            '/var/log/system.log',
         ];
 
         /** @var array<int, string> $logs */
         $logs = [];
         $appName = config('app.name', 'Laravel');
         $appEnv = config('app.env', 'production');
-        $identifier = $appName . '-' . $appEnv;
+        $identifier = $appName.'-'.$appEnv;
 
         foreach ($syslogPaths as $path) {
             if (file_exists($path) && is_readable($path)) {
                 try {
-                    $command = "grep -i '" . addcslashes($identifier, "'\\") . "' {$path}";
+                    $command = "grep -i '".addcslashes($identifier, "'\\")."' {$path}";
 
                     // Add search filter if provided
-                    if (!empty($search)) {
-                        $command .= " | grep -i " . escapeshellarg($search);
+                    if (! empty($search)) {
+                        $command .= ' | grep -i '.escapeshellarg($search);
                     }
 
                     $command .= " | tail -{$lines}";

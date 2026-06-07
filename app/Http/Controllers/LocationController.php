@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Models\Location;
 use App\Http\Requests\StoreLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
+use App\Models\Location;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -37,15 +37,15 @@ class LocationController extends Controller
             ->withCount([
                 'tasks as open_tasks_high_count' => function ($query) {
                     $query->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
-                          ->where('priority', TaskPriority::HIGH->value);
+                        ->where('priority', TaskPriority::HIGH->value);
                 },
                 'tasks as open_tasks_normal_count' => function ($query) {
                     $query->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
-                          ->where('priority', TaskPriority::NORMAL->value);
+                        ->where('priority', TaskPriority::NORMAL->value);
                 },
                 'tasks as open_tasks_low_count' => function ($query) {
                     $query->whereNotIn('status', [TaskStatus::COMPLETED->value, TaskStatus::REJECTED->value])
-                          ->where('priority', TaskPriority::LOW->value);
+                        ->where('priority', TaskPriority::LOW->value);
                 },
             ]);
 

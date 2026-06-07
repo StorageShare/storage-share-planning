@@ -55,7 +55,7 @@ class StorePlanningRequest extends FormRequest
                 function ($attribute, $value, $fail) {
                     // Vehicle must be available (not used in another planning on the same date)
                     $date = $this->input('planned_date');
-                    if (!$date) {
+                    if (! $date) {
                         return; // other rule will report missing date
                     }
                     $exists = \App\Models\Planning::query()
@@ -64,13 +64,13 @@ class StorePlanningRequest extends FormRequest
                         // Allow if the only planning(s) on that date are completed
                         ->where(function ($q) {
                             $q->whereNull('status')
-                              ->orWhere('status', '!=', 'completed');
+                                ->orWhere('status', '!=', 'completed');
                         })
                         ->exists();
                     if ($exists) {
                         $fail('Dit voertuig is al gekoppeld aan een planning op deze datum.');
                     }
-                }
+                },
             ],
             'notes' => 'nullable|string',
             'start_address_option' => 'required|string',
@@ -130,6 +130,7 @@ class StorePlanningRequest extends FormRequest
 
     /**
      * Get custom messages for validator errors.
+     *
      * @return array<string, string>
      */
     public function messages(): array

@@ -2,27 +2,27 @@
 
 use App\Http\Controllers\Admin\TaskReviewController;
 use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\CsvImportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DefaultTaskController;
+use App\Http\Controllers\DefaultVehicleTaskController;
 use App\Http\Controllers\EndChecklistController;
 use App\Http\Controllers\ExternalTaskBacklogController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LocationSyncController;
-use App\Http\Controllers\PlanningController;
-use App\Http\Controllers\PlanningTaskController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\TaskBacklogController;
-use App\Http\Controllers\TaskController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\VehicleController;
-use App\Http\Controllers\DefaultVehicleTaskController;
-use App\Http\Controllers\PlanningVehicleTaskController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MediaLibraryController;
 use App\Http\Controllers\MyPlanningController;
+use App\Http\Controllers\PlanningController;
+use App\Http\Controllers\PlanningTaskController;
+use App\Http\Controllers\PlanningVehicleTaskController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RequirementController;
+use App\Http\Controllers\TaskBacklogController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskPhotoProcessController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\VehicleController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/_xdebug', function () {
     phpinfo(); // leave it for now
@@ -55,6 +55,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::get('csv-import/template', [CsvImportController::class, 'downloadTemplate'])->name('csv-import.template');
 
     Route::post('tasks/{task}/approve', [TaskController::class, 'approve'])->name('tasks.approve');
+    Route::post('external-backlog/{external_task}/approve', [ExternalTaskBacklogController::class, 'approve'])->name('external-backlog.approve');
     Route::post('tasks/{task}/reject', [TaskController::class, 'reject'])->name('tasks.reject');
     Route::post('tasks/{task}/convert-to-external', [TaskController::class, 'convertToExternal'])->name('tasks.convert-to-external');
 
@@ -163,6 +164,7 @@ Route::middleware('auth')->group(function () {
     // Serve media files from the public storage via Laravel to avoid web server 403s
     Route::get('media/{path}', function (string $path) {
         abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($path), 404);
+
         return \Illuminate\Support\Facades\Storage::disk('public')->response($path);
     })->where('path', '.*')->name('media');
 
@@ -189,7 +191,6 @@ Route::middleware('auth')->group(function () {
 
     // Default Vehicle Tasks (for quick selection)
     Route::get('default-vehicle-tasks/active', [DefaultVehicleTaskController::class, 'active'])->name('default-vehicle-tasks.active');
-
 
     // Admin timer routes
     Route::prefix('admin')->name('admin.')->group(function () {

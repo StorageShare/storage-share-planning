@@ -14,6 +14,7 @@ class AppLayout extends Component
     {
         return $name;
     }
+
     /**
      * Get the view / contents that represents the component.
      */

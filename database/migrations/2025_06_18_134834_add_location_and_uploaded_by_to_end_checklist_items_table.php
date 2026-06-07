@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('location_id')->nullable()->after('planning_id')->constrained('locations')->onDelete('set null');
             $table->foreignId('uploaded_by')->nullable()->after('photo_path')->constrained('users')->onDelete('set null');
             $table->timestamp('uploaded_at')->nullable()->after('uploaded_by');
-            
+
             $table->index(['location_id', 'status']);
         });
     }

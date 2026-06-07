@@ -70,4 +70,4 @@ return new class extends Migration
             $table->dropColumn('sync_hash');
         });
     }
-}; 
+};

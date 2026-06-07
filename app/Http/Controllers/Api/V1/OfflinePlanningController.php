@@ -15,7 +15,7 @@ class OfflinePlanningController extends Controller
         $user = Auth::user();
 
         // Controleer toegang
-        if (!$user->isAdmin() && !$planning->users->contains($user)) {
+        if (! $user->isAdmin() && ! $planning->users->contains($user)) {
             abort(403, 'Geen toegang tot deze planning.');
         }
 
@@ -36,7 +36,7 @@ class OfflinePlanningController extends Controller
                 ]);
             },
             'endChecklistItems.requirement',
-            'locationTimers'
+            'locationTimers',
         ]);
 
         // Bereken requirements voor de planning
@@ -52,17 +52,16 @@ class OfflinePlanningController extends Controller
                 'is_admin' => $user->isAdmin(),
                 'can_complete_tasks' => true,
                 'can_upload_photos' => true,
-            ]
+            ],
         ];
 
         return response()->json([
             'planning' => $planning,
-            'offline_data' => $offlineData
+            'offline_data' => $offlineData,
         ]);
     }
 
     /**
-     * @param Planning $planning
      * @return array<int, array{id: int, naam: string, beschrijving: string, type: string}>
      */
     private function calculateRequirements(Planning $planning): array
@@ -98,7 +97,7 @@ class OfflinePlanningController extends Controller
         $data = [
             'planning_updated_at' => $planning->updated_at->timestamp,
             'tasks_count' => $planning->planningTasks->count(),
-            'completions_count' => $planning->planningTasks->sum(fn($pt) => $pt->completions->count()),
+            'completions_count' => $planning->planningTasks->sum(fn ($pt) => $pt->completions->count()),
             'locations_count' => $planning->locations->count(),
         ];
 
@@ -110,7 +109,7 @@ class OfflinePlanningController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (!$user->isAdmin() && !$planning->users->contains($user)) {
+        if (! $user->isAdmin() && ! $planning->users->contains($user)) {
             abort(403, 'Geen toegang tot deze planning.');
         }
 

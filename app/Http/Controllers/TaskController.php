@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Enums\Role;
 use App\Events\LocationCompleted;
-use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\StoreBulkTaskRequest;
+use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Models\ExternalTask;
 use App\Models\Location;
 use App\Models\Requirement;
 use App\Models\Task;
-use App\Models\ExternalTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -134,7 +134,7 @@ class TaskController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'tasks' => $query->get()->map(function($task) {
+                'tasks' => $query->get()->map(function ($task) {
                     return [
                         'id' => $task->id,
                         'title' => $task->title,
@@ -148,7 +148,7 @@ class TaskController extends Controller
                         'estimated_time_minutes' => $task->estimated_time_minutes ?? 0,
                         'location_id' => $task->location_id,
                     ];
-                })
+                }),
             ]);
         }
 
@@ -243,11 +243,11 @@ class TaskController extends Controller
         if ($request->boolean('applies_to_all_locations')) {
             $locationIds = Location::pluck('id')->toArray();
         } elseif ($request->boolean('applies_to_lift_locations')) {
-            $locationIds = Location::where('lift', "Ja")->pluck('id')->toArray();
-        } elseif ($request->boolean('applies_to_door_types') && !empty($validatedData['door_types'])) {
+            $locationIds = Location::where('lift', 'Ja')->pluck('id')->toArray();
+        } elseif ($request->boolean('applies_to_door_types') && ! empty($validatedData['door_types'])) {
             $doorTypes = array_map('trim', array_map('strtolower', $validatedData['door_types']));
             $locationIds = Location::whereIn(\Illuminate\Support\Facades\DB::raw('TRIM(LOWER(type_deur))'), $doorTypes)->pluck('id')->toArray();
-        } elseif (!empty($validatedData['locations'])) {
+        } elseif (! empty($validatedData['locations'])) {
             $locationIds = $validatedData['locations'];
         }
 
@@ -263,7 +263,7 @@ class TaskController extends Controller
             $task = Task::create($taskData);
 
             // Sync requirements
-            if (!empty($validatedData['requirements'])) {
+            if (! empty($validatedData['requirements'])) {
                 $task->requirements()->sync($validatedData['requirements']);
             }
 
@@ -311,11 +311,11 @@ class TaskController extends Controller
         $new_task = $location->tasks()->create($validatedData); // Assign to variable to use in message if needed
 
         // Sync requirements
-        if (!empty($validatedData['requirements'])) {
+        if (! empty($validatedData['requirements'])) {
             $new_task->requirements()->sync($validatedData['requirements']);
         }
 
-        if (!empty($validatedData['benodigdheden'])) {
+        if (! empty($validatedData['benodigdheden'])) {
             $new_task->requirements()->sync($validatedData['benodigdheden']);
         }
 
@@ -340,7 +340,7 @@ class TaskController extends Controller
                     ]);
                 } catch (\Exception $e) {
                     // Log the error but don't fail the task creation
-                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: ' . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: '.$e->getMessage());
                 }
             }
         }
@@ -361,7 +361,7 @@ class TaskController extends Controller
                     'deadline' => $new_task->deadline,
                     'estimated_time_minutes' => $new_task->estimated_time_minutes ?? 0,
                     'location_id' => $new_task->location_id,
-                ]
+                ],
             ]);
         }
 
@@ -421,7 +421,7 @@ class TaskController extends Controller
         $validatedData['is_photo_required'] = $request->has('is_photo_required');
 
         // Set default status to 'open' if no status is provided
-        if (!isset($validatedData['status']) || empty($validatedData['status'])) {
+        if (! isset($validatedData['status']) || empty($validatedData['status'])) {
             $validatedData['status'] = 'open';
         }
 
@@ -451,7 +451,7 @@ class TaskController extends Controller
                     ]);
                 } catch (\Exception $e) {
                     // Log the error but don't fail the task update
-                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: ' . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::error('Error uploading task photo: '.$e->getMessage());
                 }
             }
         }
@@ -466,7 +466,7 @@ class TaskController extends Controller
                 'status' => $task->status->value,
                 'deadline' => $task->deadline,
                 'estimated_time_minutes' => $task->estimated_time_minutes,
-                'message' => 'Taak succesvol bijgewerkt.'
+                'message' => 'Taak succesvol bijgewerkt.',
             ]);
         }
 
@@ -568,16 +568,13 @@ class TaskController extends Controller
         // Instantiate the PlanningTaskController and call its reject method,
         // passing along the request and the found PlanningTask.
         // This keeps all rejection logic centralized in one place.
-        $planningTaskController = new PlanningTaskController();
+        $planningTaskController = new PlanningTaskController;
 
         return $planningTaskController->reject($request, $triggering_planning_task);
     }
 
     /**
      * Check if a location is completed within a planning and trigger LocationCompleted event.
-     *
-     * @param \App\Models\PlanningTask $planningTask
-     * @return void
      */
     private function checkLocationCompletionAndNotify(\App\Models\PlanningTask $planningTask): void
     {
@@ -593,7 +590,7 @@ class TaskController extends Controller
             $location = $planningTask->task->location;
         }
 
-        if (!$location) {
+        if (! $location) {
             return; // No location found, nothing to check
         }
 
@@ -602,7 +599,7 @@ class TaskController extends Controller
             $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
 
             // Only trigger if not already notified for this planning/location combination
-            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if (! \Illuminate\Support\Facades\Cache::has($cacheKey)) {
                 // Trigger the LocationCompleted event
                 LocationCompleted::dispatch($location, $planning);
 

@@ -15,6 +15,7 @@ class StoreRequirementRequest extends FormRequest
     {
         /** @var User|null $user */
         $user = Auth::user();
+
         return $user && $user->isAdmin();
     }
 

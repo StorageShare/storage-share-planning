@@ -14,6 +14,7 @@ class LocationSyncControllerTest extends TestCase
     use RefreshDatabase;
 
     protected string $token;
+
     protected User $admin;
 
     protected function setUp(): void

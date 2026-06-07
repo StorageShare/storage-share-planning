@@ -2,21 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\Location;
-use App\Models\Task;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use Illuminate\Support\Facades\Log;
+use App\Models\Location;
+use App\Models\Task;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CsvTaskImportService
 {
     /**
      * Import tasks from CSV data.
      *
-     * @param array<int, array<string, mixed>> $csvData
+     * @param  array<int, array<string, mixed>>  $csvData
      * @return array{success_count:int, error_count:int, errors: array<int, string>, imported_tasks: array<int, \App\Models\Task>}
      */
     public function importTasks(array $csvData): array
@@ -25,7 +24,7 @@ class CsvTaskImportService
             'success_count' => 0,
             'error_count' => 0,
             'errors' => [],
-            'imported_tasks' => []
+            'imported_tasks' => [],
         ];
 
         foreach ($csvData as $rowIndex => $row) {
@@ -36,23 +35,25 @@ class CsvTaskImportService
 
                 // Check if it's a "To do", "Schoonmaken", or "Controleronde" activity
                 $activity = $row['Activiteit'] ?? '';
-                if (!$this->isToDoActivity($activity) && !$this->isSchoonmakenActivity($activity) && !$this->isControlerondeActivity($activity)) {
+                if (! $this->isToDoActivity($activity) && ! $this->isSchoonmakenActivity($activity) && ! $this->isControlerondeActivity($activity)) {
                     continue;
                 }
 
                 if (empty($row['Locatie'])) {
                     Log::warning('Lege locatie bij import', ['rowIndex' => $rowIndex, 'row' => $row]);
-                    $importResults['errors'][] = "Rij {$rowIndex}: Geen locatie opgegeven (inhoud: " . json_encode($row) . ")";
+                    $importResults['errors'][] = "Rij {$rowIndex}: Geen locatie opgegeven (inhoud: ".json_encode($row).')';
                     $importResults['error_count']++;
+
                     continue;
                 }
 
                 // Find existing location
                 $location = $this->findLocation($row['Locatie']);
 
-                if (!$location) {
+                if (! $location) {
                     $importResults['errors'][] = "Rij {$rowIndex}: Locatie '{$row['Locatie']}' niet gevonden in database";
                     $importResults['error_count']++;
+
                     continue;
                 }
 
@@ -105,7 +106,7 @@ class CsvTaskImportService
                     'priority' => $priority,
                     'status' => TaskStatus::OPEN,
                     'created_by' => Auth::id() ?? 1,
-                    'deadline' => !empty($row['Geplande datum']) ? $this->parseDate($row['Geplande datum']) : null,
+                    'deadline' => ! empty($row['Geplande datum']) ? $this->parseDate($row['Geplande datum']) : null,
                     'is_recurring' => $isRecurring,
                     'recurring_interval_type' => $recurringIntervalType,
                     'recurring_interval_value' => $recurringIntervalValue,
@@ -113,7 +114,7 @@ class CsvTaskImportService
                 ]);
 
                 // Attach requirements if any
-                if (!empty($benodigdheden)) {
+                if (! empty($benodigdheden)) {
                     $task->requirements()()->attach($benodigdheden);
                 }
 
@@ -121,9 +122,9 @@ class CsvTaskImportService
                 $importResults['success_count']++;
 
             } catch (\Exception $e) {
-                Log::error('CSV import error for row ' . $rowIndex, [
+                Log::error('CSV import error for row '.$rowIndex, [
                     'error' => $e->getMessage(),
-                    'row' => $row
+                    'row' => $row,
                 ]);
 
                 $importResults['errors'][] = "Rij {$rowIndex}: {$e->getMessage()}";
@@ -136,9 +137,6 @@ class CsvTaskImportService
 
     /**
      * Check if the activity type is a "To do" type.
-     *
-     * @param string $activity
-     * @return bool
      */
     private function isToDoActivity(string $activity): bool
     {
@@ -148,7 +146,7 @@ class CsvTaskImportService
             'to-do',
             'to_do',
             'todozan',
-            'to dolan'
+            'to dolan',
         ];
 
         $activity = strtolower(trim($activity));
@@ -164,9 +162,6 @@ class CsvTaskImportService
 
     /**
      * Find existing location by name using advanced fuzzy matching.
-     *
-     * @param string $locationName
-     * @return Location|null
      */
     private function findLocation(string $locationName): ?Location
     {
@@ -204,7 +199,7 @@ class CsvTaskImportService
             // Calculate similarity scores
             $nameScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName);
             $addressScore = $this->calculateSimilarity($normalizedInput, $normalizedDbAddress);
-            $combinedScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName . ' ' . $normalizedDbAddress);
+            $combinedScore = $this->calculateSimilarity($normalizedInput, $normalizedDbName.' '.$normalizedDbAddress);
 
             // Take the best score of the three comparisons
             $score = max($nameScore, $addressScore, $combinedScore);
@@ -216,7 +211,7 @@ class CsvTaskImportService
                 'address_score' => $addressScore,
                 'combined_score' => $combinedScore,
                 'normalized_name' => $normalizedDbName,
-                'normalized_address' => $normalizedDbAddress
+                'normalized_address' => $normalizedDbAddress,
             ];
 
             if ($score > $bestScore) {
@@ -226,15 +221,15 @@ class CsvTaskImportService
         }
 
         // Log the matching process for debugging
-        if (!empty($matchDetails)) {
+        if (! empty($matchDetails)) {
             // Sort by score descending
-            usort($matchDetails, fn($a, $b) => $b['score'] <=> $a['score']);
+            usort($matchDetails, fn ($a, $b) => $b['score'] <=> $a['score']);
 
             Log::info('Location matching results', [
                 'input' => $locationName,
                 'normalized_input' => $normalizedInput,
                 'best_score' => $bestScore,
-                'top_matches' => array_slice($matchDetails, 0, 3)
+                'top_matches' => array_slice($matchDetails, 0, 3),
             ]);
         }
 
@@ -244,8 +239,9 @@ class CsvTaskImportService
                 'csv_location' => $locationName,
                 'found_location' => $bestMatch->name,
                 'found_address' => $bestMatch->address,
-                'similarity_score' => $bestScore
+                'similarity_score' => $bestScore,
             ]);
+
             return $bestMatch;
         }
 
@@ -254,9 +250,6 @@ class CsvTaskImportService
 
     /**
      * Normalize location string for better matching.
-     *
-     * @param string $locationString
-     * @return string
      */
     private function normalizeLocationString(string $locationString): string
     {
@@ -279,7 +272,7 @@ class CsvTaskImportService
             'kade' => 'kade',
             'gracht' => 'gracht',
             'singel' => 'singel',
-            'markt' => 'markt'
+            'markt' => 'markt',
         ];
 
         foreach ($replacements as $search => $replace) {
@@ -291,10 +284,6 @@ class CsvTaskImportService
 
     /**
      * Calculate similarity between two normalized strings.
-     *
-     * @param string $string1
-     * @param string $string2
-     * @return float
      */
     private function calculateSimilarity(string $string1, string $string2): float
     {
@@ -308,8 +297,8 @@ class CsvTaskImportService
         }
 
         // Split into words for word-based comparison
-        $words1 = array_filter(explode(' ', $string1), fn($w) => strlen($w) >= 2);
-        $words2 = array_filter(explode(' ', $string2), fn($w) => strlen($w) >= 2);
+        $words1 = array_filter(explode(' ', $string1), fn ($w) => strlen($w) >= 2);
+        $words2 = array_filter(explode(' ', $string2), fn ($w) => strlen($w) >= 2);
 
         if (empty($words1) || empty($words2)) {
             return 0.0;
@@ -344,9 +333,6 @@ class CsvTaskImportService
 
     /**
      * Map CSV priority to system priority.
-     *
-     * @param string $csvPriority
-     * @return TaskPriority
      */
     private function mapPriority(string $csvPriority): TaskPriority
     {
@@ -361,9 +347,6 @@ class CsvTaskImportService
 
     /**
      * Parse date from various formats.
-     *
-     * @param string $dateString
-     * @return \Carbon\Carbon|null
      */
     private function parseDate(string $dateString): ?\Carbon\Carbon
     {
@@ -394,7 +377,8 @@ class CsvTaskImportService
             return \Carbon\Carbon::parse($dateString);
 
         } catch (\Exception $e) {
-            Log::warning('Could not parse date: ' . $dateString, ['error' => $e->getMessage()]);
+            Log::warning('Could not parse date: '.$dateString, ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -402,7 +386,6 @@ class CsvTaskImportService
     /**
      * Parse CSV content from uploaded file.
      *
-     * @param string $csvContent
      * @return array<int, array<string, string|null>>
      */
     public function parseCsvContent(string $csvContent): array
@@ -418,21 +401,22 @@ class CsvTaskImportService
         $file->setCsvControl(',');
 
         foreach ($file as $rowIndex => $row) {
-            if ($row === false || (is_array($row) && count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0)) {
+            if ($row === false || (is_array($row) && count(array_filter($row, fn ($v) => $v !== null && $v !== '')) === 0)) {
                 continue;
             }
             if ($headers === null) {
                 // Trim headers
-                $headers = array_map(fn($h) => is_string($h) ? trim($h) : $h, $row);
+                $headers = array_map(fn ($h) => is_string($h) ? trim($h) : $h, $row);
                 // Strip BOM from first header if present
                 if (isset($headers[0])) {
                     $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', $headers[0]);
                 }
+
                 continue;
             }
             if (count($row) === count($headers)) {
                 // Trim values
-                $row = array_map(fn($v) => is_string($v) ? trim($v) : $v, $row);
+                $row = array_map(fn ($v) => is_string($v) ? trim($v) : $v, $row);
                 /** @var array<string, string|null> $assoc */
                 $assoc = array_combine($headers, $row);
                 $data[] = $assoc;
@@ -446,9 +430,6 @@ class CsvTaskImportService
 
     /**
      * Generate title from description.
-     *
-     * @param string $description
-     * @return string
      */
     private function generateTitleFromDescription(string $description): string
     {
@@ -471,7 +452,7 @@ class CsvTaskImportService
             'controleren', 'controleronde', 'schoonmaken', 'vegen', 'stofzuigen',
             'schrobben', 'ontruimen', 'repareren', 'vervangen', 'ophangen',
             'plaatsen', 'installeren', 'afvoeren', 'opruimen', 'checken',
-            'nakijken', 'uitzoeken', 'onderzoeken', 'verhelpen', 'oplossen'
+            'nakijken', 'uitzoeken', 'onderzoeken', 'verhelpen', 'oplossen',
         ];
 
         // Try to find an action word
@@ -535,7 +516,7 @@ class CsvTaskImportService
                             $titleWords[] = $words[$index];
 
                             // Add the matched pattern
-                            $titleWords[] = $matches[1] . ' ' . $matches[2];
+                            $titleWords[] = $matches[1].' '.$matches[2];
 
                             $title = implode(' ', $titleWords);
                             $title = preg_replace('/[.!?]+$/', '', $title);
@@ -591,8 +572,8 @@ class CsvTaskImportService
         }
 
         // If no action word found, take first 3-4 meaningful words
-        $meaningfulWords = array_filter($words, function($word) {
-            return strlen($word) >= 3 && !in_array(strtolower($word), ['van', 'de', 'het', 'een', 'met', 'voor', 'naar', 'bij', 'op', 'in', 'uit', 'aan', 'om', 'door', 'over', 'onder', 'boven', 'achter', 'voor', 'na', 'tot', 'sinds', 'tijdens', 'zonder', 'met', 'tegen', 'langs', 'rond', 'omheen']);
+        $meaningfulWords = array_filter($words, function ($word) {
+            return strlen($word) >= 3 && ! in_array(strtolower($word), ['van', 'de', 'het', 'een', 'met', 'voor', 'naar', 'bij', 'op', 'in', 'uit', 'aan', 'om', 'door', 'over', 'onder', 'boven', 'achter', 'voor', 'na', 'tot', 'sinds', 'tijdens', 'zonder', 'met', 'tegen', 'langs', 'rond', 'omheen']);
         });
 
         $titleWords = array_slice($meaningfulWords, 0, 4);
@@ -600,7 +581,7 @@ class CsvTaskImportService
 
         // If still too long, truncate
         if (strlen($title) > 60) {
-            $title = substr($title, 0, 57) . '...';
+            $title = substr($title, 0, 57).'...';
         }
 
         return $title ?: 'Geïmporteerde taak';
@@ -609,24 +590,21 @@ class CsvTaskImportService
     /**
      * Check if a row is empty (all fields are empty or null).
      *
-     * @param array<string, string|null> $row
-     * @return bool
+     * @param  array<string, string|null>  $row
      */
     private function isEmptyRow(array $row): bool
     {
         foreach ($row as $value) {
-            if (!empty(trim($value ?? ''))) {
+            if (! empty(trim($value ?? ''))) {
                 return false;
             }
         }
+
         return true;
     }
 
     /**
      * Check if the activity type is a "Schoonmaken" type.
-     *
-     * @param string $activity
-     * @return bool
      */
     private function isSchoonmakenActivity(string $activity): bool
     {
@@ -636,7 +614,7 @@ class CsvTaskImportService
             'schoon',
             'vegen',
             'stofzuigen',
-            'schrobben'
+            'schrobben',
         ];
 
         $activity = strtolower(trim($activity));
@@ -652,9 +630,6 @@ class CsvTaskImportService
 
     /**
      * Check if the activity type is a "Controleronde" type.
-     *
-     * @param string $activity
-     * @return bool
      */
     private function isControlerondeActivity(string $activity): bool
     {
@@ -668,7 +643,7 @@ class CsvTaskImportService
             'controleronderde',
             'controleronderden',
             'controleronderdeel',
-            'controleronderdeels'
+            'controleronderdeels',
         ];
 
         $activity = strtolower(trim($activity));
@@ -684,22 +659,17 @@ class CsvTaskImportService
 
     /**
      * Get the first line of the description.
-     *
-     * @param string $description
-     * @return string
      */
     private function getFirstLineOfDescription(string $description): string
     {
         $lines = explode("\n", $description);
+
         /** @var non-empty-list<string>|list<string> $lines */
         return trim($lines[0] ?? '');
     }
 
     /**
      * Generate description for Controleronde activity.
-     *
-     * @param string $description
-     * @return string
      */
     private function generateControlerondeDescription(string $description): string
     {
@@ -716,7 +686,6 @@ class CsvTaskImportService
     /**
      * Get requirements for Controleronde activity.
      *
-     * @param string $description
      * @return array<int, int>
      */
     private function getControlerondeBenodigdheden(string $description): array
@@ -734,5 +703,4 @@ class CsvTaskImportService
 
         return $benodigdheden;
     }
-
 }

@@ -19,6 +19,7 @@ class LocationControllerTest extends TestCase
     use RefreshDatabase;
 
     protected string $token;
+
     protected User $admin;
 
     protected function setUp(): void
@@ -103,6 +104,7 @@ class LocationControllerTest extends TestCase
             $this->assertContains($alpha->id, $ids);
             $this->assertContains($bravo->id, $ids);
             $this->assertNotContains($charlie->id, $ids);
+
             return true;
         });
 
@@ -149,6 +151,7 @@ class LocationControllerTest extends TestCase
                 $t->created_at = Carbon::now()->subMinutes($minutesAgo);
                 $t->save();
             }
+
             return $t;
         };
 

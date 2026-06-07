@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\EndChecklistItem;
 use App\Models\PlanningTask;
 use App\Models\Task;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -45,9 +45,9 @@ class TaskReviewController extends Controller
             ->groupBy(function ($item) {
                 // Group by type, requirement_id (for materials) or title (for end_actions), AND title
                 if ($item->type === 'material' && $item->requirement_id) {
-                    return 'material_' . $item->requirement_id . '_' . $item->title;
+                    return 'material_'.$item->requirement_id.'_'.$item->title;
                 } else {
-                    return 'end_action_' . $item->title;
+                    return 'end_action_'.$item->title;
                 }
             })
             ->map(function ($group) {
@@ -240,7 +240,7 @@ class TaskReviewController extends Controller
                 'planning.locations',
                 'location',
                 'uploader',
-                'requirement'
+                'requirement',
             ])->findOrFail($id);
 
             // Get all related items (same requirements AND title, or same end_action title)
@@ -314,7 +314,7 @@ class TaskReviewController extends Controller
         if ($action === 'add_to_backlog') {
             // Create a new backlog task from the skipped planning task
             $newBacklogTask = new \App\Models\Task([
-                'title' => $planning_task->title . ' (Opnieuw)',
+                'title' => $planning_task->title.' (Opnieuw)',
                 'description' => $this->appendSkipHistory($planning_task, $planning_task->description),
                 'location_id' => $planning_task->task->location_id ??
                                $planning_task->location_id ??
@@ -374,13 +374,13 @@ class TaskReviewController extends Controller
         $history .= "Oorspronkelijke planning: {$planning_task->planning->title}\n";
 
         if ($skipCompletion) {
-            $history .= "Overgeslagen op: " . $skipCompletion->created_at->format('d-m-Y H:i') . "\n";
-            $history .= "Overgeslagen door: " . ($skipCompletion->user->name ?? 'Onbekend') . "\n";
+            $history .= 'Overgeslagen op: '.$skipCompletion->created_at->format('d-m-Y H:i')."\n";
+            $history .= 'Overgeslagen door: '.($skipCompletion->user->name ?? 'Onbekend')."\n";
             if ($skipCompletion->comment) {
                 $history .= "Reden: {$skipCompletion->comment}\n";
             }
         }
 
-        return ($existing_description ?? '') . $history;
+        return ($existing_description ?? '').$history;
     }
 }

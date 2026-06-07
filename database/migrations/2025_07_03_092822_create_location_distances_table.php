@@ -24,7 +24,7 @@ return new class extends Migration
 
             // Unique constraint - voorkoom duplicates voor zelfde locatie paar
             $table->unique(['from_location_id', 'to_location_id'], 'unique_location_pair');
-            
+
             // Index voor snelle lookups
             $table->index(['from_location_id', 'to_location_id']);
             $table->index(['to_location_id', 'from_location_id']);

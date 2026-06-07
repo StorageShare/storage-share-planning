@@ -3,9 +3,9 @@
 namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
-use App\Models\Requirement;
 use App\Models\EndChecklistItem;
 use App\Models\Planning;
+use App\Models\Requirement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -218,7 +218,7 @@ class EndChecklistControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure([
-            'items', 'has_submitted', 'is_approved'
+            'items', 'has_submitted', 'is_approved',
         ]);
 
         // has_submitted is false because one missing photo

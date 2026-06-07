@@ -6,13 +6,13 @@ use App\Events\LocationCompleted;
 use App\Events\TaskReadyForReview;
 use App\Listeners\SendLocationCompletedNotification;
 use App\Listeners\SendTaskReviewNotification;
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use App\Models\DefaultTask;
-use App\Observers\DefaultTaskObserver;
 use App\Models\Location;
-use App\Observers\LocationObserver;
 use App\Models\Task;
+use App\Observers\DefaultTaskObserver;
+use App\Observers\LocationObserver;
 use App\Observers\TaskObserver;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -25,15 +25,13 @@ class EventServiceProvider extends ServiceProvider
         TaskReadyForReview::class => [
             SendTaskReviewNotification::class,
         ],
-//        LocationCompleted::class => [
-//            SendLocationCompletedNotification::class,
-//        ],
+        //        LocationCompleted::class => [
+        //            SendLocationCompletedNotification::class,
+        //        ],
     ];
 
     /**
      * Register any events for your application.
-     *
-     * @return void
      */
     public function boot(): void
     {

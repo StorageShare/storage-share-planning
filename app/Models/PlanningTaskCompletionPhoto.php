@@ -40,6 +40,7 @@ class PlanningTaskCompletionPhoto extends Model
 
     /**
      * Append URL accessor to model serialization.
+     *
      * @var list<string>
      */
     protected $appends = [

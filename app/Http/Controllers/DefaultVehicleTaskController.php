@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDefaultVehicleTaskRequest;
 use App\Http\Requests\UpdateDefaultVehicleTaskRequest;
 use App\Models\DefaultVehicleTask;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Illuminate\Http\JsonResponse;
 
 class DefaultVehicleTaskController extends Controller
 {
@@ -30,7 +30,7 @@ class DefaultVehicleTaskController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
         $query->orderBy($sortBy, $sortDirection);
@@ -91,6 +91,7 @@ class DefaultVehicleTaskController extends Controller
     public function destroy(DefaultVehicleTask $defaultVehicleTask): RedirectResponse
     {
         $defaultVehicleTask->delete();
+
         return redirect()->route('default-vehicle-tasks.index')
             ->with('success', 'Voertuig standaardtaak succesvol verwijderd.');
     }

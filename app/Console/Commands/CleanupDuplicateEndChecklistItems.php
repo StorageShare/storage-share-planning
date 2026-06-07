@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\EndChecklistItem;
+use Illuminate\Console\Command;
 
 class CleanupDuplicateEndChecklistItems extends Command
 {
@@ -33,9 +33,9 @@ class CleanupDuplicateEndChecklistItems extends Command
         // Group items by type and identifier
         $groups = $items->groupBy(function ($item) {
             if ($item->type === 'material' && $item->requirement_id) {
-                return 'material_' . $item->requirement_id . '_' . $item->planning_id;
+                return 'material_'.$item->requirement_id.'_'.$item->planning_id;
             } else {
-                return 'end_action_' . $item->title . '_' . $item->planning_id;
+                return 'end_action_'.$item->title.'_'.$item->planning_id;
             }
         });
 
@@ -43,7 +43,7 @@ class CleanupDuplicateEndChecklistItems extends Command
 
         foreach ($groups as $groupKey => $group) {
             if ($group->count() > 1) {
-                $this->line("Found " . $group->count() . " items for group: {$groupKey}");
+                $this->line('Found '.$group->count()." items for group: {$groupKey}");
 
                 // Sort by priority: 1) has photo, 2) most recent
                 $sorted = $group->sortByDesc(function ($item) {
@@ -53,23 +53,24 @@ class CleanupDuplicateEndChecklistItems extends Command
                 $keepItem = $sorted->first();
                 $deleteItems = $sorted->skip(1);
 
-                $this->line("  Keeping item {$keepItem->id} (has photo: " . ($keepItem->photo_path ? 'yes' : 'no') . ")");
+                $this->line("  Keeping item {$keepItem->id} (has photo: ".($keepItem->photo_path ? 'yes' : 'no').')');
 
                 foreach ($deleteItems as $deleteItem) {
-                    $this->line("  Deleting item {$deleteItem->id} (has photo: " . ($deleteItem->photo_path ? 'yes' : 'no') . ")");
+                    $this->line("  Deleting item {$deleteItem->id} (has photo: ".($deleteItem->photo_path ? 'yes' : 'no').')');
 
                     // Only delete if it has no photo or if the kept item has a photo
-                    if (!$deleteItem->photo_path || $keepItem->photo_path) {
+                    if (! $deleteItem->photo_path || $keepItem->photo_path) {
                         $deleteItem->delete();
                         $deleted++;
                     } else {
-                        $this->line("    Skipped - has photo and kept item has no photo");
+                        $this->line('    Skipped - has photo and kept item has no photo');
                     }
                 }
             }
         }
 
         $this->info("Cleanup completed. Deleted {$deleted} duplicate items.");
+
         return 0;
     }
 }

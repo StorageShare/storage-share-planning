@@ -41,6 +41,7 @@ class PlanningComment extends Model
 
     /**
      * Get the planning associated with the comment.
+     *
      * @return BelongsTo<Planning, $this>
      */
     public function planning(): BelongsTo
@@ -50,6 +51,7 @@ class PlanningComment extends Model
 
     /**
      * Get the location associated with the planning comment.
+     *
      * @return BelongsTo<Location, $this>
      */
     public function location(): BelongsTo
@@ -59,6 +61,7 @@ class PlanningComment extends Model
 
     /**
      * Get the user who created the planning comment.
+     *
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
@@ -68,6 +71,7 @@ class PlanningComment extends Model
 
     /**
      * Get the photos associated with the planning comment.
+     *
      * @return HasMany<PlanningCommentPhoto, $this>
      */
     public function photos(): HasMany

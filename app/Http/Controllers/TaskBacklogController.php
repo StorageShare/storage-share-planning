@@ -7,8 +7,8 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
 use App\Models\Task;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View; // Added for DB::raw
@@ -26,7 +26,7 @@ class TaskBacklogController extends Controller
 
         // Read status filter with legacy support for only_concept
         $statusParam = $request->input('status');
-        if (!$statusParam && $request->boolean('only_concept')) {
+        if (! $statusParam && $request->boolean('only_concept')) {
             $statusParam = TaskStatus::CONCEPT->value; // legacy mapping
         }
         $validStatuses = array_column(TaskStatus::cases(), 'value');

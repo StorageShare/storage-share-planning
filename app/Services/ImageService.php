@@ -13,7 +13,7 @@ class ImageService
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver());
+        $this->manager = new ImageManager(new Driver);
     }
 
     /**
@@ -105,7 +105,7 @@ class ImageService
     {
         $compressedData = $this->compressImage($file);
 
-        $path = $directory . '/' . $filename;
+        $path = $directory.'/'.$filename;
 
         \Illuminate\Support\Facades\Storage::disk($disk)->put($path, $compressedData);
 
@@ -126,6 +126,7 @@ class ImageService
         $factor = max(0, min($factor, count($units) - 1));
 
         $value = $bytes / (1024 ** $factor);
-        return sprintf("%.{$decimals}f", $value) . ' ' . $units[$factor];
+
+        return sprintf("%.{$decimals}f", $value).' '.$units[$factor];
     }
 }

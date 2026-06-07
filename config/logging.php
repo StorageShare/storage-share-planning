@@ -1,6 +1,5 @@
 <?php
 
-use App\Logging\CustomizeLogHandler;
 use App\Logging\CloudwaysLogHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
@@ -114,7 +113,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'facility' => env('LOG_SYSLOG_FACILITY', LOG_USER),
             'replace_placeholders' => true,
-            'ident' => env('APP_NAME', 'Laravel') . '-' . env('APP_ENV', 'production'),
+            'ident' => env('APP_NAME', 'Laravel').'-'.env('APP_ENV', 'production'),
         ],
 
         'errorlog' => [

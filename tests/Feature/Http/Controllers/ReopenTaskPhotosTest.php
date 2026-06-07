@@ -31,7 +31,7 @@ class ReopenTaskPhotosTest extends TestCase
         $pt = PlanningTask::factory()->create([
             'planning_id' => $planning->id,
             'status' => TaskStatus::REVIEW,
-            'completed_notes' => 'Old notes'
+            'completed_notes' => 'Old notes',
         ]);
 
         $completion = $pt->completions()->create([
@@ -41,7 +41,7 @@ class ReopenTaskPhotosTest extends TestCase
         ]);
 
         $photo = $completion->photos()->create([
-            'file_path' => 'photos/test.jpg'
+            'file_path' => 'photos/test.jpg',
         ]);
 
         $response = $this->actingAs($user)

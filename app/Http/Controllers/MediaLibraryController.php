@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 // Completion Photo model.
-use App\Models\PlanningTaskCompletionPhoto;
-use App\Models\PlanningTaskPhoto;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +12,6 @@ class MediaLibraryController extends Controller
     /**
      * Display a listing of the media resources.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\View\View
      */
     public function index(Request $request)
@@ -105,13 +102,13 @@ class MediaLibraryController extends Controller
             ->join('tasks', 'task_completions.task_id', '=', 'tasks.id');
 
         if ($locationId) {
-            $completionPhotos->where(function($q) use ($locationId) {
+            $completionPhotos->where(function ($q) use ($locationId) {
                 $q->where('planning_tasks.location_id', $locationId)
-                  ->orWhere('tasks.location_id', $locationId);
+                    ->orWhere('tasks.location_id', $locationId);
             });
-            $taskPhotos->where(function($q) use ($locationId) {
+            $taskPhotos->where(function ($q) use ($locationId) {
                 $q->where('planning_tasks.location_id', $locationId)
-                  ->orWhere('tasks.location_id', $locationId);
+                    ->orWhere('tasks.location_id', $locationId);
             });
             $commentPhotos->where('location_id', $locationId);
             $checklistPhotos->where('end_checklist_items.location_id', $locationId);
@@ -143,8 +140,9 @@ class MediaLibraryController extends Controller
         $locations = Location::orderBy('name')->get();
 
         // Enhance photos with location name
-        $photos->getCollection()->transform(function($photo) use ($locations) {
+        $photos->getCollection()->transform(function ($photo) use ($locations) {
             $photo->location_name = $locations->firstWhere('id', $photo->location_id)->name ?? 'Onbekende locatie';
+
             return $photo;
         });
 

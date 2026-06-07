@@ -26,6 +26,7 @@ enum VehicleType: string
         foreach (self::cases() as $case) {
             $opts[$case->value] = $case->label();
         }
+
         return $opts;
     }
 
@@ -36,6 +37,6 @@ enum VehicleType: string
      */
     public static function values(): array
     {
-        return array_map(static fn(self $c) => $c->value, self::cases());
+        return array_map(static fn (self $c) => $c->value, self::cases());
     }
 }

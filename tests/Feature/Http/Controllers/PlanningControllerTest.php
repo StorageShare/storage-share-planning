@@ -25,6 +25,7 @@ class PlanningControllerTest extends TestCase
     use RefreshDatabase;
 
     protected string $token;
+
     protected User $admin;
 
     protected function setUp(): void
@@ -61,6 +62,7 @@ class PlanningControllerTest extends TestCase
             $ids = $paginator->getCollection()->pluck('id')->all();
             // only open are p1 and p3 and sorted asc by date
             $this->assertEquals([$p1->id, $p3->id], array_values($ids));
+
             return true;
         });
 
@@ -158,7 +160,7 @@ class PlanningControllerTest extends TestCase
             'start_time' => '08:00',
             'vehicle_id' => $vehicle->id,
             'location_ids' => [$l1->id, $l2->id],
-            'location_order' => $l2->id . ',' . $l1->id, // reverse order
+            'location_order' => $l2->id.','.$l1->id, // reverse order
             'user_ids' => [$u1->id, $u2->id],
             'selected_default_tasks' => [$dt1->id],
             'selected_backlog_tasks' => [$t1->id],
@@ -230,7 +232,8 @@ class PlanningControllerTest extends TestCase
 
         // Bind a mock TravelTimeService
         $this->app->bind(TravelTimeService::class, function () {
-            return new class extends TravelTimeService {
+            return new class extends TravelTimeService
+            {
                 public function calculateTravelTimesForSequence(array $locations, ?string $startAddress = null, string $mode = 'driving'): array
                 {
                     return [
@@ -309,8 +312,8 @@ class PlanningControllerTest extends TestCase
         ]);
 
         $this->assertContains($l1->id, $resp->viewData('current_selected_location_ids'));
-        $this->assertContains((string)$dt->id, $resp->viewData('current_selected_default_tasks'));
-        $this->assertContains((string)$task->id, $resp->viewData('current_selected_backlog_tasks'));
+        $this->assertContains((string) $dt->id, $resp->viewData('current_selected_default_tasks'));
+        $this->assertContains((string) $task->id, $resp->viewData('current_selected_backlog_tasks'));
     }
 
     public function test_update_updates_fields_location_order_users_and_tasks(): void
@@ -335,7 +338,7 @@ class PlanningControllerTest extends TestCase
             'start_time' => '09:00',
             'vehicle_id' => $vehicle->id,
             'location_ids' => [$l2->id, $l1->id],
-            'location_order' => $l1->id . ',' . $l2->id, // swap order again
+            'location_order' => $l1->id.','.$l2->id, // swap order again
             'user_ids' => [$u1->id, $u2->id],
             'selected_default_tasks' => [$dt->id],
             'selected_backlog_tasks' => [$task->id],
@@ -436,6 +439,7 @@ class PlanningControllerTest extends TestCase
         $getResp->assertOk();
         $this->assertEquals(300, $getResp->json('total_duration'));
     }
+
     public function test_awaiting_approval_filter_returns_only_plannings_with_review_tasks_and_pagination_preserves_param(): void
     {
         // Create three plannings
@@ -472,6 +476,7 @@ class PlanningControllerTest extends TestCase
             $this->assertCount(1, $ids);
             // pagination URL should preserve awaiting_approval
             $this->assertStringContainsString('awaiting_approval=1', $paginator->url(2));
+
             return true;
         });
     }

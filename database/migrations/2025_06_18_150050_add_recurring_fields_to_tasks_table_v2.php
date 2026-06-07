@@ -16,7 +16,7 @@ return new class extends Migration
             $table->enum('recurring_interval_type', ['days', 'weeks', 'months', 'years'])->nullable();
             $table->integer('recurring_interval_value')->nullable();
             $table->unsignedBigInteger('parent_recurring_task_id')->nullable();
-            
+
             $table->foreign('parent_recurring_task_id')->references('id')->on('tasks')->onDelete('set null');
             $table->index('is_recurring');
         });
@@ -30,12 +30,12 @@ return new class extends Migration
         Schema::table('tasks', function (Blueprint $table) {
             $table->dropForeign(['parent_recurring_task_id']);
             $table->dropIndex(['is_recurring']);
-            
+
             $table->dropColumn([
                 'is_recurring',
                 'recurring_interval_type',
                 'recurring_interval_value',
-                'parent_recurring_task_id'
+                'parent_recurring_task_id',
             ]);
         });
     }

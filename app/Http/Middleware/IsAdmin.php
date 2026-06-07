@@ -16,7 +16,7 @@ class IsAdmin
         /** @var \App\Models\User|null $user */
         $user = $request->user();
 
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Access denied');
         }
 

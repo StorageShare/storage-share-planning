@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string|null $feedback_owner_name
+ * @property string|null $feedback_emails
+ */
 class ExternalTask extends Model
 {
     /**

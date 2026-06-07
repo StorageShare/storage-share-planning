@@ -3,9 +3,9 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\TaskStatus;
+use App\Mail\NewApiTaskReceivedMail;
 use App\Models\Location;
 use App\Models\User;
-use App\Mail\NewApiTaskReceivedMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
@@ -19,6 +19,7 @@ class TaskTest extends TestCase
     {
         parent::setUp();
         Config::set('services.external_api.secret', 'test-secret');
+        Config::set('mail.planning_notifications.address', 'planning@storage-share.nl');
         Mail::fake();
     }
 

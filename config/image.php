@@ -30,7 +30,7 @@ return [
 
         // Ondersteunde bestandsformaten
         'supported_formats' => [
-            'jpg', 'jpeg', 'png', 'gif', 'webp'
+            'jpg', 'jpeg', 'png', 'gif', 'webp',
         ],
 
         // Fallback bij compressiefout
@@ -57,4 +57,4 @@ return [
             'completion_photos' => 'planning-task-completion-photos',
         ],
     ],
-]; 
+];

@@ -8,6 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * @property-read PlanningTask $resource
+ *
  * @mixin PlanningTask
  */
 class PlanningTaskResource extends JsonResource

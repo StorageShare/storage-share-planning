@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\TaskStatus;
-use App\Models\ExternalTask;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,8 +52,6 @@ class Location extends Model
 
     /**
      * Check if the location was manually created.
-     *
-     * @return bool
      */
     public function isManuallyCreated(): bool
     {
@@ -63,6 +60,7 @@ class Location extends Model
 
     /**
      * Get the tasks for the location.
+     *
      * @return HasMany<Task, $this>
      */
     public function tasks(): HasMany
@@ -72,6 +70,7 @@ class Location extends Model
 
     /**
      * Get the external tasks for the location.
+     *
      * @return HasMany<ExternalTask, $this>
      */
     public function externalTasks(): HasMany
@@ -81,6 +80,7 @@ class Location extends Model
 
     /**
      * The default tasks that belong to the location.
+     *
      * @return BelongsToMany<DefaultTask, $this>
      */
     public function defaultTasks(): BelongsToMany
@@ -90,6 +90,7 @@ class Location extends Model
 
     /**
      * The requirements that are automatically required for this location.
+     *
      * @return BelongsToMany<Requirement, $this>
      */
     public function requiredRequirements(): BelongsToMany
@@ -99,6 +100,7 @@ class Location extends Model
 
     /**
      * De planningen die aan deze locatie gekoppeld zijn.
+     *
      * @return BelongsToMany<Planning, $this>
      */
     public function plannings(): BelongsToMany
@@ -108,8 +110,6 @@ class Location extends Model
 
     /**
      * Get the full address for the location.
-     *
-     * @return string
      */
     public function getFullAddressAttribute(): string
     {
@@ -124,19 +124,16 @@ class Location extends Model
 
     /**
      * Check if all tasks for this location within a planning are completed (review or skipped).
-     *
-     * @param Planning $planning
-     * @return bool
      */
     public function areAllTasksCompletedInPlanning(Planning $planning): bool
     {
         // Get all planning tasks for this location within the given planning
         $planningTasks = $planning->planningTasks()->where(function ($query) {
             $query->where('location_id', $this->id) // Direct location assignment for default tasks
-                  ->orWhereHas('task', function ($subQuery) {
-                      $subQuery->where('location_id', $this->id); // Backlog tasks
-                  })
-                  ->orWhere('room_identifier', '!=', null); // Include inactive room tasks
+                ->orWhereHas('task', function ($subQuery) {
+                    $subQuery->where('location_id', $this->id); // Backlog tasks
+                })
+                ->orWhere('room_identifier', '!=', null); // Include inactive room tasks
         })->get();
 
         // If no tasks for this location, consider it completed

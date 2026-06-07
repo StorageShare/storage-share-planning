@@ -15,8 +15,8 @@ abstract class Controller
      * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
      * @template TDeclaringModel of \Illuminate\Database\Eloquent\Model
      * @template TResult
-     * @param Builder<TModel>|Relation<TRelatedModel, TDeclaringModel, TResult> $query
-     * @return int
+     *
+     * @param  Builder<TModel>|Relation<TRelatedModel, TDeclaringModel, TResult>  $query
      */
     protected function resolvePerPage(Request $request, Builder|Relation $query, int $default = 15, int $max = 200): int
     {
@@ -27,6 +27,7 @@ abstract class Controller
             $total = $query instanceof Relation
                 ? $query->getQuery()->toBase()->getCountForPagination()
                 : (clone $query)->toBase()->getCountForPagination();
+
             return max(1, (int) $total);
         }
 

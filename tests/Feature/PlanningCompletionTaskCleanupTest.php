@@ -36,7 +36,7 @@ class PlanningCompletionTaskCleanupTest extends TestCase
         $defaultTask = DefaultTask::create([
             'title' => 'Standaard Taak',
             'description' => 'Test',
-            'applies_to_all_locations' => true
+            'applies_to_all_locations' => true,
         ]);
 
         // 2. Create tasks like PlanningController::createPlanningTasks does
@@ -132,7 +132,7 @@ class PlanningCompletionTaskCleanupTest extends TestCase
         $defaultTask = DefaultTask::create([
             'title' => 'Standaard Taak',
             'description' => 'Test',
-            'applies_to_all_locations' => true
+            'applies_to_all_locations' => true,
         ]);
 
         // Task gekoppeld aan planning (wordt al opgeruimd)

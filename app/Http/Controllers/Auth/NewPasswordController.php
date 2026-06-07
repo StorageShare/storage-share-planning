@@ -22,6 +22,7 @@ class NewPasswordController extends Controller
     {
         /** @var view-string $view */
         $view = 'auth.reset-password';
+
         return view($view, ['request' => $request]);
     }
 

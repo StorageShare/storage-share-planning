@@ -8,6 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * @property-read Task $resource
+ *
  * @mixin Task
  */
 class TaskResource extends JsonResource

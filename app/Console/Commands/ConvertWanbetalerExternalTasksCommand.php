@@ -2,12 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\ExternalTask;
-use App\Models\Task;
+use App\Services\ExternalTaskConversionService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class ConvertWanbetalerExternalTasksCommand extends Command
 {
@@ -31,7 +29,7 @@ class ConvertWanbetalerExternalTasksCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(): int
+    public function handle(ExternalTaskConversionService $conversionService): int
     {
         $title = (string) $this->option('title');
 
@@ -70,25 +68,8 @@ class ConvertWanbetalerExternalTasksCommand extends Command
         $converted = 0;
 
         foreach ($externalTasks as $externalTask) {
-            DB::transaction(function () use ($externalTask, &$converted) {
-                Task::create([
-                    'location_id' => $externalTask->location_id,
-                    'title' => $externalTask->title,
-                    'description' => $externalTask->description ?? '',
-                    'feedback_information' => $externalTask->feedback_information,
-                    'feedback_owner_name' => $externalTask->feedback_owner_name,
-                    'feedback_emails' => $externalTask->feedback_emails,
-                    'deadline' => $externalTask->external_deadline_at,
-                    'estimated_time_minutes' => $externalTask->estimated_time_minutes,
-                    'priority' => ($externalTask->priority ?? TaskPriority::NORMAL)->value,
-                    'status' => TaskStatus::REVIEW,
-                ]);
-
-                $externalTask->comments()->delete();
-                $externalTask->delete();
-
-                $converted++;
-            });
+            $conversionService->convertToTask($externalTask, TaskStatus::REVIEW);
+            $converted++;
         }
 
         $this->info("Klaar: {$converted} external task(s) omgezet naar normale taken en verwijderd.");

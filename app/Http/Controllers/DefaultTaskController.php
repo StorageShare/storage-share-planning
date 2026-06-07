@@ -82,7 +82,7 @@ class DefaultTaskController extends Controller
         $validatedData['applies_to_door_types'] = $request->has('applies_to_door_types');
 
         // Sanitize door types (hoofdletter ongevoelig)
-        if (!empty($validatedData['door_types'])) {
+        if (! empty($validatedData['door_types'])) {
             $validatedData['door_types'] = array_map('trim', array_map('strtolower', $validatedData['door_types']));
         }
 
@@ -95,11 +95,11 @@ class DefaultTaskController extends Controller
             $defaultTask->locations()->sync($allLocationIds);
         } elseif ($validatedData['applies_to_lift_locations']) {
             // Dit wordt afgehandeld door de DefaultTaskObserver
-        } elseif ($validatedData['applies_to_door_types'] && !empty($validatedData['door_types'])) {
+        } elseif ($validatedData['applies_to_door_types'] && ! empty($validatedData['door_types'])) {
             // Sync met locaties die de geselecteerde deur types hebben
             $matchingLocationIds = $defaultTask->applicableLocationsByDoorType()->pluck('id')->toArray();
             $defaultTask->locations()->sync($matchingLocationIds);
-        } elseif (!empty($validatedData['locations'])) {
+        } elseif (! empty($validatedData['locations'])) {
             // Sync met specifiek geselecteerde locaties
             $defaultTask->locations()->sync($validatedData['locations']);
         }
@@ -153,7 +153,7 @@ class DefaultTaskController extends Controller
         $validatedData['applies_to_door_types'] = $request->has('applies_to_door_types');
 
         // Sanitize door types (hoofdletter ongevoelig)
-        if (!empty($validatedData['door_types'])) {
+        if (! empty($validatedData['door_types'])) {
             $validatedData['door_types'] = array_map('trim', array_map('strtolower', $validatedData['door_types']));
         }
 
@@ -166,7 +166,7 @@ class DefaultTaskController extends Controller
             $defaultTask->locations()->sync($allLocationIds);
         } elseif ($validatedData['applies_to_lift_locations']) {
             // De observer zal de synchronisatie afhandelen
-        } elseif ($validatedData['applies_to_door_types'] && !empty($validatedData['door_types'])) {
+        } elseif ($validatedData['applies_to_door_types'] && ! empty($validatedData['door_types'])) {
             // Sync met locaties die de geselecteerde deur types hebben
             $matchingLocationIds = $defaultTask->applicableLocationsByDoorType()->pluck('id')->toArray();
             $defaultTask->locations()->sync($matchingLocationIds);

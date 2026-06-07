@@ -5,11 +5,11 @@ namespace App\Mail;
 use App\Models\PlanningTask;
 use App\Models\PlanningTaskCompletion;
 use Illuminate\Bus\Queueable;
-use Illuminate\Mail\Mailable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 
 class TaskCompletedApprovedMail extends Mailable implements ShouldQueue
@@ -22,8 +22,7 @@ class TaskCompletedApprovedMail extends Mailable implements ShouldQueue
     public function __construct(
         public PlanningTask $planningTask,
         public PlanningTaskCompletion $completion
-    ) {
-    }
+    ) {}
 
     /**
      * Get the message envelope.
@@ -31,7 +30,7 @@ class TaskCompletedApprovedMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Taak afgerond: ' . $this->planningTask->title,
+            subject: 'Taak afgerond: '.$this->planningTask->title,
         );
     }
 
@@ -81,29 +80,30 @@ class TaskCompletedApprovedMail extends Mailable implements ShouldQueue
     /**
      * Build the attachments list from a photo collection.
      *
-     * @param iterable<int, object> $completionPhotos
-     * @param array<string, bool> $addedPaths
-     * @param array<int, Attachment> $attachments
+     * @param  iterable<int, object>  $completionPhotos
+     * @param  array<string, bool>  $addedPaths
+     * @param  array<int, Attachment>  $attachments
      * @return array{0: array<string, bool>, 1: array<int, Attachment>}
      */
     private function assembleAttachments(iterable $completionPhotos, array $addedPaths, array $attachments): array
     {
         foreach ($completionPhotos as $photo) {
-            $path = (string)($photo->path ?? '');
+            $path = (string) ($photo->path ?? '');
             if ($path === '' || isset($addedPaths[$path])) {
                 continue;
             }
             $addedPaths[$path] = true;
 
             $attachment = Attachment::fromStorageDisk('public', $path);
-            if (!empty($photo->original_name)) {
+            if (! empty($photo->original_name)) {
                 $attachment = $attachment->as($photo->original_name);
             }
-            if (!empty($photo->mime_type)) {
+            if (! empty($photo->mime_type)) {
                 $attachment = $attachment->withMime($photo->mime_type);
             }
             $attachments[] = $attachment;
         }
+
         return [$addedPaths, $attachments];
     }
 }

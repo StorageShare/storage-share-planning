@@ -14,7 +14,7 @@ class VerifyExternalApiSignature
     {
         $secret = Config::get('services.external_api.secret');
 
-        if (!$secret) {
+        if (! $secret) {
             return response()->json([
                 'message' => 'External API signature is not configured.',
             ], 500);
@@ -22,7 +22,7 @@ class VerifyExternalApiSignature
 
         $signature = $request->header('X-Api-Signature');
 
-        if (!$signature) {
+        if (! $signature) {
             return response()->json([
                 'message' => 'Invalid external API signature.',
             ], 401);
@@ -31,7 +31,7 @@ class VerifyExternalApiSignature
         $body = $request->getContent();
         $expected = hash_hmac('sha256', $body, $secret);
 
-        if (!hash_equals($expected, $signature)) {
+        if (! hash_equals($expected, $signature)) {
             Log::warning('External API signature mismatch', [
                 'received_signature' => $signature,
                 'expected_signature' => $expected,

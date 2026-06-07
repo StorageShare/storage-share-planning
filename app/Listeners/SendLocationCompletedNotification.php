@@ -21,7 +21,6 @@ class SendLocationCompletedNotification
     /**
      * Handle the event.
      *
-     * @param \App\Events\LocationCompleted $event
      * @return void
      */
     public function handle(LocationCompleted $event)
@@ -31,4 +30,4 @@ class SendLocationCompletedNotification
             new LocationCompletedMail($event->location, $event->planning)
         );
     }
-} 
+}

@@ -46,13 +46,18 @@ class PlanningVehicleTaskController extends Controller
         /** @var array<int,int> $ids */
         $ids = array_values(array_unique(array_filter(array_map(
             static function ($v): ?int {
-                if (is_int($v)) { return $v; }
-                if (is_string($v) && ctype_digit($v)) { return (int) $v; }
+                if (is_int($v)) {
+                    return $v;
+                }
+                if (is_string($v) && ctype_digit($v)) {
+                    return (int) $v;
+                }
+
                 return null;
             },
             $defaultIdColumn
         ))));
-        if (!empty($ids)) {
+        if (! empty($ids)) {
             $defaultsById = DefaultVehicleTask::whereIn('id', $ids)->get()->keyBy('id');
         }
 
@@ -64,7 +69,7 @@ class PlanningVehicleTaskController extends Controller
             $description = $vtInput['description'] ?? null;
             $estimated = $vtInput['estimated_time_minutes'] ?? null;
 
-            if (!empty($vtInput['default_id'])) {
+            if (! empty($vtInput['default_id'])) {
                 $def = $defaultsById->get($vtInput['default_id']);
                 if ($def) {
                     $title = $def->title;
@@ -73,7 +78,7 @@ class PlanningVehicleTaskController extends Controller
                 }
             }
 
-            if (!$title) {
+            if (! $title) {
                 // Skip invalid entries silently (already validated, so this is just extra safety)
                 continue;
             }

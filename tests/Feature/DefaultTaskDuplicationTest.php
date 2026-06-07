@@ -42,11 +42,11 @@ class DefaultTaskDuplicationTest extends TestCase
         $planningTasks = $planning->planningTasks;
 
         // Er zou maar 1 planning task moeten zijn
-        $this->assertCount(1, $planningTasks, "Er zijn meer dan 1 planning tasks aangemaakt voor 1 standaard taak.");
+        $this->assertCount(1, $planningTasks, 'Er zijn meer dan 1 planning tasks aangemaakt voor 1 standaard taak.');
 
         $planningTask = $planningTasks->first();
-        $this->assertNull($planningTask->default_task_id, "De planning taak zou geen default_task_id meer moeten hebben als hij gedupliceerd is naar een task_id.");
-        $this->assertNotNull($planningTask->task_id, "De planning taak zou gekoppeld moeten zijn aan een nieuw aangemaakte taak.");
+        $this->assertNull($planningTask->default_task_id, 'De planning taak zou geen default_task_id meer moeten hebben als hij gedupliceerd is naar een task_id.');
+        $this->assertNotNull($planningTask->task_id, 'De planning taak zou gekoppeld moeten zijn aan een nieuw aangemaakte taak.');
 
         // Simuleer de filter logica uit de view
         $location = $planning->locations->first();
@@ -56,9 +56,10 @@ class DefaultTaskDuplicationTest extends TestCase
             } elseif ($pt->default_task_id && $pt->defaultTask) { // Default Task
                 return $pt->location_id == $location->id;
             }
+
             return false;
         });
 
-        $this->assertCount(1, $tasksForLocation, "De view filter logica vindt meer dan 1 taak voor de locatie.");
+        $this->assertCount(1, $tasksForLocation, 'De view filter logica vindt meer dan 1 taak voor de locatie.');
     }
 }

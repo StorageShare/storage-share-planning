@@ -1399,13 +1399,6 @@
             const startAddressElement = document.getElementById('start_address');
             const startAddress = startAddressElement ? startAddressElement.value.trim() : '';
 
-            // Debug logging
-            console.log('Calculating travel times with:', {
-                locationIds: locationIds,
-                startAddress: startAddress,
-                startAddressOption: document.getElementById('start_address_option')?.value
-            });
-
             // Check if "Anders" is selected but no custom address is provided
             const startAddressOption = document.getElementById('start_address_option');
             if (startAddressOption && startAddressOption.value === 'Anders' && !startAddress) {
@@ -1625,15 +1618,6 @@
                 }
             }
 
-            // Debug logging
-            console.log('Updated hidden field:', {
-                option: startAddressOption.value,
-                customInput: customAddressInput.value,
-                hiddenValue: hiddenStartAddress ? hiddenStartAddress.value : 'null',
-                isCustom: startAddressOption.value === 'Anders',
-                shouldRecalculate: shouldRecalculate
-            });
-
             // Only recalculate if explicitly requested
             if (shouldRecalculate) {
                 const isCustom = startAddressOption.value === 'Anders';
@@ -1806,21 +1790,6 @@
                 return;
             }
 
-            // Debug logging
-            console.log('Updating task:', {
-                taskId: taskId,
-                csrfToken: csrfToken ? 'Found' : 'Missing',
-                url: `/tasks/${taskId}`,
-                formData: {
-                    title: formData.get('title'),
-                    description: formData.get('description'),
-                    priority: formData.get('priority'),
-                    status: formData.get('status'),
-                    deadline: formData.get('deadline'),
-                    estimated_time_minutes: formData.get('estimated_time_minutes')
-                }
-            });
-
             try {
                 const response = await fetch(`/tasks/${taskId}`, {
                     method: 'POST', // Use POST instead of PUT for better compatibility
@@ -1841,12 +1810,8 @@
                     })
                 });
 
-                console.log('Response status:', response.status);
-                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
                 if (response.ok) {
                     const updatedTask = await response.json();
-                    console.log('Updated task data:', updatedTask);
 
                     // Update the task data in memory
                     if (currentEditingTask) {
@@ -1876,10 +1841,8 @@
                     try {
                         const errorData = await response.json();
                         errorMessage = errorData.message || errorData.error || 'Onbekende fout';
-                        console.log('Error response:', errorData);
                     } catch (parseError) {
                         errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                        console.log('Parse error:', parseError);
                     }
                     showNotification('Fout bij bijwerken van taak: ' + errorMessage, 'error');
                 }

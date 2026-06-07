@@ -19,7 +19,7 @@ class ReadSyslogCommand extends Command
         $syslogPaths = [
             '/var/log/syslog',
             '/var/log/messages',
-            '/var/log/system.log'
+            '/var/log/system.log',
         ];
 
         $syslogPath = null;
@@ -30,14 +30,15 @@ class ReadSyslogCommand extends Command
             }
         }
 
-        if (!$syslogPath) {
+        if (! $syslogPath) {
             $this->error('Syslog file not found. You may need root access.');
+
             return 1;
         }
 
         $appName = config('app.name', 'Laravel');
         $appEnv = config('app.env', 'production');
-        $identifier = $appName . '-' . $appEnv;
+        $identifier = $appName.'-'.$appEnv;
 
         if ($follow) {
             $this->info("Following syslog for {$identifier}... (Press Ctrl+C to stop)");
@@ -50,7 +51,7 @@ class ReadSyslogCommand extends Command
         try {
             passthru($command);
         } catch (\Exception $e) {
-            $this->error('Error reading syslog: ' . $e->getMessage());
+            $this->error('Error reading syslog: '.$e->getMessage());
             $this->comment('You may need to run this command with sudo privileges.');
         }
 

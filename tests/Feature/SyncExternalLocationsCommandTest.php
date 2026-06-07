@@ -42,8 +42,8 @@ class SyncExternalLocationsCommandTest extends TestCase
                         'description' => 'Mooie locatie',
                         'lift' => 'Ja',
                         'total_rooms' => 18,
-                    ]
-                ]
+                    ],
+                ],
             ], 200),
         ]);
 
@@ -86,8 +86,8 @@ class SyncExternalLocationsCommandTest extends TestCase
                         'id' => $externalId,
                         'name' => 'External API Name',
                         'lift' => 'Ja',
-                    ]
-                ]
+                    ],
+                ],
             ], 200),
         ]);
 
@@ -126,8 +126,8 @@ class SyncExternalLocationsCommandTest extends TestCase
                         'total_rooms' => 18,
                         'latitude' => '52.283409',
                         'longitude' => '4.866958',
-                    ]
-                ]
+                    ],
+                ],
             ], 200),
         ]);
 

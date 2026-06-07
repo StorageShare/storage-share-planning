@@ -79,6 +79,7 @@ class Planning extends Model
 
     /**
      * The users that belong to the planning.
+     *
      * @return BelongsToMany<User, $this>
      */
     public function users(): BelongsToMany
@@ -88,6 +89,7 @@ class Planning extends Model
 
     /**
      * Get the user who created the planning.
+     *
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
@@ -97,6 +99,7 @@ class Planning extends Model
 
     /**
      * Assigned vehicle for this planning.
+     *
      * @return BelongsTo<Vehicle, $this>
      */
     public function vehicle(): BelongsTo
@@ -150,7 +153,7 @@ class Planning extends Model
         }
 
         return $endChecklistItems->every(function ($item) {
-            return $item->photos()->exists() || !empty($item->photo_path);
+            return $item->photos()->exists() || ! empty($item->photo_path);
         });
     }
 

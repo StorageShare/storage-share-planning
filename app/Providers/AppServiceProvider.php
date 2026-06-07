@@ -25,20 +25,26 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Blade::if('role', function ($role) {
-            if (!auth()->check()) return false;
+            if (! auth()->check()) {
+                return false;
+            }
             // Accept either enum instance or string (e.g. 'admin')
             $target = $role instanceof Role ? $role : Role::from($role);
             // User model casts 'role' to Role enum; compare directly
             /** @var Role $userRole */
             $userRole = auth()->user()->role;
+
             return $userRole === $target;
         });
 
         Blade::if('anyrole', function (...$roles) {
-            if (!auth()->check()) return false;
+            if (! auth()->check()) {
+                return false;
+            }
             /** @var Role $userRole */
             $userRole = auth()->user()->role;
-            $targets = array_map(fn($r) => $r instanceof Role ? $r : Role::from($r), $roles);
+            $targets = array_map(fn ($r) => $r instanceof Role ? $r : Role::from($r), $roles);
+
             return in_array($userRole, $targets, true);
         });
     }

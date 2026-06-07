@@ -14,7 +14,7 @@ class ImageServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->imageService = new ImageService();
+        $this->imageService = new ImageService;
     }
 
     public function test_compress_image_reduces_file_size(): void
@@ -58,4 +58,4 @@ class ImageServiceTest extends TestCase
         $this->assertEquals('1.00 MB', $this->imageService->getHumanFileSize(1048576));
         $this->assertEquals('2.00 MB', $this->imageService->getHumanFileSize(2097152));
     }
-} 
+}

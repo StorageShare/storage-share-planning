@@ -5,11 +5,11 @@ namespace Feature\Http\Controllers;
 use App\Enums\Role;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Models\Requirement;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
 use App\Models\PlanningTaskCompletion;
+use App\Models\Requirement;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\ImageService;
@@ -45,7 +45,7 @@ class TaskControllerTest extends TestCase
         $nullDeadlineHigh = Task::factory()->create(['location_id' => $loc->id, 'deadline' => null, 'priority' => TaskPriority::HIGH->value, 'title' => 'null-high']);
 
         $resp = $this->actingAs($user)->get(
-            route('locations.tasks.index', $loc) . '?' . http_build_query([
+            route('locations.tasks.index', $loc).'?'.http_build_query([
                 'search_term' => 'd1',
                 'sort_by' => 'deadline',
                 'sort_direction' => 'asc',
@@ -141,8 +141,8 @@ class TaskControllerTest extends TestCase
                     'status',
                     'deadline',
                     'estimated_time_minutes',
-                ]
-            ]
+                ],
+            ],
         ]);
         $this->assertEquals('JSON Task', $resp->json('tasks.0.title'));
     }
@@ -333,8 +333,12 @@ class TaskControllerTest extends TestCase
         ]);
 
         // Mock RecurringTaskService to avoid side effects
-        $recurringService = new class {
-            public function createRecurringInstance($task) { return null; }
+        $recurringService = new class
+        {
+            public function createRecurringInstance($task)
+            {
+                return null;
+            }
         };
         $this->app->instance(\App\Services\RecurringTaskService::class, $recurringService);
 

@@ -16,6 +16,7 @@ class UpdateRequirementRequest extends FormRequest
     {
         /** @var User|null $user */
         $user = Auth::user();
+
         return $user && $user->isAdmin();
     }
 
@@ -31,7 +32,7 @@ class UpdateRequirementRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('requirements', 'name')->ignore($this->route('requirement'))
+                Rule::unique('requirements', 'name')->ignore($this->route('requirement')),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
             'required_for_locations' => ['nullable', 'array'],

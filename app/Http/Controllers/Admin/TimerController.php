@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningLocationTimer;
-use App\Models\Location;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -23,14 +23,14 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
         $query = Planning::with([
             'locationTimers.location',
             'locations',
-            'users'
+            'users',
         ]);
 
         // Filter by date if provided
@@ -65,7 +65,7 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
@@ -74,7 +74,7 @@ class TimerController extends Controller
             'locations',
             'users',
             'planningTasks.task.location',
-            'planningTasks.defaultTask.locations'
+            'planningTasks.defaultTask.locations',
         ]);
 
         // Calculate timer statistics
@@ -90,7 +90,7 @@ class TimerController extends Controller
                 'location_name' => $timer->location ? $timer->location->name :
                     ($timer->location_type === 'backlog' ? 'Backlog' : ($timer->location_type === 'travel_back' ? 'Terugreistijd' : 'Reistijd')),
                 'formatted_duration' => sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds),
-                'is_active' => $timer->started_at && !$timer->ended_at,
+                'is_active' => $timer->started_at && ! $timer->ended_at,
             ];
         });
 
@@ -100,10 +100,13 @@ class TimerController extends Controller
             ->groupBy('location_id')
             ->map(function (Collection $group): array {
                 /** @var Collection<int, PlanningLocationTimer> $group */
-                $seconds = $group->sum(function (PlanningLocationTimer $t): int { return (int) ($t->total_duration_seconds ?? 0); });
+                $seconds = $group->sum(function (PlanningLocationTimer $t): int {
+                    return (int) ($t->total_duration_seconds ?? 0);
+                });
                 /** @var PlanningLocationTimer|null $first */
                 $first = $group->first();
                 $locationName = $first && $first->location ? $first->location->name : 'Onbekende locatie';
+
                 return [
                     'location_id' => $first?->location_id,
                     'location_name' => $locationName,
@@ -113,8 +116,12 @@ class TimerController extends Controller
             ->values();
 
         $locationCount = $onLocationByLocation->count();
-        $travelSeconds = $planning->locationTimers->where('location_type', 'travel')->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
-        $travelBackSeconds = $planning->locationTimers->where('location_type', 'travel_back')->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
+        $travelSeconds = $planning->locationTimers->where('location_type', 'travel')->sum(function ($t) {
+            return $t->total_duration_seconds ?? 0;
+        });
+        $travelBackSeconds = $planning->locationTimers->where('location_type', 'travel_back')->sum(function ($t) {
+            return $t->total_duration_seconds ?? 0;
+        });
         $totalTravelToDistribute = $travelSeconds + $travelBackSeconds;
 
         $distributedByLocation = collect();
@@ -146,7 +153,7 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
@@ -154,7 +161,7 @@ class TimerController extends Controller
 
         $liveData = $timers->map(function (PlanningLocationTimer $timer): array {
             $currentSeconds = 0;
-            if ($timer->started_at && !$timer->ended_at) {
+            if ($timer->started_at && ! $timer->ended_at) {
                 // Timer is running - calculate current time
                 $currentSeconds = ($timer->total_duration_seconds ?? 0) + $timer->started_at->diffInSeconds(now());
             } else {
@@ -174,7 +181,7 @@ class TimerController extends Controller
                 'location_type' => $timer->location_type,
                 'formatted_duration' => sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds),
                 'total_seconds' => $currentSeconds,
-                'is_active' => $timer->started_at && !$timer->ended_at,
+                'is_active' => $timer->started_at && ! $timer->ended_at,
                 'started_at' => $timer->started_at?->toISOString(),
                 'ended_at' => $timer->ended_at?->toISOString(),
             ];
@@ -190,14 +197,14 @@ class TimerController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
         $query = Planning::with([
             'locationTimers.location',
             'locations',
-            'users'
+            'users',
         ]);
 
         // Apply same filters as index
@@ -217,14 +224,14 @@ class TimerController extends Controller
 
         $plannings = $query->orderBy('planned_date', 'desc')->get();
 
-        $filename = 'timer_export_' . now()->format('Y-m-d_H-i-s') . '.csv';
+        $filename = 'timer_export_'.now()->format('Y-m-d_H-i-s').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($plannings) {
+        $callback = function () use ($plannings) {
             $file = fopen('php://output', 'w');
 
             // CSV Headers
@@ -239,7 +246,7 @@ class TimerController extends Controller
                 'Totaal incl. reistijd',
                 'Gestart Om',
                 'Gestopt Om',
-                'Status'
+                'Status',
             ]);
 
             foreach ($plannings as $planning) {
@@ -251,9 +258,12 @@ class TimerController extends Controller
                     ->groupBy('location_id')
                     ->map(function (Collection $group): array {
                         /** @var Collection<int, PlanningLocationTimer> $group */
-                        $seconds = $group->sum(function (PlanningLocationTimer $t): int { return (int) ($t->total_duration_seconds ?? 0); });
+                        $seconds = $group->sum(function (PlanningLocationTimer $t): int {
+                            return (int) ($t->total_duration_seconds ?? 0);
+                        });
                         /** @var PlanningLocationTimer|null $first */
                         $first = $group->first();
+
                         return [
                             'location_id' => $first?->location_id,
                             'base_seconds' => $seconds,
@@ -262,8 +272,12 @@ class TimerController extends Controller
                     ->values();
 
                 $locationCount = $onLocationByLocation->count();
-                $travelSeconds = $planning->locationTimers->where('location_type', 'travel')->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
-                $travelBackSeconds = $planning->locationTimers->where('location_type', 'travel_back')->sum(function ($t) { return $t->total_duration_seconds ?? 0; });
+                $travelSeconds = $planning->locationTimers->where('location_type', 'travel')->sum(function ($t) {
+                    return $t->total_duration_seconds ?? 0;
+                });
+                $travelBackSeconds = $planning->locationTimers->where('location_type', 'travel_back')->sum(function ($t) {
+                    return $t->total_duration_seconds ?? 0;
+                });
                 $totalTravelToDistribute = $travelSeconds + $travelBackSeconds;
 
                 // Bouw een map met reistijd-deel per locatie_id
@@ -293,7 +307,7 @@ class TimerController extends Controller
                         )
                     );
 
-                    $status = $timer->started_at && !$timer->ended_at ? 'Actief' : 'Gestopt';
+                    $status = $timer->started_at && ! $timer->ended_at ? 'Actief' : 'Gestopt';
 
                     // Gelijk verdeelde reistijd alleen toekennen aan locatie-entries
                     $distributedShareSeconds = 0;
@@ -323,7 +337,7 @@ class TimerController extends Controller
                         $formattedAdjusted,
                         $timer->created_at?->format('d-m-Y H:i:s'),
                         $timer->ended_at?->format('d-m-Y H:i:s'),
-                        $status
+                        $status,
                     ]);
                 }
             }

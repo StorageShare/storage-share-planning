@@ -16,7 +16,7 @@ class VehicleFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->company . ' Vehicle',
+            'name' => $this->faker->company.' Vehicle',
             'license_number' => strtoupper(str_replace('-', '', $this->faker->bothify('??-###-??'))),
             'type' => $this->faker->randomElement([VehicleType::CAR->value, VehicleType::BUS->value]),
         ];

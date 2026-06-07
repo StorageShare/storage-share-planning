@@ -106,7 +106,8 @@ class EndChecklistItem extends Model
 
     /**
      * Scope om alleen material items te krijgen.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeMaterials(Builder $query): Builder
@@ -116,7 +117,8 @@ class EndChecklistItem extends Model
 
     /**
      * Scope om alleen end action items te krijgen.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeEndActions(Builder $query): Builder
@@ -126,7 +128,8 @@ class EndChecklistItem extends Model
 
     /**
      * Scope om alleen items met bepaalde status te krijgen.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeWithStatus(Builder $query, string $status): Builder

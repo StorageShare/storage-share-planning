@@ -2,11 +2,11 @@
 
 namespace App\Observers;
 
-use App\Models\Location;
-use App\Models\DefaultTask;
-use App\Models\Task;
-use App\Enums\TaskStatus;
 use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
+use App\Models\DefaultTask;
+use App\Models\Location;
+use App\Models\Task;
 use Illuminate\Support\Facades\Auth;
 
 class LocationObserver
@@ -16,7 +16,7 @@ class LocationObserver
      */
     public function saved(Location $location): void
     {
-        if ($location->isDirty('lift') && !empty($location->lift)) {
+        if ($location->isDirty('lift') && ! empty($location->lift)) {
             $taskIds = DefaultTask::where('applies_to_lift_locations', true)->pluck('id');
             $location->defaultTasks()->syncWithoutDetaching($taskIds);
         } elseif ($location->isDirty('lift') && empty($location->lift)) {
@@ -37,7 +37,7 @@ class LocationObserver
         $location->defaultTasks()->syncWithoutDetaching($defaultTasksForAllLocations);
 
         // Zoek default tasks die van toepassing zijn op het deur type van deze locatie
-        if (!empty($location->type_deur)) {
+        if (! empty($location->type_deur)) {
             $defaultTasksForDoorType = DefaultTask::where('applies_to_door_types', true)
                 ->whereNotNull('door_types')
                 ->get()
@@ -108,7 +108,7 @@ class LocationObserver
                 $currentlyLinked = $defaultTask->locations()->where('location_id', $location->id)->exists();
                 $shouldBeLinked = $defaultTask->appliesToLocationByDoorType($location);
 
-                if ($currentlyLinked && !$shouldBeLinked) {
+                if ($currentlyLinked && ! $shouldBeLinked) {
                     // Remove the link
                     $defaultTask->locations()->detach($location->id);
                 } elseif ($shouldBeLinked) {

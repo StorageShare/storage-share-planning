@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Location;
 use App\Models\LocationDistance;
+use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class LocationDistanceService
 {
@@ -24,10 +24,10 @@ class LocationDistanceService
     /**
      * @return object|null LocationDistance model or DTO-like object with distance fields
      */
-    public function getDistance(int $fromLocationId, int $toLocationId, bool $forceRecalculate = false): object|null
+    public function getDistance(int $fromLocationId, int $toLocationId, bool $forceRecalculate = false): ?object
     {
         // Check eerst of we al een recente afstand hebben
-        if (!$forceRecalculate) {
+        if (! $forceRecalculate) {
             $existingDistance = LocationDistance::getDistance($fromLocationId, $toLocationId);
             if ($existingDistance && $existingDistance->isRecent(168)) { // 1 week
                 return $existingDistance;
@@ -47,7 +47,7 @@ class LocationDistanceService
             $fromLocation = Location::find($fromLocationId);
             $toLocation = Location::find($toLocationId);
 
-            if (!$fromLocation || !$toLocation) {
+            if (! $fromLocation || ! $toLocation) {
                 throw new Exception("Een of beide locaties niet gevonden: {$fromLocationId}, {$toLocationId}");
             }
 
@@ -58,11 +58,12 @@ class LocationDistanceService
             );
 
             if (empty($result['segments'])) {
-                Log::warning("Travel time berekening mislukt", [
+                Log::warning('Travel time berekening mislukt', [
                     'from_location_id' => $fromLocationId,
                     'to_location_id' => $toLocationId,
-                    'result' => $result
+                    'result' => $result,
                 ]);
+
                 return null;
             }
 
@@ -89,11 +90,12 @@ class LocationDistanceService
             return $distance;
 
         } catch (Exception $e) {
-            Log::error("Fout bij berekenen afstand", [
+            Log::error('Fout bij berekenen afstand', [
                 'from_location_id' => $fromLocationId,
                 'to_location_id' => $toLocationId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -166,6 +168,7 @@ class LocationDistanceService
                     $existing = LocationDistance::getDistance($fromLocation->id, $toLocation->id);
                     if ($existing && $existing->isRecent(168)) { // 1 week
                         $skipped++;
+
                         continue;
                     }
                 }
@@ -189,7 +192,7 @@ class LocationDistanceService
             'skipped' => $skipped,
             'errors' => $errors,
             'total_locations' => $locations->count(),
-            'results' => $results
+            'results' => $results,
         ];
     }
 
@@ -201,9 +204,9 @@ class LocationDistanceService
         $deleted = LocationDistance::where('calculated_at', '<', now()->subDays($olderThanDays))
             ->delete();
 
-        Log::info("Cleanup van oude location distances", [
+        Log::info('Cleanup van oude location distances', [
             'deleted_count' => $deleted,
-            'older_than_days' => $olderThanDays
+            'older_than_days' => $olderThanDays,
         ]);
 
         return $deleted;
@@ -213,7 +216,7 @@ class LocationDistanceService
      * Sorteer locatie IDs op afstand vanaf een referentie locatie
      */
     /**
-     * @param array<int, int> $locationIds
+     * @param  array<int, int>  $locationIds
      * @return array<int, int>
      */
     public function sortLocationsByDistance(int $fromLocationId, array $locationIds): array

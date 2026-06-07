@@ -6,8 +6,6 @@ use App\Models\Location;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SyncExternalLocationsCommand extends Command
@@ -55,12 +53,12 @@ class SyncExternalLocationsCommand extends Command
 
             // Soft delete local locations that have an external_id or sync_external_id not in the API response
             $deletedNotInApiCount = Location::where(function ($query) use ($externalLocationIds) {
-                    $query->whereNotNull('external_id')
-                          ->whereNotIn('external_id', $externalLocationIds);
-                })
+                $query->whereNotNull('external_id')
+                    ->whereNotIn('external_id', $externalLocationIds);
+            })
                 ->orWhere(function ($query) use ($externalLocationIds) {
                     $query->whereNotNull('sync_external_id')
-                          ->whereNotIn('sync_external_id', $externalLocationIds);
+                        ->whereNotIn('sync_external_id', $externalLocationIds);
                 })
                 ->delete(); // Soft delete
             if ($deletedNotInApiCount > 0) {
@@ -83,7 +81,7 @@ class SyncExternalLocationsCommand extends Command
                 $locations = Location::withTrashed()
                     ->where(function ($query) use ($extLocation) {
                         $query->where('external_id', $extLocation['id'])
-                              ->orWhere('sync_external_id', $extLocation['id']);
+                            ->orWhere('sync_external_id', $extLocation['id']);
                     })
                     ->get();
 

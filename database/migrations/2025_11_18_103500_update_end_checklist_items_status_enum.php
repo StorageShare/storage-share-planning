@@ -17,8 +17,8 @@ return new class extends Migration
         //    used in tests) fall back to a portable string column change.
         if (DB::getDriverName() === 'mysql') {
             DB::statement(
-                "ALTER TABLE `end_checklist_items` " .
-                "MODIFY COLUMN `status` ENUM('open','pending','approved','rejected') " .
+                'ALTER TABLE `end_checklist_items` '.
+                "MODIFY COLUMN `status` ENUM('open','pending','approved','rejected') ".
                 "NOT NULL DEFAULT 'open'"
             );
         } else {
@@ -46,8 +46,8 @@ return new class extends Migration
 
         if (DB::getDriverName() === 'mysql') {
             DB::statement(
-                "ALTER TABLE `end_checklist_items` " .
-                "MODIFY COLUMN `status` ENUM('pending','approved','rejected') " .
+                'ALTER TABLE `end_checklist_items` '.
+                "MODIFY COLUMN `status` ENUM('pending','approved','rejected') ".
                 "NOT NULL DEFAULT 'pending'"
             );
         } else {

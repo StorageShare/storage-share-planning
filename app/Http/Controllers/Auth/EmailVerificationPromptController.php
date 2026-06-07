@@ -20,6 +20,7 @@ class EmailVerificationPromptController extends Controller
 
         /** @var view-string $view */
         $view = 'auth.verify-email';
+
         return view($view);
     }
 }

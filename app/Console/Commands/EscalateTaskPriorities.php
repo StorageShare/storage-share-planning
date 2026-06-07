@@ -34,7 +34,7 @@ class EscalateTaskPriorities extends Command
     public function handle(): int
     {
         $this->info('🚀 Starten met escalatie van taak prioriteiten...');
-        
+
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
 
@@ -44,6 +44,7 @@ class EscalateTaskPriorities extends Command
 
             if ($backlogTasks->isEmpty()) {
                 $this->info('✅ Geen taken gevonden in de backlog die escalatie behoeven.');
+
                 return 0;
             }
 
@@ -54,6 +55,7 @@ class EscalateTaskPriorities extends Command
 
             if (empty($tasksToEscalate['low_to_normal']) && empty($tasksToEscalate['normal_to_high'])) {
                 $this->info('✅ Geen taken vereisen prioriteit escalatie op dit moment.');
+
                 return 0;
             }
 
@@ -62,12 +64,14 @@ class EscalateTaskPriorities extends Command
 
             if ($dryRun) {
                 $this->info('🔍 Dry-run modus: geen wijzigingen doorgevoerd.');
+
                 return 0;
             }
 
             // Ask for confirmation unless forced
-            if (!$force && !$this->confirm('Wilt u doorgaan met de prioriteit escalatie?')) {
+            if (! $force && ! $this->confirm('Wilt u doorgaan met de prioriteit escalatie?')) {
                 $this->info('⏹️  Escalatie geannuleerd.');
+
                 return 0;
             }
 
@@ -80,8 +84,9 @@ class EscalateTaskPriorities extends Command
             return 0;
 
         } catch (\Exception $e) {
-            $this->error('❌ Fout tijdens escalatie: ' . $e->getMessage());
-            $this->error('Stack trace: ' . $e->getTraceAsString());
+            $this->error('❌ Fout tijdens escalatie: '.$e->getMessage());
+            $this->error('Stack trace: '.$e->getTraceAsString());
+
             return 1;
         }
     }
@@ -117,19 +122,19 @@ class EscalateTaskPriorities extends Command
             if ($task->priority === TaskPriority::LOW && $daysInCurrentPriority >= 60) {
                 $lowToNormal->push([
                     'task' => $task,
-                    'days' => $daysInCurrentPriority
+                    'days' => $daysInCurrentPriority,
                 ]);
             } elseif ($task->priority === TaskPriority::NORMAL && $daysInCurrentPriority >= 30) {
                 $normalToHigh->push([
                     'task' => $task,
-                    'days' => $daysInCurrentPriority
+                    'days' => $daysInCurrentPriority,
                 ]);
             }
         }
 
         return [
             'low_to_normal' => $lowToNormal,
-            'normal_to_high' => $normalToHigh
+            'normal_to_high' => $normalToHigh,
         ];
     }
 
@@ -151,7 +156,7 @@ class EscalateTaskPriorities extends Command
      */
     private function showEscalationPlan(array $tasksToEscalate): void
     {
-        if (!empty($tasksToEscalate['low_to_normal'])) {
+        if (! empty($tasksToEscalate['low_to_normal'])) {
             $this->newLine();
             $this->info('📈 Taken die van LAAG naar NORMAAL gaan (60+ dagen):');
             $this->table(
@@ -162,13 +167,13 @@ class EscalateTaskPriorities extends Command
                         Str::limit($item['task']->title, 40),
                         $item['task']->location->name ?? 'Onbekend',
                         $item['days'],
-                        $item['task']->created_at->format('d-m-Y')
+                        $item['task']->created_at->format('d-m-Y'),
                     ];
                 })
             );
         }
 
-        if (!empty($tasksToEscalate['normal_to_high'])) {
+        if (! empty($tasksToEscalate['normal_to_high'])) {
             $this->newLine();
             $this->info('🔴 Taken die van NORMAAL naar HOOG gaan (30+ dagen):');
             $this->table(
@@ -179,7 +184,7 @@ class EscalateTaskPriorities extends Command
                         Str::limit($item['task']->title, 40),
                         $item['task']->location->name ?? 'Onbekend',
                         $item['days'],
-                        $item['task']->created_at->format('d-m-Y')
+                        $item['task']->created_at->format('d-m-Y'),
                     ];
                 })
             );
@@ -197,7 +202,7 @@ class EscalateTaskPriorities extends Command
         $results = [
             'low_to_normal' => 0,
             'normal_to_high' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         DB::transaction(function () use ($tasksToEscalate, &$results) {
@@ -207,13 +212,13 @@ class EscalateTaskPriorities extends Command
                     $task = $item['task'];
                     $task->update([
                         'priority' => TaskPriority::NORMAL,
-                        'priority_updated_at' => now()
+                        'priority_updated_at' => now(),
                     ]);
                     $results['low_to_normal']++;
-                    
+
                     $this->line("✅ Taak #{$task->id} '{$task->title}' geëscaleerd van LAAG naar NORMAAL");
                 } catch (\Exception $e) {
-                    $results['errors'][] = "Fout bij escaleren taak #{$item['task']->id}: " . $e->getMessage();
+                    $results['errors'][] = "Fout bij escaleren taak #{$item['task']->id}: ".$e->getMessage();
                 }
             }
 
@@ -223,13 +228,13 @@ class EscalateTaskPriorities extends Command
                     $task = $item['task'];
                     $task->update([
                         'priority' => TaskPriority::HIGH,
-                        'priority_updated_at' => now()
+                        'priority_updated_at' => now(),
                     ]);
                     $results['normal_to_high']++;
-                    
+
                     $this->line("✅ Taak #{$task->id} '{$task->title}' geëscaleerd van NORMAAL naar HOOG");
                 } catch (\Exception $e) {
-                    $results['errors'][] = "Fout bij escaleren taak #{$item['task']->id}: " . $e->getMessage();
+                    $results['errors'][] = "Fout bij escaleren taak #{$item['task']->id}: ".$e->getMessage();
                 }
             }
         });
@@ -246,18 +251,18 @@ class EscalateTaskPriorities extends Command
     {
         $this->newLine();
         $this->info('📊 Escalatie resultaten:');
-        
+
         $this->table(
             ['Type', 'Aantal'],
             [
                 ['LAAG → NORMAAL', $results['low_to_normal']],
                 ['NORMAAL → HOOG', $results['normal_to_high']],
                 ['Totaal geëscaleerd', $results['low_to_normal'] + $results['normal_to_high']],
-                ['Fouten', count($results['errors'])]
+                ['Fouten', count($results['errors'])],
             ]
         );
 
-        if (!empty($results['errors'])) {
+        if (! empty($results['errors'])) {
             $this->newLine();
             $this->error('⚠️  Fouten tijdens escalatie:');
             foreach ($results['errors'] as $error) {

@@ -26,4 +26,4 @@ return new class extends Migration
             $table->dropColumn(['end_day_action_title', 'end_day_action_description']);
         });
     }
-}; 
+};

@@ -4,8 +4,8 @@ namespace Tests\Unit;
 
 use App\Models\DefaultTask;
 use App\Models\Location;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class DefaultTaskTimeCalculationTest extends TestCase
 {

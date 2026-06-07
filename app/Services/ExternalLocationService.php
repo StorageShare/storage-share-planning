@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +20,7 @@ class ExternalLocationService
 
         if (empty($apiUrl) || empty($apiToken)) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
+
             return null;
         }
 
@@ -30,8 +30,9 @@ class ExternalLocationService
             if (! $response->successful()) {
                 Log::error('ExternalLocationService: API request failed.', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body' => $response->body(),
                 ]);
+
                 return null;
             }
 
@@ -62,6 +63,7 @@ class ExternalLocationService
 
         } catch (\Exception $e) {
             Log::error('ExternalLocationService: Unexpected error.', ['exception' => $e]);
+
             return null;
         }
     }
@@ -69,7 +71,7 @@ class ExternalLocationService
     /**
      * Fetch inactive rooms for a specific external space from the API.
      *
-     * @param string|int $externalId
+     * @param  string|int  $externalId
      * @return array<int, array{name: string, description?: ?string, group_name?: ?string}>|null
      */
     public function fetchInactiveRooms($externalId): ?array
@@ -78,10 +80,11 @@ class ExternalLocationService
         $apiToken = Config::get('services.external_locations_api.token');
 
         // The base URL is likely ".../api/spaces", we want ".../api/spaces/{id}/inactive-rooms"
-        $apiUrl = dirname($baseUrl) . '/spaces/' . $externalId . '/inactive-rooms';
+        $apiUrl = dirname($baseUrl).'/spaces/'.$externalId.'/inactive-rooms';
 
         if (empty($baseUrl) || empty($apiToken)) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
+
             return null;
         }
 
@@ -92,8 +95,9 @@ class ExternalLocationService
                 Log::error('ExternalLocationService: Inactive rooms API request failed.', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'url' => $apiUrl
+                    'url' => $apiUrl,
                 ]);
+
                 return null;
             }
 
@@ -106,6 +110,7 @@ class ExternalLocationService
             return null;
         } catch (\Exception $e) {
             Log::error('ExternalLocationService: Unexpected error fetching inactive rooms.', ['exception' => $e]);
+
             return null;
         }
     }
@@ -120,10 +125,11 @@ class ExternalLocationService
         $baseUrl = Config::get('services.external_locations_api.url');
         $apiToken = Config::get('services.external_locations_api.token');
 
-        $apiUrl = dirname($baseUrl) . '/inactive-rooms-counts';
+        $apiUrl = dirname($baseUrl).'/inactive-rooms-counts';
 
         if (empty($baseUrl) || empty($apiToken)) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
+
             return null;
         }
 
@@ -134,8 +140,9 @@ class ExternalLocationService
                 Log::error('ExternalLocationService: Inactive room counts API request failed.', [
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'url' => $apiUrl
+                    'url' => $apiUrl,
                 ]);
+
                 return null;
             }
 
@@ -148,6 +155,7 @@ class ExternalLocationService
             return null;
         } catch (\Exception $e) {
             Log::error('ExternalLocationService: Unexpected error fetching inactive room counts.', ['exception' => $e]);
+
             return null;
         }
     }
@@ -155,10 +163,8 @@ class ExternalLocationService
     /**
      * Upload a photo for a specific room to the external API.
      *
-     * @param string|int $externalId
-     * @param string $roomNumber
-     * @param string $photoPath Full path to the photo file
-     * @return bool
+     * @param  string|int  $externalId
+     * @param  string  $photoPath  Full path to the photo file
      */
     public function uploadRoomPhoto($externalId, string $roomNumber, string $photoPath): bool
     {
@@ -166,15 +172,17 @@ class ExternalLocationService
         $apiToken = Config::get('services.external_locations_api.token');
 
         // URL: .../api/spaces/{id}/rooms/{room_number}/photos
-        $apiUrl = dirname($baseUrl) . '/spaces/' . $externalId . '/rooms/' . urlencode($roomNumber) . '/photos';
+        $apiUrl = dirname($baseUrl).'/spaces/'.$externalId.'/rooms/'.urlencode($roomNumber).'/photos';
 
         if (empty($baseUrl) || empty($apiToken)) {
             Log::error('ExternalLocationService: API URL or Token not configured.');
+
             return false;
         }
 
-        if (!file_exists($photoPath)) {
+        if (! file_exists($photoPath)) {
             Log::error('ExternalLocationService: Photo file does not exist.', ['path' => $photoPath]);
+
             return false;
         }
 
@@ -189,8 +197,9 @@ class ExternalLocationService
                     'status' => $response->status(),
                     'body' => $response->body(),
                     'url' => $apiUrl,
-                    'room' => $roomNumber
+                    'room' => $roomNumber,
                 ]);
+
                 return false;
             }
 
@@ -198,8 +207,9 @@ class ExternalLocationService
         } catch (\Exception $e) {
             Log::error('ExternalLocationService: Unexpected error uploading room photo.', [
                 'exception' => $e->getMessage(),
-                'room' => $roomNumber
+                'room' => $roomNumber,
             ]);
+
             return false;
         }
     }

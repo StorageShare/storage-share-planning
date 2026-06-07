@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Enums\Role;
+use App\Enums\TaskPriority;
 use App\Models\Location;
 use App\Models\Requirement;
 use App\Models\Task;
 use App\Models\User;
-use App\Enums\Role;
-use App\Enums\TaskPriority;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

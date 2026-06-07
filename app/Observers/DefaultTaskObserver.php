@@ -15,7 +15,7 @@ class DefaultTaskObserver
         if ($defaultTask->isDirty('applies_to_lift_locations') && $defaultTask->applies_to_lift_locations) {
             $locationIds = Location::whereNotNull('lift')->where('lift', '!=', '')->pluck('id');
             $defaultTask->locations()->syncWithoutDetaching($locationIds);
-        } elseif ($defaultTask->isDirty('applies_to_lift_locations') && !$defaultTask->applies_to_lift_locations) {
+        } elseif ($defaultTask->isDirty('applies_to_lift_locations') && ! $defaultTask->applies_to_lift_locations) {
             $locationIds = Location::whereNotNull('lift')->where('lift', '!=', '')->pluck('id');
             $defaultTask->locations()->detach($locationIds);
         }

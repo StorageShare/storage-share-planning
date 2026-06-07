@@ -13,8 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @extends Factory<Task>
  */
-class
-TaskFactory extends Factory
+class TaskFactory extends Factory
 {
     protected $model = Task::class;
 

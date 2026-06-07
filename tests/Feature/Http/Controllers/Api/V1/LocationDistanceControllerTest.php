@@ -70,16 +70,21 @@ class LocationDistanceControllerTest extends TestCase
                     sort($ids);
                     $expected = [$a->id, $b->id, $c->id];
                     sort($expected);
+
                     return $ids === $expected; // contains the same IDs (order not important for input)
                 }))
                 ->andReturn([$b->id, $a->id, $c->id]);
 
             // Controller enriches response by calling getDistance per id
             foreach ([$b, $a, $c] as $idx => $loc) {
-                $distance = new class {
+                $distance = new class
+                {
                     public float $distance_km = 10.0;
+
                     public int $duration_minutes = 20;
+
                     public string $formatted_distance = '10.0 km';
+
                     public string $formatted_duration = '20 min';
                 };
                 $m->shouldReceive('getDistance')
@@ -104,8 +109,8 @@ class LocationDistanceControllerTest extends TestCase
             ->assertJson(function ($json) use ($b) {
                 // Verify enrichment structure exists
                 $json->where('data.locations_with_distances.0.location_id', $b->id)
-                     ->where('data.locations_with_distances.0.formatted_distance', '10.0 km')
-                     ->etc();
+                    ->where('data.locations_with_distances.0.formatted_distance', '10.0 km')
+                    ->etc();
             });
 
         Mockery::close();
@@ -287,7 +292,7 @@ class LocationDistanceControllerTest extends TestCase
                     'max_possible_distances',
                     'coverage_percentage',
                     'cache_stats' => ['recent_threshold_hours', 'old_threshold_days'],
-                ]
+                ],
             ])
             ->assertJsonPath('data.total_locations', 3)
             ->assertJsonPath('data.total_cached_distances', 2)

@@ -21,7 +21,7 @@ class BvStatsController extends Controller
     {
         // Check if user is admin
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Alleen administrators hebben toegang tot deze pagina.');
         }
 
@@ -74,7 +74,7 @@ class BvStatsController extends Controller
             $planningLocations = $planning->locations;
             /** @var \Illuminate\Support\Collection<int, PlanningLocationTimer> $planningTimers */
             $planningTimers = $planning->locationTimers->keyBy(function (PlanningLocationTimer $timer): int|string {
-                return $timer->location_id ?? ('travel_' . (string) $timer->location_type);
+                return $timer->location_id ?? ('travel_'.(string) $timer->location_type);
             });
 
             if ($planningLocations->isEmpty()) {
@@ -114,7 +114,7 @@ class BvStatsController extends Controller
                 $bvStats[$location->bv]['total_work_seconds'] += $actualWorkSeconds;
                 $bvStats[$location->bv]['location_count']++;
 
-                if (!isset($bvStats[$location->bv]['locations'][$location->id])) {
+                if (! isset($bvStats[$location->bv]['locations'][$location->id])) {
                     $bvStats[$location->bv]['locations'][$location->id] = [
                         'name' => $location->name,
                         'total_seconds' => 0,
@@ -127,7 +127,7 @@ class BvStatsController extends Controller
             }
 
             // If travel has already been distributed into location timers, skip counting travel timers to avoid double counting
-            if (!empty($planning->travel_time_distributed_at)) {
+            if (! empty($planning->travel_time_distributed_at)) {
                 // Do nothing: location timers already include travel time
             } else {
                 // Distribute travel time between locations based on BV, multiplied by users
@@ -171,6 +171,7 @@ class BvStatsController extends Controller
         uasort($bvStats, function ($a, $b) {
             $totalA = $a['total_work_seconds'] + $a['total_travel_seconds'];
             $totalB = $b['total_work_seconds'] + $b['total_travel_seconds'];
+
             return $totalB <=> $totalA;
         });
 

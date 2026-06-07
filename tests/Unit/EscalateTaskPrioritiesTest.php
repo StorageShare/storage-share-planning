@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Console\Commands\EscalateTaskPriorities;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Location;
@@ -17,16 +16,17 @@ class EscalateTaskPrioritiesTest extends TestCase
     use RefreshDatabase;
 
     private Location $location;
+
     private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->location = Location::factory()->create([
             'name' => 'Test Locatie',
         ]);
-        
+
         $this->user = User::factory()->create();
     }
 
@@ -41,7 +41,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(65),
-            'priority_updated_at' => Carbon::now()->subDays(65)
+            'priority_updated_at' => Carbon::now()->subDays(65),
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -65,7 +65,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(35),
-            'priority_updated_at' => Carbon::now()->subDays(35)
+            'priority_updated_at' => Carbon::now()->subDays(35),
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -88,7 +88,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(50),
-            'priority_updated_at' => Carbon::now()->subDays(50)
+            'priority_updated_at' => Carbon::now()->subDays(50),
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -109,7 +109,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(20),
-            'priority_updated_at' => Carbon::now()->subDays(20)
+            'priority_updated_at' => Carbon::now()->subDays(20),
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -130,7 +130,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(100),
-            'priority_updated_at' => Carbon::now()->subDays(100)
+            'priority_updated_at' => Carbon::now()->subDays(100),
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -151,7 +151,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::COMPLETED,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(70),
-            'priority_updated_at' => Carbon::now()->subDays(70)
+            'priority_updated_at' => Carbon::now()->subDays(70),
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -172,20 +172,20 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(70),
-            'priority_updated_at' => Carbon::now()->subDays(70)
+            'priority_updated_at' => Carbon::now()->subDays(70),
         ]);
 
         // Create a planning task to simulate the task being assigned to a planning
         $planning = \App\Models\Planning::factory()->create([
             'created_by' => $this->user->id,
         ]);
-        
+
         \App\Models\PlanningTask::factory()->create([
             'planning_id' => $planning->id,
             'task_id' => $task->id,
             'title' => $task->title,
             'description' => $task->description,
-            'location_id' => $task->location_id
+            'location_id' => $task->location_id,
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])
@@ -206,7 +206,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(65),
-            'priority_updated_at' => Carbon::now()->subDays(65)
+            'priority_updated_at' => Carbon::now()->subDays(65),
         ]);
 
         $originalPriority = $task->priority;
@@ -230,7 +230,7 @@ class EscalateTaskPrioritiesTest extends TestCase
             'status' => TaskStatus::OPEN,
             'created_by' => $this->user->id,
             'created_at' => Carbon::now()->subDays(100),
-            'priority_updated_at' => Carbon::now()->subDays(20) // Priority was updated recently
+            'priority_updated_at' => Carbon::now()->subDays(20), // Priority was updated recently
         ]);
 
         $this->artisan('tasks:escalate-priorities', ['--force' => true])

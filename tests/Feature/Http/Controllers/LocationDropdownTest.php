@@ -31,7 +31,7 @@ class LocationDropdownTest extends TestCase
                 'spaces' => [
                     ['id' => 1, 'name' => 'External Location 1'],
                     ['id' => 2, 'name' => 'External Location 2'],
-                ]
+                ],
             ], 200),
         ]);
 
@@ -57,7 +57,7 @@ class LocationDropdownTest extends TestCase
                 'spaces' => [
                     ['id' => 1, 'name' => 'External Location 1'],
                     ['id' => 3, 'name' => 'External Location 3'],
-                ]
+                ],
             ], 200),
         ]);
 

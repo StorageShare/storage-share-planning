@@ -35,9 +35,6 @@ class PlanningCommentPhoto extends Model
         return $this->belongsTo(Location::class);
     }
 
-    /**
-     * @return string
-     */
     public function getUrlAttribute(): string
     {
         return Storage::disk('public')->url($this->file_path);

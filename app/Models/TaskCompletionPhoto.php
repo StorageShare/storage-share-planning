@@ -13,7 +13,6 @@ class TaskCompletionPhoto extends Model
         'file_path',
     ];
 
-
     /**
      * @return BelongsTo<TaskCompletion, $this>
      */

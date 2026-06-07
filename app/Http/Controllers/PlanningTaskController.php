@@ -5,21 +5,21 @@ namespace App\Http\Controllers;
 use App\Enums\TaskStatus;
 use App\Events\LocationCompleted;
 use App\Events\TaskReadyForReview;
+use App\Mail\TaskCompletedApprovedMail;
 use App\Models\Planning;
 use App\Models\PlanningComment;
 use App\Models\PlanningTask;
-use App\Mail\TaskCompletedApprovedMail;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 // For manual validation if needed
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
 
@@ -35,6 +35,7 @@ class PlanningTaskController extends Controller
             Log::warning('Failed syncing vehicle task status: '.$e->getMessage());
         }
     }
+
     public function show(PlanningTask $planning_task): View
     {
         $planning_task->load([
@@ -67,7 +68,7 @@ class PlanningTaskController extends Controller
         ];
 
         // Only require photos for non-admin users
-        if ($user == null || !$user->isAdmin()) {
+        if ($user == null || ! $user->isAdmin()) {
             $validationRules['photos'] = 'required|array|min:1';
             $validationRules['photos.*'] = 'image|mimes:jpeg,png,jpg,webp,gif|max:20480'; // Max 20MB - will be compressed to 2MB
         } else {
@@ -250,13 +251,13 @@ class PlanningTaskController extends Controller
             if ($planning_task->feedback_emails) {
                 // Split op komma of puntkomma, trim, naar lowercase en dedupliceer
                 $emails = preg_split('/[;,]+/', (string) $planning_task->feedback_emails) ?: [];
-                $emails = array_map(fn($e) => strtolower(trim($e)), $emails);
+                $emails = array_map(fn ($e) => strtolower(trim($e)), $emails);
                 $emails = array_values(array_unique(array_filter($emails)));
 
                 // Filter op valide e-mails
-                $validEmails = array_values(array_filter($emails, fn($email) => filter_var($email, FILTER_VALIDATE_EMAIL)));
+                $validEmails = array_values(array_filter($emails, fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL)));
 
-                if (!empty($validEmails)) {
+                if (! empty($validEmails)) {
                     $mail = new TaskCompletedApprovedMail($planning_task, $latest_completion);
                     // Queue the mail to align with ShouldQueue and tests expecting queued mails
                     Mail::to($validEmails)->send($mail);
@@ -290,6 +291,7 @@ class PlanningTaskController extends Controller
         // Conditional redirect: if coming from a planning overview, go back there
         if ($request->filled('planning_id')) {
             $planning = $planning_task->planning;
+
             return redirect()->route('plannings.show', $planning)->with('success', $message);
         }
 
@@ -323,11 +325,12 @@ class PlanningTaskController extends Controller
             if ($createReplacement) {
                 $reason = (string) $request->input('review_notes');
                 $prependReason = function (?string $existing) use ($reason) {
-                    $base = $existing ? ($existing . "\n\n") : '';
-                    return $base . "Reden afwijzing: " . $reason;
+                    $base = $existing ? ($existing."\n\n") : '';
+
+                    return $base.'Reden afwijzing: '.$reason;
                 };
 
-                if (!is_null($planning_task->task_id) && $planning_task->task) {
+                if (! is_null($planning_task->task_id) && $planning_task->task) {
                     // CASE 1: The rejected task is a properly linked BACKLOG task. Replicate it.
                     $original_task = $planning_task->task;
                     $original_task->update(['status' => TaskStatus::REJECTED]);
@@ -335,7 +338,7 @@ class PlanningTaskController extends Controller
                     // Create a new 'V2' backlog task by replicating the original
                     $new_task = $original_task->replicate();
                     $new_task->status = TaskStatus::OPEN;
-                    $new_task->title = $original_task->title . ' (Herstel)';
+                    $new_task->title = $original_task->title.' (Herstel)';
                     $new_task->created_at = now();
                     $new_task->updated_at = now();
                     // Add reason and history to description
@@ -370,7 +373,7 @@ class PlanningTaskController extends Controller
                     $descriptionFull = $this->appendCompletionHistory($planning_task, $descriptionWithReason);
 
                     $new_backlog_task = new \App\Models\Task([
-                        'title' => $planning_task->title . ' (Herstel)',
+                        'title' => $planning_task->title.' (Herstel)',
                         'description' => $descriptionFull,
                         'location_id' => $planning_task->location_id ?? $planning_task->planning->locations()->first()->id,
                         'status' => TaskStatus::OPEN,
@@ -395,7 +398,7 @@ class PlanningTaskController extends Controller
                 }
             } else {
                 // No replacement requested: mark original task (if any) as rejected as well
-                if (!is_null($planning_task->task_id) && $planning_task->task) {
+                if (! is_null($planning_task->task_id) && $planning_task->task) {
                     $planning_task->task->update(['status' => TaskStatus::REJECTED]);
                 }
             }
@@ -434,6 +437,7 @@ class PlanningTaskController extends Controller
         // Preferred redirect: if coming from a planning overview, always go back there
         if ($request->filled('planning_id')) {
             $planning = $planning_task->planning;
+
             return redirect()->route('plannings.show', $planning)
                 ->with('success', $message);
         }
@@ -454,17 +458,17 @@ class PlanningTaskController extends Controller
         }
 
         foreach ($completions as $completion) {
-            $outcome = $completion->review_outcome ? " -> Oordeel: " . ucfirst($completion->review_outcome) : '';
+            $outcome = $completion->review_outcome ? ' -> Oordeel: '.ucfirst($completion->review_outcome) : '';
             $history .= "----------------------------------------\n";
-            $history .= "Datum: " . $completion->created_at->format('d-m-Y H:i') . "\n";
-            $history .= "Gebruiker: " . ($completion->user->name ?? 'Onbekend') . "\n";
-            $history .= "Notities: " . ($completion->comment ?? 'Geen notities.') . "\n";
+            $history .= 'Datum: '.$completion->created_at->format('d-m-Y H:i')."\n";
+            $history .= 'Gebruiker: '.($completion->user->name ?? 'Onbekend')."\n";
+            $history .= 'Notities: '.($completion->comment ?? 'Geen notities.')."\n";
             if ($completion->review_notes) {
-                $history .= "Review Notities: " . $completion->review_notes . $outcome . "\n";
+                $history .= 'Review Notities: '.$completion->review_notes.$outcome."\n";
             }
         }
 
-        return ($existing_description ? $existing_description . "\n\n" : '') . $history;
+        return ($existing_description ? $existing_description."\n\n" : '').$history;
     }
 
     /**
@@ -543,7 +547,7 @@ class PlanningTaskController extends Controller
 
         // Backend validation for is_photo_required
         $isPhotoRequired = (bool) ($planning_task->task->is_photo_required ?? $planning_task->defaultTask->is_photo_required ?? false);
-        if ($isPhotoRequired && !$request->hasFile('photos')) {
+        if ($isPhotoRequired && ! $request->hasFile('photos')) {
             // Check if there are existing photos (if it's being updated/re-submitted)
             $existingPhotosCount = $planning_task->completions()
                 ->where('review_outcome', '!=', 'reopened')
@@ -553,7 +557,7 @@ class PlanningTaskController extends Controller
             if ($existingPhotosCount === 0) {
                 return response()->json([
                     'message' => 'The given data was invalid.',
-                    'errors' => ['photos' => ['Foto is verplicht voor deze taak.']]
+                    'errors' => ['photos' => ['Foto is verplicht voor deze taak.']],
                 ], 422);
             }
         }
@@ -714,7 +718,7 @@ class PlanningTaskController extends Controller
         }
 
         // Allow reopening if the task is in 'review', 'skipped' or 'rejected' state
-        if (!in_array($planning_task->status, [TaskStatus::REVIEW, TaskStatus::SKIPPED, TaskStatus::REJECTED])) {
+        if (! in_array($planning_task->status, [TaskStatus::REVIEW, TaskStatus::SKIPPED, TaskStatus::REJECTED])) {
             return response()->json(['message' => 'Taak kan niet heropend worden.'], 403);
         }
 
@@ -797,7 +801,7 @@ class PlanningTaskController extends Controller
         return response()->json([
             'comment' => array_merge($comment->toArray(), [
                 'created_at' => $comment->created_at->format('H:i'),
-            ])
+            ]),
         ]);
     }
 
@@ -815,7 +819,7 @@ class PlanningTaskController extends Controller
         $user = Auth::user();
 
         // Check if user is the owner of the comment or an admin
-        if (!$user->isAdmin() && $comment->user_id !== $user->id) {
+        if (! $user->isAdmin() && $comment->user_id !== $user->id) {
             abort(403, 'Je hebt geen toestemming om deze opmerking te wijzigen.');
         }
 
@@ -864,15 +868,12 @@ class PlanningTaskController extends Controller
         return response()->json([
             'comment' => array_merge($comment->toArray(), [
                 'created_at' => $comment->created_at->format('H:i'),
-            ])
+            ]),
         ]);
     }
 
     /**
      * Check if a location is completed within a planning and trigger LocationCompleted event.
-     *
-     * @param PlanningTask $planningTask
-     * @return void
      */
     private function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
     {
@@ -888,7 +889,7 @@ class PlanningTaskController extends Controller
             $location = $planningTask->task->location;
         }
 
-        if (!$location) {
+        if (! $location) {
             return; // No location found, nothing to check
         }
 
@@ -897,7 +898,7 @@ class PlanningTaskController extends Controller
             $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
 
             // Only trigger if not already notified for this planning/location combination
-            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if (! \Illuminate\Support\Facades\Cache::has($cacheKey)) {
                 // Trigger the LocationCompleted event
                 LocationCompleted::dispatch($location, $planning);
 
@@ -920,7 +921,7 @@ class PlanningTaskController extends Controller
         // 1) Photos directly attached to the planning task (if used)
         $planning_task->loadMissing('planningTaskPhotos');
         foreach ($planning_task->planningTaskPhotos as $idx => $photo) {
-            if (!empty($photo->path) && Storage::disk('public')->exists($photo->path)) {
+            if (! empty($photo->path) && Storage::disk('public')->exists($photo->path)) {
                 $files[] = [
                     'disk_path' => Storage::disk('public')->path($photo->path),
                     'name' => 'task-photos/'.($photo->original_name ?: basename($photo->path)),
@@ -951,11 +952,11 @@ class PlanningTaskController extends Controller
         $tmp = tempnam(sys_get_temp_dir(), 'ptphotos_');
         $zipPath = $tmp.'.zip';
         // On some systems tempnam creates a file; ensure we target our .zip
-        if (file_exists($tmp) && !str_ends_with($tmp, '.zip')) {
+        if (file_exists($tmp) && ! str_ends_with($tmp, '.zip')) {
             @unlink($tmp);
         }
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             return back()->with('error', 'Kon ZIP-bestand niet aanmaken.');
         }

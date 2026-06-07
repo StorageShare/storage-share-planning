@@ -16,6 +16,7 @@ class CsvImportControllerTest extends TestCase
     use RefreshDatabase;
 
     protected string $token;
+
     protected User $admin;
 
     protected function setUp(): void
@@ -46,8 +47,8 @@ class CsvImportControllerTest extends TestCase
 
     public function test_import_with_valid_csv_calls_service_and_flashes_results(): void
     {
-        $csvContent = "Locatie,Activiteit,Omschrijving,Prioriteit,Team 1,Geplande datum,Medewerker\n" .
-            'Amsterdam Isolatorweg 30,To do,Controleronde,Hoog,,01/12/2024,' . "\n";
+        $csvContent = "Locatie,Activiteit,Omschrijving,Prioriteit,Team 1,Geplande datum,Medewerker\n".
+            'Amsterdam Isolatorweg 30,To do,Controleronde,Hoog,,01/12/2024,'."\n";
 
         // Fake uploaded CSV file with specific content
         $file = UploadedFile::fake()->createWithContent('tasks.csv', $csvContent);

@@ -3,9 +3,9 @@
 namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
-use App\Models\Requirement;
 use App\Models\DefaultTask;
 use App\Models\Location;
+use App\Models\Requirement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -16,6 +16,7 @@ class DefaultTaskControllerTest extends TestCase
     use RefreshDatabase;
 
     protected string $token;
+
     protected User $admin;
 
     protected function setUp(): void

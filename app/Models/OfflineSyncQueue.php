@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OfflineSyncQueue extends Model
 {
-
     protected $table = 'offline_sync_queue';
 
     protected $fillable = [
@@ -52,7 +51,7 @@ class OfflineSyncQueue extends Model
     }
 
     /**
-     * @param Builder<self> $query
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopePending(Builder $query): Builder
@@ -61,7 +60,7 @@ class OfflineSyncQueue extends Model
     }
 
     /**
-     * @param Builder<self> $query
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeForUser(Builder $query, int $userId): Builder
@@ -70,7 +69,7 @@ class OfflineSyncQueue extends Model
     }
 
     /**
-     * @param Builder<self> $query
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeByPriority(Builder $query): Builder

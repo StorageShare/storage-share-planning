@@ -6,9 +6,9 @@ use App\Models\PlanningTaskPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-
 /**
  * @property-read PlanningTaskPhoto $resource
+ *
  * @mixin PlanningTaskPhoto
  */
 class PlanningTaskPhotoResource extends JsonResource

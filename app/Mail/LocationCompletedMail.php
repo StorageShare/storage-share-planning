@@ -32,8 +32,6 @@ class LocationCompletedMail extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param Location $location
-     * @param Planning $planning
      * @return void
      */
     public function __construct(Location $location, Planning $planning)
@@ -50,14 +48,12 @@ class LocationCompletedMail extends Mailable
     public function envelope()
     {
         return new Envelope(
-            subject: 'Locatie afgerond: ' . $this->location->name,
+            subject: 'Locatie afgerond: '.$this->location->name,
         );
     }
 
     /**
      * Get the message content definition.
-     *
-     * @return Content
      */
     public function content(): Content
     {

@@ -30,6 +30,7 @@ class VehicleController extends Controller
     public function create(): View
     {
         $types = VehicleType::options();
+
         return view($this->viewName('vehicles.create'), compact('types'));
     }
 
@@ -59,6 +60,7 @@ class VehicleController extends Controller
     public function edit(Vehicle $vehicle): View
     {
         $types = VehicleType::options();
+
         return view($this->viewName('vehicles.edit'), compact('vehicle', 'types'));
     }
 

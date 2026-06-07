@@ -12,9 +12,8 @@ class TravelTimeService
     /**
      * Calculate travel time between two locations in minutes
      *
-     * @param Location|string $origin
-     * @param Location|string $destination
-     * @param string $mode
+     * @param  Location|string  $origin
+     * @param  Location|string  $destination
      * @return array{duration_minutes:int, distance_km:float, duration_text?:string, distance_text?:string, error?:string, estimated?:bool}
      */
     public function calculateTravelTime($origin, $destination, string $mode = 'driving'): array
@@ -26,7 +25,7 @@ class TravelTimeService
             return [
                 'duration_minutes' => 0,
                 'distance_km' => 0,
-                'error' => 'Onvoldoende adresgegevens beschikbaar'
+                'error' => 'Onvoldoende adresgegevens beschikbaar',
             ];
         }
 
@@ -40,9 +39,7 @@ class TravelTimeService
     /**
      * Calculate travel times for a sequence of locations
      *
-     * @param array<int, Location|string> $locations
-     * @param string|null $startAddress
-     * @param string $mode
+     * @param  array<int, Location|string>  $locations
      * @return array{
      *   segments: array<int, array{from:string, to:string, duration_minutes:int, distance_km:float, index:int|string, error?:string, is_return?:bool}>,
      *   total_duration_minutes:int,
@@ -65,7 +62,7 @@ class TravelTimeService
                     'duration_minutes' => $travelTime['duration_minutes'],
                     'distance_km' => $travelTime['distance_km'],
                     'index' => $index,
-                    'error' => $travelTime['error'] ?? null
+                    'error' => $travelTime['error'] ?? null,
                 ];
                 $totalTime += $travelTime['duration_minutes'];
             }
@@ -73,7 +70,7 @@ class TravelTimeService
         }
 
         // Add return trip to start address if we have a start address and locations
-        if ($startAddress && !empty($locations) && $previousLocation) {
+        if ($startAddress && ! empty($locations) && $previousLocation) {
             $returnTravelTime = $this->calculateTravelTime($previousLocation, $startAddress, $mode);
             $results[] = [
                 'from' => $this->getDisplayName($previousLocation),
@@ -82,7 +79,7 @@ class TravelTimeService
                 'distance_km' => $returnTravelTime['distance_km'],
                 'index' => 'return',
                 'error' => $returnTravelTime['error'] ?? null,
-                'is_return' => true
+                'is_return' => true,
             ];
             $totalTime += $returnTravelTime['duration_minutes'];
         }
@@ -90,7 +87,7 @@ class TravelTimeService
         return [
             'segments' => $results,
             'total_duration_minutes' => $totalTime,
-            'total_duration_formatted' => $this->formatDuration((int) $totalTime)
+            'total_duration_formatted' => $this->formatDuration((int) $totalTime),
         ];
     }
 
@@ -123,7 +120,7 @@ class TravelTimeService
      */
     private function getCacheKey(string $origin, string $destination, string $mode): string
     {
-        return 'travel_time_' . md5($origin . '_' . $destination . '_' . $mode);
+        return 'travel_time_'.md5($origin.'_'.$destination.'_'.$mode);
     }
 
     /**
@@ -153,7 +150,7 @@ class TravelTimeService
                 'mode' => $mode,
                 'units' => 'metric',
                 'key' => $apiKey,
-                'language' => 'nl'
+                'language' => 'nl',
             ]);
 
             if ($response->successful()) {
@@ -169,7 +166,7 @@ class TravelTimeService
                         'duration_minutes' => (int) ceil($element['duration']['value'] / 60),
                         'distance_km' => round($element['distance']['value'] / 1000, 1),
                         'duration_text' => $element['duration']['text'],
-                        'distance_text' => $element['distance']['text']
+                        'distance_text' => $element['distance']['text'],
                     ];
                 }
             }
@@ -179,17 +176,18 @@ class TravelTimeService
             Log::warning('Google Maps API error', [
                 'origin' => $origin,
                 'destination' => $destination,
-                'response' => $apiResponse
+                'response' => $apiResponse,
             ]);
 
             // Check for specific API activation error
             if (isset($apiResponse['status']) && $apiResponse['status'] === 'REQUEST_DENIED') {
-                $estimatedTime = str_contains(strtolower($origin . $destination), 'amsterdam') ? 15 : 25;
+                $estimatedTime = str_contains(strtolower($origin.$destination), 'amsterdam') ? 15 : 25;
+
                 return [
                     'duration_minutes' => $estimatedTime,
                     'distance_km' => 0,
                     'error' => 'Legacy API niet ondersteund - Routes API vereist',
-                    'estimated' => true
+                    'estimated' => true,
                 ];
             }
 
@@ -199,7 +197,7 @@ class TravelTimeService
             Log::error('Travel time calculation failed', [
                 'origin' => $origin,
                 'destination' => $destination,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->getEstimatedTravelTime($origin, $destination);
@@ -217,17 +215,17 @@ class TravelTimeService
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'X-Goog-Api-Key' => $apiKey,
-                'X-Goog-FieldMask' => 'routes.duration,routes.distanceMeters'
+                'X-Goog-FieldMask' => 'routes.duration,routes.distanceMeters',
             ])->post('https://routes.googleapis.com/directions/v2:computeRoutes', [
                 'origin' => [
-                    'address' => $origin
+                    'address' => $origin,
                 ],
                 'destination' => [
-                    'address' => $destination
+                    'address' => $destination,
                 ],
                 'travelMode' => strtoupper($mode === 'driving' ? 'DRIVE' : $mode),
                 'routingPreference' => 'TRAFFIC_AWARE',
-                'units' => 'METRIC'
+                'units' => 'METRIC',
             ]);
 
             if ($response->successful()) {
@@ -242,7 +240,7 @@ class TravelTimeService
                         'duration_minutes' => (int) ceil($durationSeconds / 60),
                         'distance_km' => round($distanceMeters / 1000, 1),
                         'duration_text' => $this->formatDuration((int) ceil($durationSeconds / 60)),
-                        'distance_text' => round($distanceMeters / 1000, 1) . ' km'
+                        'distance_text' => round($distanceMeters / 1000, 1).' km',
                     ];
                 }
             }
@@ -251,7 +249,7 @@ class TravelTimeService
             if ($response->status() >= 400) {
                 Log::info('Routes API failed, falling back to Distance Matrix', [
                     'status' => $response->status(),
-                    'response' => $response->json()
+                    'response' => $response->json(),
                 ]);
             }
 
@@ -259,8 +257,9 @@ class TravelTimeService
 
         } catch (\Exception $e) {
             Log::info('Routes API exception, falling back to Distance Matrix', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null; // Fall back to Distance Matrix API
         }
     }
@@ -273,13 +272,13 @@ class TravelTimeService
     private function getEstimatedTravelTime(string $origin, string $destination): array
     {
         // Simple estimation: 15 minutes for local travel, 30 minutes for longer distances
-        $estimatedTime = str_contains(strtolower($origin . $destination), 'amsterdam') ? 15 : 25;
+        $estimatedTime = str_contains(strtolower($origin.$destination), 'amsterdam') ? 15 : 25;
 
         return [
             'duration_minutes' => $estimatedTime,
             'distance_km' => 0.0,
             'error' => 'Geschatte reistijd (geen API-sleutel beschikbaar)',
-            'estimated' => true
+            'estimated' => true,
         ];
     }
 
@@ -289,16 +288,16 @@ class TravelTimeService
     public function formatDuration(int $minutes): string
     {
         if ($minutes < 60) {
-            return $minutes . ' min';
+            return $minutes.' min';
         }
 
         $hours = intval($minutes / 60);
         $remainingMinutes = $minutes % 60;
 
         if ($remainingMinutes === 0) {
-            return $hours . ' uur';
+            return $hours.' uur';
         }
 
-        return $hours . ' uur ' . $remainingMinutes . ' min';
+        return $hours.' uur '.$remainingMinutes.' min';
     }
 }

@@ -33,8 +33,6 @@ class TaskReadyForReviewMail extends Mailable
 
     /**
      * Get the message envelope.
-     *
-     * @return Envelope
      */
     public function envelope(): Envelope
     {
@@ -45,8 +43,6 @@ class TaskReadyForReviewMail extends Mailable
 
     /**
      * Get the message content definition.
-     *
-     * @return Content
      */
     public function content(): Content
     {

@@ -4,10 +4,10 @@ namespace Feature\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TaskStatus;
-use App\Models\Requirement;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningTask;
+use App\Models\Requirement;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TravelTimeService;
@@ -75,6 +75,7 @@ class MyPlanningControllerTest extends TestCase
             $this->assertIsArray($steps);
             $types = array_column($steps, 'type');
             $this->assertContains('summary', $types);
+
             return true;
         });
 
@@ -153,7 +154,7 @@ class MyPlanningControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('my-planning.show'));
         $response->assertOk();
 
-        $response->assertViewHas('locationSteps', function ($steps) use ($l1, $l2) {
+        $response->assertViewHas('locationSteps', function ($steps) {
             $this->assertIsArray($steps);
             $this->assertNotEmpty($steps);
             // Summary is first, requirements checklist is second
@@ -163,10 +164,11 @@ class MyPlanningControllerTest extends TestCase
             $this->assertEquals('requirements', $second['type']);
             $names = array_column($second['requirements'], 'naam');
             // Regular item appears once (deduped) even though it is required for two locations and used by a task
-            $this->assertEquals(1, collect($names)->filter(fn($n) => $n === 'Emmer')->count());
+            $this->assertEquals(1, collect($names)->filter(fn ($n) => $n === 'Emmer')->count());
             // Placeholder creates two location-specific variants with replaced names
             $this->assertContains('Sleutel Loc A', $names);
             $this->assertContains('Sleutel Loc B', $names);
+
             return true;
         });
 

@@ -21,6 +21,7 @@ class RegisteredUserController extends Controller
     {
         /** @var view-string $view */
         $view = 'auth.register';
+
         return view($view);
     }
 

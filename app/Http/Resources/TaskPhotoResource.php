@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * @property-read TaskPhoto $resource
+ *
  * @mixin TaskPhoto
  */
 class TaskPhotoResource extends JsonResource

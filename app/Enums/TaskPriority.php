@@ -23,6 +23,7 @@ enum TaskPriority: string
     public static function values(): array
     {
         $values = array_column(self::cases(), 'value');
+
         return $values;
     }
 }

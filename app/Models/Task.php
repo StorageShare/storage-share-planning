@@ -106,6 +106,7 @@ class Task extends Model
 
     /**
      * Get the user who created the task.
+     *
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
@@ -125,6 +126,7 @@ class Task extends Model
 
     /**
      * Get the requirements for the task.
+     *
      * @return BelongsToMany<Requirement, $this>
      */
     public function requirements(): BelongsToMany
@@ -134,6 +136,7 @@ class Task extends Model
 
     /**
      * Get the parent recurring task (if this is a generated recurring task).
+     *
      * @return BelongsTo<Task, $this>
      */
     public function parentRecurringTask(): BelongsTo
@@ -143,6 +146,7 @@ class Task extends Model
 
     /**
      * Get the child recurring tasks (if this is a parent recurring task).
+     *
      * @return HasMany<Task, $this>
      */
     public function childRecurringTasks(): HasMany
@@ -150,33 +154,32 @@ class Task extends Model
         return $this->hasMany(Task::class, 'parent_recurring_task_id');
     }
 
-
     /**
      * Calculate the next recurring date based on completion date.
      */
     public function calculateNextRecurringDate(?\DateTimeInterface $fromDate = null): ?\DateTimeInterface
     {
-        if (!$this->is_recurring || !$this->recurring_interval_type || !$this->recurring_interval_value) {
+        if (! $this->is_recurring || ! $this->recurring_interval_type || ! $this->recurring_interval_value) {
             return null;
         }
 
         // Ensure we always operate on an immutable instance that supports add()
         $date = $fromDate
             ? \DateTimeImmutable::createFromInterface($fromDate)
-            : new \DateTimeImmutable();
+            : new \DateTimeImmutable;
 
         switch ($this->recurring_interval_type) {
             case 'days':
-                $date = $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'D'));
+                $date = $date->add(new \DateInterval('P'.$this->recurring_interval_value.'D'));
                 break;
             case 'weeks':
-                $date = $date->add(new \DateInterval('P' . ($this->recurring_interval_value * 7) . 'D'));
+                $date = $date->add(new \DateInterval('P'.($this->recurring_interval_value * 7).'D'));
                 break;
             case 'months':
-                $date = $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'M'));
+                $date = $date->add(new \DateInterval('P'.$this->recurring_interval_value.'M'));
                 break;
             case 'years':
-                $date = $date->add(new \DateInterval('P' . $this->recurring_interval_value . 'Y'));
+                $date = $date->add(new \DateInterval('P'.$this->recurring_interval_value.'Y'));
                 break;
         }
 
@@ -185,11 +188,10 @@ class Task extends Model
 
     /**
      * Get human readable recurring interval description.
-     * @return string|null
      */
     public function getRecurringIntervalDescription(): ?string
     {
-        if (!$this->is_recurring || !$this->recurring_interval_type || !$this->recurring_interval_value) {
+        if (! $this->is_recurring || ! $this->recurring_interval_type || ! $this->recurring_interval_value) {
             return null;
         }
 

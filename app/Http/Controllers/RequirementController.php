@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRequirementRequest;
 use App\Http\Requests\UpdateRequirementRequest;
-use App\Models\Requirement;
 use App\Models\Location;
+use App\Models\Requirement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,7 +47,7 @@ class RequirementController extends Controller
         $requirement = Requirement::create($validated);
 
         // Sync the required locations
-        if (!empty($validated['required_for_locations'])) {
+        if (! empty($validated['required_for_locations'])) {
             $requirement->requiredForLocations()->sync($validated['required_for_locations']);
         }
 

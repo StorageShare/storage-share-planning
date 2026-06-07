@@ -60,7 +60,8 @@ class DefaultTask extends Model
 
     /**
      * Scope a query to only include default tasks that apply to all locations.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeForAllLocations(Builder $query): Builder
@@ -70,33 +71,35 @@ class DefaultTask extends Model
 
     /**
      * Scope a query to only include default tasks for a specific location.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeForLocation(Builder $query, int $locationId): Builder
     {
-        return $query->where(function($q) use ($locationId) {
+        return $query->where(function ($q) use ($locationId) {
             $q->where('applies_to_all_locations', true)
-              ->orWhereHas('locations', function($subQ) use ($locationId) {
-                  $subQ->where('location_id', $locationId);
-              })
-              ->orWhere(function($doorQ) use ($locationId) {
-                  // Match by door type of the given location against the task's door_types JSON
-                  $doorType = optional(Location::find($locationId))->type_deur;
-                  if ($doorType === null || $doorType === '') {
-                      // Force false when there is no door type info available
-                      $doorQ->whereRaw('0 = 1');
-                  } else {
-                      $doorQ->where('applies_to_door_types', true)
-                           ->whereJsonContains('door_types', strtolower(trim((string) $doorType)));
-                  }
-              });
+                ->orWhereHas('locations', function ($subQ) use ($locationId) {
+                    $subQ->where('location_id', $locationId);
+                })
+                ->orWhere(function ($doorQ) use ($locationId) {
+                    // Match by door type of the given location against the task's door_types JSON
+                    $doorType = optional(Location::find($locationId))->type_deur;
+                    if ($doorType === null || $doorType === '') {
+                        // Force false when there is no door type info available
+                        $doorQ->whereRaw('0 = 1');
+                    } else {
+                        $doorQ->where('applies_to_door_types', true)
+                            ->whereJsonContains('door_types', strtolower(trim((string) $doorType)));
+                    }
+                });
         });
     }
 
     /**
      * Scope a query to only include default tasks that apply to door types.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeForDoorTypes(Builder $query): Builder
@@ -106,17 +109,19 @@ class DefaultTask extends Model
 
     /**
      * Scope a query to only include default tasks for a specific door type.
-     * @param Builder<self> $query
+     *
+     * @param  Builder<self>  $query
      * @return Builder<self>
      */
     public function scopeForDoorType(Builder $query, string $doorType): Builder
     {
         return $query->where('applies_to_door_types', true)
-                    ->whereJsonContains('door_types', strtolower(trim($doorType)));
+            ->whereJsonContains('door_types', strtolower(trim($doorType)));
     }
 
     /**
      * The locations that belong to the default task.
+     *
      * @return BelongsToMany<Location, $this>
      */
     public function locations(): BelongsToMany
@@ -126,6 +131,7 @@ class DefaultTask extends Model
 
     /**
      * Get the planning tasks associated with the default task.
+     *
      * @return HasMany<PlanningTask, $this>
      */
     public function planningTasks(): HasMany
@@ -135,6 +141,7 @@ class DefaultTask extends Model
 
     /**
      * Get the user who created the default task.
+     *
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
@@ -144,6 +151,7 @@ class DefaultTask extends Model
 
     /**
      * Get the requirements for the default task.
+     *
      * @return BelongsToMany<Requirement, $this>
      */
     public function requirements(): BelongsToMany
@@ -153,15 +161,16 @@ class DefaultTask extends Model
 
     /**
      * Get locations that match the door types for this default task.
+     *
      * @return Builder<Location>
      */
     public function applicableLocationsByDoorType(): Builder
     {
-        if (!$this->applies_to_door_types || empty($this->door_types)) {
+        if (! $this->applies_to_door_types || empty($this->door_types)) {
             return Location::whereRaw('1 = 0'); // Return empty query
         }
 
-        $doorTypes = array_map(fn($type) => strtolower(trim($type)), $this->door_types);
+        $doorTypes = array_map(fn ($type) => strtolower(trim($type)), $this->door_types);
 
         return Location::whereIn(
             DB::raw('LOWER(TRIM(type_deur))'),
@@ -174,7 +183,7 @@ class DefaultTask extends Model
      */
     public function appliesToLocationByDoorType(Location $location): bool
     {
-        if (!$this->applies_to_door_types || empty($this->door_types) || empty($location->type_deur)) {
+        if (! $this->applies_to_door_types || empty($this->door_types) || empty($location->type_deur)) {
             return false;
         }
 
@@ -212,6 +221,7 @@ class DefaultTask extends Model
 
     /**
      * Get all available door types from locations.
+     *
      * @return array<string>
      */
     public static function getAvailableDoorTypes(): array
@@ -220,7 +230,7 @@ class DefaultTask extends Model
             ->where('type_deur', '!=', '')
             ->distinct()
             ->pluck('type_deur')
-            ->map(fn($type) => trim($type))
+            ->map(fn ($type) => trim($type))
             ->filter()
             ->sort()
             ->values()
