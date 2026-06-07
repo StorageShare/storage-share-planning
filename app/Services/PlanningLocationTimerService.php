@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Location;
 use App\Models\Planning;
 use App\Models\PlanningLocationTimer;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class PlanningLocationTimerService
@@ -81,5 +83,67 @@ class PlanningLocationTimerService
         ]);
 
         return (string) $request->string('time');
+    }
+
+    public function updateLocationActualTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
+    {
+        return $this->updateManualDuration(
+            $request,
+            $planning,
+            $location->id,
+            'location',
+            'Tijd op locatie bijgewerkt.'
+        );
+    }
+
+    public function updateTravelToTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
+    {
+        return $this->updateManualDuration(
+            $request,
+            $planning,
+            $location->id,
+            'travel',
+            'Reistijd bijgewerkt.'
+        );
+    }
+
+    public function updateTravelBackTime(Request $request, Planning $planning): JsonResponse|RedirectResponse
+    {
+        return $this->updateManualDuration(
+            $request,
+            $planning,
+            null,
+            'travel_back',
+            'Reistijd terug bijgewerkt.'
+        );
+    }
+
+    private function updateManualDuration(
+        Request $request,
+        Planning $planning,
+        ?int $locationId,
+        string $locationType,
+        string $successMessage
+    ): JsonResponse|RedirectResponse {
+        $time = $this->validateTimeInput($request);
+        $seconds = $this->parseHHMMToSeconds($time);
+
+        $timer = PlanningLocationTimer::firstOrNew([
+            'planning_id' => $planning->id,
+            'location_id' => $locationId,
+            'location_type' => $locationType,
+        ]);
+        $timer->total_duration_seconds = max(0, $seconds);
+        $timer->save();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'seconds' => $timer->total_duration_seconds,
+                'hhmm' => $this->formatSecondsHHMM($timer->total_duration_seconds),
+            ]);
+        }
+
+        return back()->with('success', $successMessage);
     }
 }

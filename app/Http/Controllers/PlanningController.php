@@ -9,7 +9,6 @@ use App\Http\Requests\UpdatePlanningRequest;
 use App\Mail\PlanningReadyNotificationMail;
 use App\Models\Location;
 use App\Models\Planning;
-use App\Models\PlanningLocationTimer;
 use App\Models\Requirement;
 use App\Models\Task;
 use App\Models\User;
@@ -108,27 +107,7 @@ class PlanningController extends Controller
      */
     public function updateLocationActualTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
     {
-        $time = $this->planningLocationTimerService->validateTimeInput($request);
-        $seconds = $this->planningLocationTimerService->parseHHMMToSeconds($time);
-
-        // Set the total on-location time directly to the provided HH:mm (interpreted as total desired time on location)
-        $timer = PlanningLocationTimer::firstOrNew([
-            'planning_id' => $planning->id,
-            'location_id' => $location->id,
-            'location_type' => 'location',
-        ]);
-        $timer->total_duration_seconds = max(0, $seconds);
-        $timer->save();
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'ok' => true,
-                'seconds' => $timer->total_duration_seconds,
-                'hhmm' => $this->planningLocationTimerService->formatSecondsHHMM($timer->total_duration_seconds),
-            ]);
-        }
-
-        return back()->with('success', 'Tijd op locatie bijgewerkt.');
+        return $this->planningLocationTimerService->updateLocationActualTime($request, $planning, $location);
     }
 
     /**
@@ -136,28 +115,7 @@ class PlanningController extends Controller
      */
     public function updateTravelToTime(Request $request, Planning $planning, Location $location): JsonResponse|RedirectResponse
     {
-        $time = $this->planningLocationTimerService->validateTimeInput($request);
-        $seconds = $this->planningLocationTimerService->parseHHMMToSeconds($time);
-
-        $timer = PlanningLocationTimer::firstOrNew([
-            'planning_id' => $planning->id,
-            'location_id' => $location->id,
-            'location_type' => 'travel',
-        ]);
-        $timer->total_duration_seconds = max(0, $seconds);
-        $timer->save();
-
-        // Splitting travel time among locations has been removed; we only store per-trip travel timers.
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'ok' => true,
-                'seconds' => $timer->total_duration_seconds,
-                'hhmm' => $this->planningLocationTimerService->formatSecondsHHMM($timer->total_duration_seconds),
-            ]);
-        }
-
-        return back()->with('success', 'Reistijd bijgewerkt.');
+        return $this->planningLocationTimerService->updateTravelToTime($request, $planning, $location);
     }
 
     /**
@@ -165,28 +123,7 @@ class PlanningController extends Controller
      */
     public function updateTravelBackTime(Request $request, Planning $planning): JsonResponse|RedirectResponse
     {
-        $time = $this->planningLocationTimerService->validateTimeInput($request);
-        $seconds = $this->planningLocationTimerService->parseHHMMToSeconds($time);
-
-        $timer = PlanningLocationTimer::firstOrNew([
-            'planning_id' => $planning->id,
-            'location_id' => null,
-            'location_type' => 'travel_back',
-        ]);
-        $timer->total_duration_seconds = max(0, $seconds);
-        $timer->save();
-
-        // Splitting travel time among locations has been removed; no redistribution is performed.
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'ok' => true,
-                'seconds' => $timer->total_duration_seconds,
-                'hhmm' => $this->planningLocationTimerService->formatSecondsHHMM($timer->total_duration_seconds),
-            ]);
-        }
-
-        return back()->with('success', 'Reistijd terug bijgewerkt.');
+        return $this->planningLocationTimerService->updateTravelBackTime($request, $planning);
     }
 
     /**
