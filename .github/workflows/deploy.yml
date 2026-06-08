@@ -12,6 +12,13 @@ on:
   # Handmatig kunnen deployen (bijv. om de SSH-verbinding te testen).
   workflow_dispatch:
 
+# Voorkom dat twee deploys tegelijk draaien (bijv. een handmatige dispatch
+# vlak na een push). Gelijktijdige npm-installaties op de server clashen
+# anders op node_modules. Lopende deploy laten we afmaken, nieuwe wacht.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
