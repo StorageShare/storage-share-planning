@@ -39,14 +39,18 @@ php artisan storage:link || true
 echo "🗄️ Running database migrations..."
 php artisan migrate --force
 
-# Set proper permissions
-echo "🔐 Setting permissions..."
-chmod -R 755 storage bootstrap/cache
+# Set proper permissions (best-effort).
+# Bij een geautomatiseerde deploy draaien we mogelijk als een gebruiker die
+# niet alle bestanden mag chown/chmod-en (eigendom van een andere user).
+# Daarom faalt dit blok de deploy niet langer.
+echo "🔐 Setting permissions (best-effort)..."
+set +e
+chmod -R 755 storage bootstrap/cache 2>/dev/null
+chown -R cpbwahmrsn:cpbwahmrsn storage/ bootstrap/cache/ 2>/dev/null
+chmod -R 755 storage/ bootstrap/cache/ 2>/dev/null
+chmod -R 775 storage/logs/ storage/framework/ 2>/dev/null
+set -e
 
-# Post-deployment permission fix
-chown -R cpbwahmrsn:cpbwahmrsn storage/ bootstrap/cache/
-chmod -R 755 storage/ bootstrap/cache/
-chmod -R 775 storage/logs/ storage/framework/
 php artisan config:clear && php artisan cache:clear && php artisan view:clear
 
 echo "✅ Deployment completed successfully!"
