@@ -91,7 +91,7 @@
                         <div class="relative inline-flex items-center">
                             <x-dropdown align="left" width="48">
                                 <x-slot name="trigger">
-                                    <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150 {{ request()->routeIs(['admin.timers.*', 'admin.bv-stats.*']) ? 'text-gray-900 dark:text-gray-100' : '' }}">
+                                    <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150 {{ request()->routeIs(['admin.timers.*', 'admin.bv-stats.*', 'admin.locations.report']) ? 'text-gray-900 dark:text-gray-100' : '' }}">
                                         <div>{{ __('Statistieken') }}</div>
                                         <div class="ms-1">
                                             <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -107,6 +107,9 @@
                                     </x-dropdown-link>
                                     <x-dropdown-link :href="route('admin.bv-stats.index')">
                                         📊 {{ __('BV Statistieken') }}
+                                    </x-dropdown-link>
+                                    <x-dropdown-link :href="route('admin.locations.report')">
+                                        📍 {{ __('Locatie Overzicht') }}
                                     </x-dropdown-link>
                                     <x-dropdown-link :href="route('admin.logs.syslog')">
                                         📋 {{ __('Syslog Viewer') }}
@@ -317,6 +320,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.bv-stats.index')" :active="request()->routeIs('admin.bv-stats.*')">
                     📊 {{ __('BV Statistieken') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.locations.report')" :active="request()->routeIs('admin.locations.report')">
+                    📍 {{ __('Locatie Overzicht') }}
                 </x-responsive-nav-link>
             @endif
         </div>

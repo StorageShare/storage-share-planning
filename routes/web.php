@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BvStatsController;
+use App\Http\Controllers\Admin\LocationReportController;
 use App\Http\Controllers\Admin\SyslogController;
 use App\Http\Controllers\Admin\TaskReviewController;
 use App\Http\Controllers\Admin\TimerController;
@@ -203,6 +204,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/timers/{planning}', [TimerController::class, 'show'])->name('timers.show');
         Route::get('/timers/{planning}/live-data', [TimerController::class, 'getLiveData'])->name('timers.live-data');
         Route::get('/bv-stats', [BvStatsController::class, 'index'])->name('bv-stats.index');
+        Route::get('/locations/report', [LocationReportController::class, 'index'])->name('locations.report');
 
         // Syslog routes
         Route::get('/logs/syslog', [SyslogController::class, 'index'])->name('logs.syslog');
