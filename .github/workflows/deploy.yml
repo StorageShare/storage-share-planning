@@ -9,12 +9,15 @@ on:
       - completed
     branches:
       - main
+  # Handmatig kunnen deployen (bijv. om de SSH-verbinding te testen).
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Alleen deployen als de CI groen was.
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Bij workflow_run alleen deployen als de CI groen was;
+    # bij handmatige dispatch altijd.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       # GitHub-secrets strippen de afsluitende newline; een OpenSSH-key moet
