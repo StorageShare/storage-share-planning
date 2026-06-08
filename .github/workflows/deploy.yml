@@ -24,5 +24,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          debug: true
           script: |
             bash /home/master/applications/planning/public_html/deploy.sh
