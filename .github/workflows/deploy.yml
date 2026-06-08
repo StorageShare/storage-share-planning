@@ -17,13 +17,22 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      # GitHub-secrets strippen de afsluitende newline; een OpenSSH-key moet
+      # daar wel mee eindigen. We schrijven de key daarom naar een bestand en
+      # voegen de newline terug toe, en gebruiken key_path i.p.v. inline key.
+      - name: Prepare SSH key
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          chmod 600 "$RUNNER_TEMP/deploy_key"
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          debug: true
+          key_path: ${{ runner.temp }}/deploy_key
           script: |
             bash /home/master/applications/planning/public_html/deploy.sh
