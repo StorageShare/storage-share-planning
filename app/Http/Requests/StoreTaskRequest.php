@@ -8,7 +8,7 @@ use Illuminate\Contracts\Validation\ValidationRule; // Import Location model for
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
- // Import Rule facade
+// Import Rule facade
 
 class StoreTaskRequest extends FormRequest
 {
