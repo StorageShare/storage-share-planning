@@ -1,0 +1,21 @@
+name: KeyCheck
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect SSH secret (fingerprint only, no key leak)
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$KEY" > /tmp/k
+          chmod 600 /tmp/k
+          echo "key_bytes=$(wc -c < /tmp/k)"
+          echo "first_line=$(head -1 /tmp/k)"
+          echo "last_line=$(tail -1 /tmp/k)"
+          echo "fingerprint:"
+          ssh-keygen -lf /tmp/k || echo "PARSE_FAIL"
+          rm -f /tmp/k
