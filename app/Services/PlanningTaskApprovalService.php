@@ -44,7 +44,6 @@ class PlanningTaskApprovalService
         }
 
         $planningTask->planning->checkAndUpdateStatus();
-        $this->planningTaskSyncService->checkLocationCompletionAndNotify($planningTask);
 
         $message = 'Geplande taak goedgekeurd.';
 

@@ -2,9 +2,7 @@
 
 namespace App\Providers;
 
-use App\Events\LocationCompleted;
 use App\Events\TaskReadyForReview;
-use App\Listeners\SendLocationCompletedNotification;
 use App\Listeners\SendTaskReviewNotification;
 use App\Models\DefaultTask;
 use App\Models\Location;
@@ -25,9 +23,6 @@ class EventServiceProvider extends ServiceProvider
         TaskReadyForReview::class => [
             SendTaskReviewNotification::class,
         ],
-        //        LocationCompleted::class => [
-        //            SendLocationCompletedNotification::class,
-        //        ],
     ];
 
     /**

@@ -105,7 +105,6 @@ class PlanningTaskCompletionWorkflowService
 
         $this->markCompleted($planningTask, null, TaskStatus::COMPLETED);
         $planning->checkAndUpdateStatus();
-        $this->planningTaskSyncService->checkLocationCompletionAndNotify($planningTask);
 
         return response()->json(['task' => $planningTask->fresh(['completions.photos'])]);
     }
@@ -160,7 +159,6 @@ class PlanningTaskCompletionWorkflowService
 
         $this->markCompleted($planningTask, $request->input('completed_notes'), TaskStatus::REVIEW);
         $planning->checkAndUpdateStatus();
-        $this->planningTaskSyncService->checkLocationCompletionAndNotify($planningTask);
 
         return response()->json(['task' => $planningTask->fresh(['completions.photos'])]);
     }
@@ -193,8 +191,6 @@ class PlanningTaskCompletionWorkflowService
 
         $completion->load('photos');
         $skipPhotos = $completion->photos->pluck('url')->toArray();
-
-        $this->planningTaskSyncService->checkLocationCompletionAndNotify($planningTask);
 
         return response()->json([
             'task' => $planningTask->fresh(['completions.photos']),

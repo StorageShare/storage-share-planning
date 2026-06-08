@@ -3,10 +3,7 @@
 namespace App\Services;
 
 use App\Enums\TaskStatus;
-use App\Events\LocationCompleted;
-use App\Models\Location;
 use App\Models\PlanningTask;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class PlanningTaskSyncService
@@ -33,30 +30,5 @@ class PlanningTaskSyncService
     {
         $this->syncLinkedVehicleTaskStatus($planningTask, $status);
         $this->syncLinkedBacklogTaskStatus($planningTask, $status);
-    }
-
-    public function checkLocationCompletionAndNotify(PlanningTask $planningTask): void
-    {
-        $planning = $planningTask->planning;
-
-        $location = null;
-        if ($planningTask->location_id) {
-            $location = Location::find($planningTask->location_id);
-        } elseif ($planningTask->task && $planningTask->task->location_id) {
-            $location = $planningTask->task->location;
-        }
-
-        if (! $location) {
-            return;
-        }
-
-        if ($location->areAllTasksCompletedInPlanning($planning)) {
-            $cacheKey = "location_completed_notified_{$planning->id}_{$location->id}";
-
-            if (! Cache::has($cacheKey)) {
-                LocationCompleted::dispatch($location, $planning);
-                Cache::put($cacheKey, true, now()->addDay());
-            }
-        }
     }
 }

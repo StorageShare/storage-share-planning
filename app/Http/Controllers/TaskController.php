@@ -15,7 +15,6 @@ use App\Models\Requirement;
 use App\Models\Task;
 use App\Services\ImageService;
 use App\Services\PlanningTaskRejectionService;
-use App\Services\PlanningTaskSyncService;
 use App\Services\RecurringTaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -494,7 +493,7 @@ class TaskController extends Controller
         // Alternatief: return redirect()->route('locations.show', $location)->with('success', 'Taak succesvol verwijderd.');
     }
 
-    public function approve(Request $request, Task $task, PlanningTaskSyncService $planningTaskSyncService): RedirectResponse
+    public function approve(Request $request, Task $task): RedirectResponse
     {
         if ($task->status === TaskStatus::IN_REVIEW) {
             $task->update(['status' => TaskStatus::OPEN]);
@@ -523,11 +522,8 @@ class TaskController extends Controller
         }
 
         // After approval, check if the parent planning is now fully completed
-        if ($triggering_planning_task->planning != null) {
+        if ($triggering_planning_task?->planning != null) {
             $triggering_planning_task->planning->checkAndUpdateStatus();
-
-            // Check if this location is now completed and notify if needed
-            $planningTaskSyncService->checkLocationCompletionAndNotify($triggering_planning_task);
         }
 
         // Handle recurring task creation if applicable
