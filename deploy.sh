@@ -9,7 +9,7 @@ echo "🚀 Starting deployment..."
 cd /home/master/applications/planning/public_html
 
 # Pull latest changes
-echo "📥 Pulling latest changes from Bitbucket..."
+echo "📥 Pulling latest changes from GitHub..."
 git pull origin main
 
 # Install composer dependencies

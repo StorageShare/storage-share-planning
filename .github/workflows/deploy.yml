@@ -1,0 +1,28 @@
+name: Deploy
+
+# Draait pas nadat de CI-workflow op `main` succesvol is afgerond.
+# (workflow_run werkt alleen als de default branch in GitHub op `main` staat.)
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Alleen deployen als de CI groen was.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            bash /home/master/applications/planning/public_html/deploy.sh
