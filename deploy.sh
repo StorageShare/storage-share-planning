@@ -18,6 +18,10 @@ composer install --optimize-autoloader --no-dev
 
 # Install npm dependencies and build assets
 echo "🎨 Building frontend assets..."
+# De home van de applicatie-user is read-only; stuur de npm-cache (en logs)
+# naar een wel-schrijfbare map zodat npm niet faalt op ~/.npm.
+export npm_config_cache="$HOME/private_html/.npm"
+mkdir -p "$npm_config_cache"
 npm ci
 npm run build
 
