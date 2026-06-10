@@ -17,17 +17,18 @@ class PlanningNotificationService
      */
     public function sendPendingForPlanning(Planning $planning): array
     {
-        $planning->loadMissing('users');
+        $allUserCount = $planning->users()->count();
+        $pendingUsers = $planning->users()
+            ->whereNull('planning_user.notification_sent_at')
+            ->get();
 
-        $stats = ['sent' => 0, 'skipped' => 0, 'failed' => 0];
+        $stats = [
+            'sent' => 0,
+            'skipped' => $allUserCount - $pendingUsers->count(),
+            'failed' => 0,
+        ];
 
-        foreach ($planning->users as $user) {
-            if ($user->pivot->notification_sent_at !== null) {
-                $stats['skipped']++;
-
-                continue;
-            }
-
+        foreach ($pendingUsers as $user) {
             if ($this->sendToUser($planning, $user)) {
                 $stats['sent']++;
             } else {
