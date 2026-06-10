@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\PlanningReadyNotificationMail;
 use App\Models\Planning;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -40,7 +41,7 @@ class PlanningNotificationService
     /**
      * @return Collection<int, Planning>
      */
-    public function planningsWithPendingNotificationsForDate(\Carbon\Carbon $date): Collection
+    public function planningsWithPendingNotificationsForDate(Carbon $date): Collection
     {
         return Planning::query()
             ->whereDate('planned_date', $date)
