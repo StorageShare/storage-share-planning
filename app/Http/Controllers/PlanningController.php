@@ -6,7 +6,6 @@ use App\Enums\Role;
 use App\Enums\TaskStatus;
 use App\Http\Requests\StorePlanningRequest;
 use App\Http\Requests\UpdatePlanningRequest;
-use App\Mail\PlanningReadyNotificationMail;
 use App\Models\Location;
 use App\Models\Planning;
 use App\Models\Requirement;
@@ -19,6 +18,7 @@ use App\Services\PlanningCompletionService;
 use App\Services\PlanningFormDataService;
 use App\Services\PlanningLocationSyncService;
 use App\Services\PlanningLocationTimerService;
+use App\Services\PlanningNotificationService;
 use App\Services\PlanningShowDataService;
 use App\Services\PlanningTaskCreationService;
 use App\Services\PlanningTaskUpdateService;
@@ -32,8 +32,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class PlanningController extends Controller
@@ -54,6 +52,8 @@ class PlanningController extends Controller
 
     private PlanningCompletionService $planningCompletionService;
 
+    private PlanningNotificationService $planningNotificationService;
+
     public function __construct(
         private ?TravelTimeService $travelTimeService = null,
         ?ExternalLocationService $externalLocationService = null,
@@ -63,7 +63,8 @@ class PlanningController extends Controller
         ?PlanningTaskCreationService $planningTaskCreationService = null,
         ?PlanningTaskUpdateService $planningTaskUpdateService = null,
         ?PlanningShowDataService $planningShowDataService = null,
-        ?PlanningCompletionService $planningCompletionService = null
+        ?PlanningCompletionService $planningCompletionService = null,
+        ?PlanningNotificationService $planningNotificationService = null
     ) {
         // Allow container-bound mocks (including anonymous classes) to be injected in tests
         $this->travelTimeService = $travelTimeService ?: app(TravelTimeService::class);
@@ -75,6 +76,7 @@ class PlanningController extends Controller
         $this->planningTaskUpdateService = $planningTaskUpdateService ?: app(PlanningTaskUpdateService::class);
         $this->planningShowDataService = $planningShowDataService ?: app(PlanningShowDataService::class);
         $this->planningCompletionService = $planningCompletionService ?: app(PlanningCompletionService::class);
+        $this->planningNotificationService = $planningNotificationService ?: app(PlanningNotificationService::class);
     }
 
     /**
@@ -484,32 +486,23 @@ class PlanningController extends Controller
      */
     public function sendNotifications(Planning $planning): RedirectResponse
     {
-        // Load the necessary relationships
         $planning->load(['users', 'locations', 'planningTasks']);
 
-        // Check if there are users assigned to this planning
         if ($planning->users->isEmpty()) {
             return redirect()->back()->with('error', 'Er zijn geen gebruikers toegewezen aan deze planning.');
         }
 
-        $sentCount = 0;
-        foreach ($planning->users as $user) {
-            try {
-                Mail::to($user->email)->send(new PlanningReadyNotificationMail($planning));
-                $sentCount++;
-            } catch (\Exception $e) {
-                // Log the error but continue sending to other users
-                Log::error('Failed to send planning notification to user '.$user->id.': '.$e->getMessage());
-            }
+        $stats = $this->planningNotificationService->sendPendingForPlanning($planning);
+
+        if ($stats['sent'] > 0) {
+            return redirect()->back()->with('success', "Notificatie succesvol verstuurd naar {$stats['sent']} gebruiker(s).");
         }
 
-        if ($sentCount > 0) {
-            $message = "Notificatie succesvol verstuurd naar {$sentCount} gebruiker(s).";
-
-            return redirect()->back()->with('success', $message);
-        } else {
-            return redirect()->back()->with('error', 'Er is een fout opgetreden bij het versturen van de notificaties.');
+        if ($stats['skipped'] > 0 && $stats['failed'] === 0) {
+            return redirect()->back()->with('info', 'Alle toegewezen gebruikers hebben deze notificatie al ontvangen.');
         }
+
+        return redirect()->back()->with('error', 'Er is een fout opgetreden bij het versturen van de notificaties.');
     }
 
     /**

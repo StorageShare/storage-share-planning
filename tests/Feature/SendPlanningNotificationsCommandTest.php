@@ -65,6 +65,50 @@ class SendPlanningNotificationsCommandTest extends TestCase
         });
     }
 
+    public function test_it_does_not_send_duplicate_notifications_on_second_run(): void
+    {
+        Mail::fake();
+
+        $tomorrow = Carbon::tomorrow();
+        $planning = Planning::factory()->create([
+            'planned_date' => $tomorrow,
+        ]);
+        $user = User::factory()->create();
+        $planning->users()->attach($user->id);
+
+        $this->artisan('app:send-planning-notifications')->assertExitCode(0);
+        $this->artisan('app:send-planning-notifications')->assertExitCode(0);
+
+        Mail::assertSent(PlanningReadyNotificationMail::class, 1);
+    }
+
+    public function test_it_sends_to_newly_assigned_users_after_initial_notification(): void
+    {
+        Mail::fake();
+
+        $tomorrow = Carbon::tomorrow();
+        $planning = Planning::factory()->create([
+            'planned_date' => $tomorrow,
+        ]);
+        $user1 = User::factory()->create();
+        $planning->users()->attach($user1->id);
+
+        $this->artisan('app:send-planning-notifications')->assertExitCode(0);
+
+        $user2 = User::factory()->create();
+        $planning->users()->attach($user2->id);
+
+        $this->artisan('app:send-planning-notifications')->assertExitCode(0);
+
+        Mail::assertSent(PlanningReadyNotificationMail::class, 2);
+        Mail::assertSent(PlanningReadyNotificationMail::class, function ($mail) use ($user1) {
+            return $mail->hasTo($user1->email);
+        });
+        Mail::assertSent(PlanningReadyNotificationMail::class, function ($mail) use ($user2) {
+            return $mail->hasTo($user2->email);
+        });
+    }
+
     public function test_it_does_not_crash_if_no_users_assigned(): void
     {
         Mail::fake();
@@ -78,7 +122,7 @@ class SendPlanningNotificationsCommandTest extends TestCase
         // 2. Run the command
         $this->artisan('app:send-planning-notifications')
             ->assertExitCode(0)
-            ->expectsOutputToContain('Planning #1 heeft geen toegewezen gebruikers. Overslaan.');
+            ->expectsOutputToContain('Geen openstaande notificaties voor morgen.');
 
         // 3. Assert no mail sent
         Mail::assertNothingSent();
