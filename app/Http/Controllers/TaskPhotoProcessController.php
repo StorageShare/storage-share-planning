@@ -40,12 +40,6 @@ class TaskPhotoProcessController extends Controller
             'room' => 'required|string',
         ]);
 
-        $task->update([
-            'room' => $request->room,
-            'photo_process_step' => 'PHOTO_DISTRIBUTED',
-            'photo_process_at' => now(),
-        ]);
-
         $photo = $task->planningTasks->flatMap->planningTaskPhotos->sortByDesc('created_at')->first(fn ($p) => $p->room === $request->room);
 
         if (! $photo) {
@@ -84,6 +78,9 @@ class TaskPhotoProcessController extends Controller
         }
 
         $task->update([
+            'room' => $request->room,
+            'photo_process_step' => 'PHOTO_DISTRIBUTED',
+            'photo_process_at' => now(),
             'photo_process_notification_id' => $result['notification_id'] ?? null,
         ]);
 
