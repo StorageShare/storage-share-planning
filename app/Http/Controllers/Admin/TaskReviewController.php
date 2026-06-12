@@ -169,10 +169,12 @@ class TaskReviewController extends Controller
 
             $task_item = (object) [
                 'item' => $task,
+                'id' => $task->id,
                 'title' => $task->title,
                 'type' => 'task',
                 'description' => $triggering_planning_task->description ?? $task->description,
                 'location' => $task->location->name,
+                'location_id' => $task->location_id,
                 'planning' => $planning,
                 'history' => $completion_history,
                 'approve_route' => route('tasks.approve', $task),
@@ -193,16 +195,20 @@ class TaskReviewController extends Controller
             $completion_history = $task_item->completions;
             $planning = $task_item->planning;
 
+            $planningTask = $task_item;
+
             $task_item = (object) [
-                'item' => $task_item,
-                'title' => $task_item->title,
+                'item' => $planningTask,
+                'id' => $planningTask->id,
+                'title' => $planningTask->title,
                 'type' => 'planning_task',
-                'description' => $task_item->description,
+                'description' => $planningTask->description,
                 'location' => $location_name,
+                'location_id' => $this->resolvePlanningTaskLocationId($planningTask),
                 'planning' => $planning,
                 'history' => $completion_history,
-                'approve_route' => route('plannings.tasks.approve', $task_item),
-                'reject_route' => route('plannings.tasks.reject', $task_item),
+                'approve_route' => route('plannings.tasks.approve', $planningTask),
+                'reject_route' => route('plannings.tasks.reject', $planningTask),
             ];
 
         } elseif ($type === 'skipped_planning_task') {
@@ -222,12 +228,16 @@ class TaskReviewController extends Controller
             $completion_history = $task_item->completions;
             $planning = $task_item->planning;
 
+            $planningTask = $task_item;
+
             $task_item = (object) [
-                'item' => $task_item,
-                'title' => $task_item->title,
+                'item' => $planningTask,
+                'id' => $planningTask->id,
+                'title' => $planningTask->title,
                 'type' => 'skipped_planning_task',
-                'description' => $task_item->description,
+                'description' => $planningTask->description,
                 'location' => $location_name,
+                'location_id' => $this->resolvePlanningTaskLocationId($planningTask),
                 'planning' => $planning,
                 'history' => $completion_history,
                 'approve_route' => null, // Will be handled differently for skipped tasks
@@ -270,10 +280,12 @@ class TaskReviewController extends Controller
 
             $task_item = (object) [
                 'item' => $checklist_item,
+                'id' => $checklist_item->id,
                 'title' => $checklist_item->title,
                 'type' => 'end_checklist_item',
                 'description' => $checklist_item->description,
                 'location' => $location_name,
+                'location_id' => $checklist_item->location_id,
                 'planning' => $planning,
                 'history' => $completion_history,
                 'approve_route' => route('admin.end-checklist.approve', $checklist_item),
@@ -358,6 +370,14 @@ class TaskReviewController extends Controller
         }
 
         return redirect()->route('admin.tasks.review')->with('success', $message);
+    }
+
+    private function resolvePlanningTaskLocationId(PlanningTask $planningTask): ?int
+    {
+        return $planningTask->location_id
+            ?? $planningTask->task?->location_id
+            ?? $planningTask->specificLocation?->id
+            ?? $planningTask->planning?->locations->first()?->id;
     }
 
     /**

@@ -98,7 +98,7 @@
                                                     $completionPhotos = $completion->photos->map(fn($photo) => \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path))->values()->all();
                                                     $completionPhotoIds = $completion->photos->pluck('id')->values()->all();
                                                     $completionPhotoRooms = $completion->photos->pluck('room')->values()->all();
-                                                    $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $task->location_id);
+                                                    $completionPhotoLocationIds = array_fill(0, count($completionPhotos), $task->location_id ?? null);
                                                 @endphp
                                                 <div class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"
                                                      x-data='{
