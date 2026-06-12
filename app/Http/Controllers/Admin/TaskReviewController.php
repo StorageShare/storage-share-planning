@@ -374,10 +374,21 @@ class TaskReviewController extends Controller
 
     private function resolvePlanningTaskLocationId(PlanningTask $planningTask): ?int
     {
-        return $planningTask->location_id
-            ?? $planningTask->task?->location_id
-            ?? $planningTask->specificLocation?->id
-            ?? $planningTask->planning?->locations->first()?->id;
+        if ($planningTask->location_id !== null) {
+            return $planningTask->location_id;
+        }
+
+        if ($planningTask->task !== null) {
+            return $planningTask->task->location_id;
+        }
+
+        if ($planningTask->specificLocation !== null) {
+            return $planningTask->specificLocation->id;
+        }
+
+        $firstLocation = $planningTask->planning->locations->first();
+
+        return $firstLocation?->id;
     }
 
     /**

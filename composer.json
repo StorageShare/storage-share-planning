@@ -64,6 +64,14 @@
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
         ],
+        "quality": [
+            "@lint",
+            "@analyse"
+        ],
+        "setup-hooks": [
+            "git config core.hooksPath .githooks",
+            "chmod +x .githooks/pre-commit"
+        ],
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
